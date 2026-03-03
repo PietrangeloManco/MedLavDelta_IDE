@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard {{ azienda.ragione_sociale }}{% endblock %}
+
+{% block sidebar %}
+<a class="d-block py-2 px-3 text-decoration-none fw-bold" href="{% url 'azienda_dashboard' %}">🏠 Dashboard</a>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-4 fw-bold">{{ azienda.ragione_sociale }}</h4>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white" style="background:#1a3a5c">
+            <div class="card-body">
+                <h6>Lavoratori attivi</h6>
+                <h2>{{ totale_lavoratori }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="mb-3">I tuoi lavoratori</h5>
+<div class="table-responsive">
+    <table class="table table-hover bg-white rounded shadow-sm">
+        <thead class="table-light">
+            <tr><th>Nominativo</th><th>Mansione</th><th>Sede</th><th>Ultimo esito</th></tr>
+        </thead>
+        <tbody>
+            {% for lavoratore in lavoratori %}
+            <tr style="cursor:pointer" onclick="location.href='{% url 'azienda_lavoratore' lavoratore.pk %}'">
+                <td class="fw-bold">{{ lavoratore.nome_completo }}</td>
+                <td>{{ lavoratore.mansione }}</td>
+                <td>{{ lavoratore.sede|default:"—" }}</td>
+                <td>
+                    {% with lavoratore.idoneita.first as esito %}
+                        {% if esito %}
+                            <span class="badge bg-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                                {{ esito.get_esito_display }}
+                            </span>
+                        {% else %}—{% endif %}
+                    {% endwith %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted text-center">Nessun lavoratore</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

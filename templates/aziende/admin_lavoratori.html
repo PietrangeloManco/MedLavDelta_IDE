@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Tutti i lavoratori{% endblock %}
+
+{% block sidebar %}
+<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_dashboard' %}">🏠 Dashboard</a>
+<a class="d-block py-2 px-3 text-decoration-none fw-bold" href="{% url 'admin_lavoratori' %}">👷 Lavoratori</a>
+<a class="d-block py-2 px-3 text-decoration-none" href="/admin/">⚙️ Pannello Admin</a>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-4 fw-bold">Tutti i lavoratori</h4>
+<div class="table-responsive">
+    <table class="table table-hover bg-white rounded shadow-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Nominativo</th>
+                <th>Azienda</th>
+                <th>Sede</th>
+                <th>Mansione</th>
+                <th>Ultimo esito</th>
+                <th>Scadenza</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lavoratore in lavoratori %}
+            <tr>
+                <td class="fw-bold">{{ lavoratore.nome_completo }}</td>
+                <td>{{ lavoratore.azienda }}</td>
+                <td>{{ lavoratore.sede|default:"—" }}</td>
+                <td>{{ lavoratore.mansione }}</td>
+                <td>
+                    {% with lavoratore.idoneita.first as esito %}
+                        {% if esito %}
+                            <span class="badge bg-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                                {{ esito.get_esito_display }}
+                            </span>
+                        {% else %}—{% endif %}
+                    {% endwith %}
+                </td>
+                <td>
+                    {% with lavoratore.idoneita.first as esito %}
+                        {% if esito %}{{ esito.data_scadenza }}{% else %}—{% endif %}
+                    {% endwith %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-muted text-center">Nessun lavoratore</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

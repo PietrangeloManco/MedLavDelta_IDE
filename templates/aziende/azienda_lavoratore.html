@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}{{ lavoratore.nome_completo }}{% endblock %}
+
+{% block sidebar %}
+<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'azienda_dashboard' %}">🏠 Dashboard</a>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'azienda_dashboard' %}" class="text-decoration-none text-muted small">← Torna alla lista</a>
+
+<h4 class="mt-2 mb-1 fw-bold">{{ lavoratore.nome_completo }}</h4>
+<p class="text-muted">{{ lavoratore.mansione }}{% if lavoratore.sede %} — {{ lavoratore.sede }}{% endif %}</p>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <small class="text-muted">Data di nascita</small>
+                <p class="fw-bold">{{ lavoratore.data_nascita }}</p>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">Codice Fiscale</small>
+                <p class="fw-bold">{{ lavoratore.codice_fiscale }}</p>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">Azienda</small>
+                <p class="fw-bold">{{ lavoratore.azienda }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="mb-3">Esiti idoneità</h5>
+<div class="table-responsive">
+    <table class="table bg-white rounded shadow-sm">
+        <thead class="table-light">
+            <tr><th>Data visita</th><th>Mansione</th><th>Esito</th><th>Scadenza</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+            {% for esito in esiti %}
+            <tr>
+                <td>{{ esito.data_visita }}</td>
+                <td>{{ esito.mansione }}</td>
+                <td>
+                    <span class="badge bg-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                        {{ esito.get_esito_display }}
+                    </span>
+                </td>
+                <td class="{% if esito.is_scaduto %}text-danger fw-bold{% endif %}">
+                    {{ esito.data_scadenza }}
+                    {% if esito.is_scaduto %}<small>(scaduto)</small>{% endif %}
+                </td>
+                <td>{{ esito.note|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-muted text-center">Nessun esito registrato</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

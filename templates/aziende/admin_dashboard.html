@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Admin{% endblock %}
+
+{% block sidebar %}
+<a class="d-block py-2 px-3 text-decoration-none fw-bold" href="{% url 'admin_dashboard' %}">🏠 Dashboard</a>
+<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_lavoratori' %}">👷 Lavoratori</a>
+<a class="d-block py-2 px-3 text-decoration-none" href="/admin/">⚙️ Pannello Admin</a>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-4 fw-bold">Dashboard Amministratore</h4>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white" style="background:#1a3a5c">
+            <div class="card-body">
+                <h6>Aziende registrate</h6>
+                <h2>{{ totale_aziende }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h6>Lavoratori attivi</h6>
+                <h2>{{ totale_lavoratori }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="mb-3">Aziende</h5>
+<div class="table-responsive">
+    <table class="table table-hover bg-white rounded shadow-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Ragione Sociale</th>
+                <th>P.IVA</th>
+                <th>Email</th>
+                <th>Lavoratori</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for azienda in aziende %}
+            <tr>
+                <td class="fw-bold">{{ azienda.ragione_sociale }}</td>
+                <td>{{ azienda.partita_iva }}</td>
+                <td>{{ azienda.email_contatto }}</td>
+                <td>{{ azienda.lavoratori.count }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted text-center">Nessuna azienda registrata</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
