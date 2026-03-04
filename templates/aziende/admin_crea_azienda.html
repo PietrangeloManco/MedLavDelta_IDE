@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Nuova Azienda{% endblock %}
+
+{% block sidebar %}
+<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_dashboard' %}">🏠 Dashboard</a>
+<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_lavoratori' %}">👷 Lavoratori</a>
+<a class="d-block py-2 px-3 text-decoration-none" href="/admin/">⚙️ Pannello Admin</a>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'admin_dashboard' %}" class="text-decoration-none text-muted small">← Torna alla dashboard</a>
+<h4 class="mt-2 mb-4 fw-bold">Nuova Azienda</h4>
+<div class="card shadow-sm" style="max-width:600px">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <h6 class="text-muted mb-3">Credenziali accesso</h6>
+            {% for field in form %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ field.label }}</label>
+                    <input type="{{ field.field.widget.input_type }}"
+                           name="{{ field.html_name }}"
+                           class="form-control {% if field.errors %}is-invalid{% endif %}"
+                           {% if field.value %}value="{{ field.value }}"{% endif %}>
+                    {% for error in field.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% if field.html_name == 'password' %}
+                    <h6 class="text-muted mb-3 mt-4">Dati azienda</h6>
+                {% endif %}
+            {% endfor %}
+            <button type="submit" class="btn text-white w-100 mt-2" style="background:#1a3a5c">
+                Crea azienda
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

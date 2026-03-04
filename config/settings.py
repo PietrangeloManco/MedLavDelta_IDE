@@ -78,7 +78,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtps.aruba.it')
 EMAIL_PORT = config('EMAIL_PORT', cast=int, default=465)
-EMAIL_USE_SSL = True
+EMAIL_USE_SSL = False
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
@@ -88,3 +88,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Rende tutti i widget compatibili con Bootstrap
+from django.forms.widgets import Input, Select, Textarea
+def apply_bootstrap(cls):
+    original_init = cls.__init__
+    def new_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        self.attrs.setdefault('class', 'form-control')
+    cls.__init__ = new_init
+
+# Non serve aggiungere altro — usiamo un templatetag custom (vedi sotto)

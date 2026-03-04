@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }}{% endblock %}
+
+{% block sidebar %}
+<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'azienda_dashboard' %}">🏠 Dashboard</a>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'azienda_dashboard' %}" class="text-decoration-none text-muted small">← Torna alla lista</a>
+<h4 class="mt-2 mb-4 fw-bold">{{ action }}</h4>
+<div class="card shadow-sm" style="max-width:600px">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">{{ field.label }}</label>
+                {{ field.as_widget }}
+                {% for error in field.errors %}
+                    <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn text-white w-100 mt-2" style="background:#1a3a5c">
+                Salva
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -8,7 +8,18 @@
 {% endblock %}
 
 {% block content %}
-<h4 class="mb-4 fw-bold">Tutti i lavoratori</h4>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+        {% if azienda_selezionata %}
+            👷 {{ azienda_selezionata.ragione_sociale }}
+        {% else %}
+            👷 Tutti i lavoratori
+        {% endif %}
+    </h4>
+    {% if azienda_selezionata %}
+        <a href="{% url 'admin_lavoratori' %}" class="btn btn-outline-secondary btn-sm">✕ Rimuovi filtro</a>
+    {% endif %}
+</div>
 <div class="table-responsive">
     <table class="table table-hover bg-white rounded shadow-sm">
         <thead class="table-light">

@@ -2,39 +2,297 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Login — Centro Delta</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accedi — Centro Delta</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #1a3a5c; min-height: 100vh; display: flex; align-items: center; }
-        .card { border: none; border-radius: 12px; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --navy: #0f2744;
+            --navy-mid: #1a3a5c;
+            --accent: #3b82f6;
+            --teal: #0d9488;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--navy);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Background decoration */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -200px; left: -200px;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 65%);
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            bottom: -150px; right: -150px;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(13,148,136,0.1) 0%, transparent 65%);
+            pointer-events: none;
+        }
+
+        .login-wrap {
+            display: flex;
+            width: 900px;
+            max-width: 95vw;
+            min-height: 520px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.4);
+            position: relative;
+            z-index: 1;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Left panel */
+        .login-left {
+            width: 380px;
+            flex-shrink: 0;
+            background: linear-gradient(160deg, #1a3a5c 0%, #0f2744 100%);
+            padding: 52px 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-left::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 180px; height: 180px;
+            border-radius: 50%;
+            background: rgba(59,130,246,0.12);
+        }
+
+        .login-left::after {
+            content: '';
+            position: absolute;
+            bottom: 40px; left: -40px;
+            width: 140px; height: 140px;
+            border-radius: 50%;
+            background: rgba(13,148,136,0.1);
+        }
+
+        .brand-mark {
+            position: relative; z-index: 1;
+        }
+
+        .brand-icon {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, var(--accent), var(--teal));
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+
+        .brand-name {
+            font-family: 'DM Serif Display', serif;
+            color: white;
+            font-size: 26px;
+            line-height: 1.2;
+        }
+
+        .brand-tagline {
+            color: rgba(255,255,255,0.45);
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+
+        .login-features {
+            position: relative; z-index: 1;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+        }
+
+        .feature-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--teal);
+            flex-shrink: 0;
+        }
+
+        /* Right panel */
+        .login-right {
+            flex: 1;
+            background: white;
+            padding: 52px 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-right h2 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 28px;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .login-right p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 7px;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+
+        input.is-invalid { border-color: #ef4444; }
+
+        .field-error {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--navy-mid);
+            color: white;
+            border: none;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.15s, transform 0.1s;
+        }
+
+        .submit-btn:hover { background: var(--navy); }
+        .submit-btn:active { transform: scale(0.99); }
+
+        .login-footer {
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        @media (max-width: 700px) {
+            .login-left { display: none; }
+            .login-right { padding: 36px 28px; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-4">
-                <div class="card shadow-lg p-4">
-                    <h3 class="text-center mb-1 fw-bold">🏥 Centro Delta</h3>
-                    <p class="text-center text-muted mb-4">Medicina del Lavoro</p>
-                    <form method="post">
-                        {% csrf_token %}
-                        {% for field in form %}
-                            <div class="mb-3">
-                                <label class="form-label">{{ field.label }}</label>
-                                <input type="{{ field.field.widget.input_type }}"
-                                       name="{{ field.html_name }}"
-                                       class="form-control {% if field.errors %}is-invalid{% endif %}"
-                                       {% if field.value %}value="{{ field.value }}"{% endif %}>
-                                {% for error in field.errors %}
-                                    <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endfor %}
-                        <button type="submit" class="btn w-100 text-white" style="background-color:#1a3a5c">
-                            Accedi
-                        </button>
-                    </form>
+    <div class="login-wrap">
+        <div class="login-left">
+            <div class="brand-mark">
+                <div class="brand-icon">🏥</div>
+                <div class="brand-name">Centro Delta</div>
+                <div class="brand-tagline">Medicina del Lavoro</div>
+            </div>
+            <div class="login-features">
+                <div class="feature-item">
+                    <div class="feature-dot"></div>
+                    Gestione centralizzata delle aziende
                 </div>
+                <div class="feature-item">
+                    <div class="feature-dot"></div>
+                    Cartelle sanitarie protette
+                </div>
+                <div class="feature-item">
+                    <div class="feature-dot"></div>
+                    Notifiche automatiche sulle scadenze
+                </div>
+                <div class="feature-item">
+                    <div class="feature-dot"></div>
+                    Accesso differenziato per ruolo
+                </div>
+            </div>
+        </div>
+
+        <div class="login-right">
+            <h2>Bentornato</h2>
+            <p>Accedi con le tue credenziali per continuare.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    <input
+                        type="{{ field.field.widget.input_type }}"
+                        name="{{ field.html_name }}"
+                        class="{% if field.errors %}is-invalid{% endif %}"
+                        {% if field.value %}value="{{ field.value }}"{% endif %}
+                        autocomplete="{{ field.html_name }}"
+                    >
+                    {% for error in field.errors %}
+                        <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="submit-btn">Accedi →</button>
+            </form>
+
+            <div class="login-footer">
+                Centro Delta Srl — Piattaforma riservata al personale autorizzato
             </div>
         </div>
     </div>

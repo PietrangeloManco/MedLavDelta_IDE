@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}{{ lavoratore.nome_completo }}{% endblock %}
+
+{% block sidebar %}
+<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_dashboard' %}">🏠 Dashboard</a>
+<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_lavoratori' %}">👷 Lavoratori</a>
+<a class="d-block py-2 px-3 text-decoration-none" href="/admin/">⚙️ Pannello Admin</a>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'admin_lavoratori' %}" class="text-decoration-none text-muted small">← Torna ai lavoratori</a>
+<h4 class="mt-2 mb-1 fw-bold">{{ lavoratore.nome_completo }}</h4>
+<p class="text-muted">{{ lavoratore.mansione }} — {{ lavoratore.azienda }}</p>
+
+<div class="row g-4 mt-1">
+
+    <!-- Colonna sinistra: documenti + esiti -->
+    <div class="col-md-7">
+
+        <!-- Esiti idoneità -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header fw-bold">✅ Esiti idoneità</div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr><th>Data</th><th>Esito</th><th>Scadenza</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for esito in esiti %}
+                        <tr>
+                            <td>{{ esito.data_visita }}</td>
+                            <td>
+                                <span class="badge bg-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                                    {{ esito.get_esito_display }}
+                                </span>
+                            </td>
+                            <td class="{% if esito.is_scaduto %}text-danger fw-bold{% endif %}">
+                                {{ esito.data_scadenza }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-muted text-center py-3">Nessun esito</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Documenti -->
+        <div class="card shadow-sm">
+            <div class="card-header fw-bold">📄 Documenti sanitari</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for doc in documenti %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ doc.titolo }} <small class="text-muted">({{ doc.get_tipo_display }})</small></span>
+                        <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">📥 Apri</a>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted text-center py-3">Nessun documento</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonna destra: form -->
+    <div class="col-md-5">
+        <!-- Account operatore -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header fw-bold">👤 Account lavoratore</div>
+            <div class="card-body">
+                {% if lavoratore.user %}
+                    <div class="alert alert-success py-2 mb-0">
+                        ✅ Account attivo<br>
+                        <small class="text-muted">{{ lavoratore.user.email }}</small>
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-3">Nessun account — il lavoratore non può accedere al portale.</p>
+                    <form method="post" action="{% url 'admin_crea_account_operatore' lavoratore.pk %}">
+                        {% csrf_token %}
+                        {% with form=operatore_form %}
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold">Email</label>
+                            <input type="email" name="email" class="form-control form-control-sm">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold">Password temporanea</label>
+                            <input type="password" name="password" class="form-control form-control-sm">
+                        </div>
+                        {% endwith %}
+                        <button type="submit" class="btn btn-outline-primary w-100 btn-sm">Crea account</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Form esito -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header fw-bold">➕ Registra esito idoneità</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'admin_registra_esito' lavoratore.pk %}">
+                    {% csrf_token %}
+                    {% for field in esito_form %}
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">{{ field.label }}</label>
+                        {{ field.as_widget }}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-success w-100 mt-2">Registra</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Form documento -->
+        <div class="card shadow-sm">
+            <div class="card-header fw-bold">📤 Carica documento</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'admin_carica_documento' lavoratore.pk %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% for field in doc_form %}
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">{{ field.label }}</label>
+                        {{ field.as_widget }}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn w-100 mt-2 text-white" style="background:#1a3a5c">Carica PDF</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
