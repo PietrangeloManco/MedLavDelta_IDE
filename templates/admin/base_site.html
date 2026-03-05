@@ -1,0 +1,409 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} — Centro Delta Admin{% endblock %}
+
+{% block branding %}
+<a href="{% url 'admin:index' %}" id="site-name">Centro Delta</a>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+        font-family: 'DM Sans', sans-serif !important;
+        background: #f0f4f8 !important;
+        margin: 0 !important;
+    }
+
+    /* ── Nascondi header nativo Django ── */
+    #header { display: none !important; }
+
+    /* ── Sidebar custom ── */
+    #delta-sidebar {
+        position: fixed;
+        top: 0; left: 0;
+        width: 260px;
+        height: 100vh;
+        background: #0f2744;
+        display: flex;
+        flex-direction: column;
+        z-index: 9999;
+        overflow: hidden;
+    }
+
+    #delta-sidebar::before {
+        content: '';
+        position: absolute;
+        top: -80px; right: -80px;
+        width: 200px; height: 200px;
+        background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .ds-brand {
+        padding: 20px 24px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        background: #ffffff;
+        border-radius: 0 0 12px 12px;
+    }
+
+    .ds-brand-logo {
+        width: 100%;
+        max-width: 190px;
+        height: auto;
+        object-fit: contain;
+        display: block;
+    }
+
+    .ds-nav {
+        padding: 20px 12px;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .ds-label {
+        color: rgba(255,255,255,0.3) !important;
+        font-size: 10px !important;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 0 12px;
+        margin-bottom: 6px;
+        display: block;
+        text-decoration: none !important;
+    }
+
+    /* Tutti i link nella sidebar — reset totale */
+    #delta-sidebar a,
+    #delta-sidebar a:link,
+    #delta-sidebar a:visited,
+    #delta-sidebar a:active {
+        text-decoration: none !important;
+        color: rgba(255,255,255,0.6) !important;
+    }
+
+    #delta-sidebar a:hover {
+        text-decoration: none !important;
+        color: #ffffff !important;
+    }
+
+    .ds-link {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        transition: all 0.15s !important;
+        margin-bottom: 2px !important;
+        color: rgba(255,255,255,0.6) !important;
+        text-decoration: none !important;
+    }
+
+    .ds-link:hover {
+        background: rgba(255,255,255,0.08) !important;
+        color: #ffffff !important;
+    }
+
+    .ds-link.active {
+        background: rgba(59,130,246,0.2) !important;
+        color: #ffffff !important;
+        font-weight: 500 !important;
+    }
+
+    .ds-link .icon {
+        width: 20px;
+        text-align: center;
+        font-style: normal;
+    }
+
+    .ds-footer {
+        padding: 16px 12px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .ds-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.06);
+    }
+
+    .ds-avatar {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #1e40af, #2a5298);
+        display: flex; align-items: center; justify-content: center;
+        color: white !important;
+        font-size: 13px;
+        font-weight: 600;
+        flex-shrink: 0;
+        text-transform: uppercase;
+    }
+
+    .ds-user-info { flex: 1; overflow: hidden; }
+
+    .ds-user-email {
+        color: rgba(255,255,255,0.8) !important;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ds-user-role {
+        color: rgba(255,255,255,0.35) !important;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    /* ── Topbar ── */
+    #delta-topbar {
+        position: fixed;
+        top: 0; left: 260px; right: 0;
+        height: 60px;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 32px;
+        z-index: 9998;
+        font-size: 14px;
+        color: #64748b;
+    }
+
+    #delta-topbar strong { color: #1e293b; }
+
+    /* ── Sposta contenuto admin ── */
+    #container {
+        margin-left: 260px !important;
+        padding-top: 60px !important;
+    }
+
+    /* Nascondi nav sidebar nativa Django */
+    #nav-sidebar, .toggle-nav-sidebar { display: none !important; }
+
+    /* Breadcrumbs */
+    div.breadcrumbs {
+        background: #f0f4f8 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        color: #64748b !important;
+        padding: 10px 24px !important;
+        font-size: 13px !important;
+    }
+    div.breadcrumbs a { color: #1a3a5c !important; }
+
+    /* Content */
+    #content {
+        background: #f0f4f8 !important;
+        padding: 28px 32px !important;
+    }
+
+    #content h1 {
+        font-family: 'DM Serif Display', serif !important;
+        font-size: 24px !important;
+        color: #1e293b !important;
+        margin-bottom: 20px !important;
+        font-weight: 400 !important;
+    }
+
+    /* Module */
+    .module {
+        border-radius: 10px !important;
+        overflow: hidden !important;
+        border: 1px solid #e2e8f0 !important;
+        background: white !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+        margin-bottom: 20px !important;
+    }
+
+    .module caption, .module h2 {
+        background: #1a3a5c !important;
+        color: white !important;
+        font-family: 'DM Sans', sans-serif !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.06em !important;
+        text-transform: uppercase !important;
+        padding: 10px 16px !important;
+        border-radius: 0 !important;
+    }
+
+    /* Tables */
+    table thead th {
+        background: #f8fafc !important;
+        color: #64748b !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.07em !important;
+        text-transform: uppercase !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 11px 14px !important;
+    }
+
+    #result_list tbody tr td {
+        padding: 12px 14px !important;
+        font-size: 14px !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+    }
+    #result_list tbody tr:last-child td { border-bottom: none !important; }
+    #result_list tbody tr:hover { background: #f8fafc !important; }
+    table th a, #changelist-filter a { color: #1a3a5c !important; }
+
+    /* Buttons */
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: #1a3a5c !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 8px 16px !important;
+        font-family: 'DM Sans', sans-serif !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: background 0.15s !important;
+    }
+    .button:hover, input[type=submit]:hover { background: #0f2744 !important; }
+    .button.default { background: #3b82f6 !important; }
+    .deletelink, a.deletelink {
+        background: #ef4444 !important;
+        color: white !important;
+        border-radius: 8px !important;
+        padding: 8px 16px !important;
+        font-size: 13px !important;
+        text-decoration: none !important;
+    }
+
+    /* Form fields */
+    input[type=text], input[type=email], input[type=password],
+    input[type=number], input[type=date], select, textarea {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        font-family: 'DM Sans', sans-serif !important;
+        font-size: 14px !important;
+    }
+    input:focus, select:focus, textarea:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important;
+        outline: none !important;
+    }
+
+    /* Submit row */
+    .submit-row {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 0 0 10px 10px !important;
+        padding: 14px 16px !important;
+    }
+
+    /* Filter */
+    #changelist-filter {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+    }
+    #changelist-filter h2 {
+        background: #1a3a5c !important;
+        color: white !important;
+        font-size: 11px !important;
+        padding: 10px 14px !important;
+        margin: 0 !important;
+    }
+    #changelist-filter h3 {
+        color: #64748b !important;
+        font-size: 11px !important;
+        padding: 12px 14px 4px !important;
+        margin: 0 !important;
+    }
+    #changelist-filter li.selected a { color: #3b82f6 !important; font-weight: 600 !important; }
+
+    /* Messages */
+    .messagelist li {
+        border-radius: 8px !important;
+        padding: 12px 16px !important;
+        font-size: 14px !important;
+        margin-bottom: 8px !important;
+    }
+    .messagelist li.success { background: #d1fae5 !important; color: #065f46 !important; border: 1px solid #a7f3d0 !important; }
+    .messagelist li.error   { background: #fee2e2 !important; color: #991b1b !important; border: 1px solid #fca5a5 !important; }
+    .messagelist li.warning { background: #fef3c7 !important; color: #92400e !important; border: 1px solid #fde68a !important; }
+
+    /* Pagination */
+    .paginator a, .paginator .this-page { border-radius: 6px !important; padding: 4px 10px !important; }
+    .paginator .this-page { background: #1a3a5c !important; color: white !important; }
+</style>
+{% endblock %}
+
+{% block usertools %}{% endblock %}
+{% block nav-global %}{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+
+<div id="delta-sidebar">
+    <div class="ds-brand">
+        <img src="{% static 'Logo_oriz.svg' %}" alt="Centro Delta Logo" class="ds-brand-logo">
+    </div>
+    <div class="ds-nav">
+        <span class="ds-label">Principale</span>
+        <a class="ds-link" href="{% url 'admin_dashboard' %}">
+            <span class="icon">⊞</span> Dashboard
+        </a>
+        <a class="ds-link" href="{% url 'admin_lavoratori' %}">
+            <span class="icon">👷</span> Lavoratori
+        </a>
+        <a class="ds-link" href="{% url 'admin_crea_azienda' %}">
+            <span class="icon">＋</span> Nuova azienda
+        </a>
+        <span class="ds-label" style="margin-top:16px">Admin Django</span>
+        <a class="ds-link" href="{% url 'admin:index' %}">
+            <span class="icon">⚙</span> Gestione dati
+        </a>
+        <a class="ds-link" href="{% url 'admin:accounts_customuser_changelist' %}">
+            <span class="icon">👤</span> Utenti
+        </a>
+        <a class="ds-link" href="{% url 'admin:aziende_azienda_changelist' %}">
+            <span class="icon">🏢</span> Aziende
+        </a>
+        <a class="ds-link" href="{% url 'admin:aziende_lavoratore_changelist' %}">
+            <span class="icon">👷</span> Lavoratori
+        </a>
+        <a class="ds-link" href="{% url 'admin:sanitaria_esitoidoneita_changelist' %}">
+            <span class="icon">✅</span> Esiti
+        </a>
+    </div>
+    <div class="ds-footer">
+        <div class="ds-user">
+            <div class="ds-avatar">{{ request.user.email|first }}</div>
+            <div class="ds-user-info">
+                <div class="ds-user-email">{{ request.user.email }}</div>
+                <div class="ds-user-role">Amministratore</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="delta-topbar">
+    <span>Pannello <strong>Amministrazione dati</strong></span>
+    <a href="{% url 'admin_dashboard' %}" style="color:#3b82f6; font-size:13px; text-decoration:none">
+        ← Torna alla dashboard
+    </a>
+</div>
+
+<script>
+    document.querySelectorAll('.ds-link').forEach(link => {
+        if (link.href && window.location.href.startsWith(link.href) && link.href !== window.location.origin + '/') {
+            link.classList.add('active');
+        }
+    });
+</script>
+{% endblock %}

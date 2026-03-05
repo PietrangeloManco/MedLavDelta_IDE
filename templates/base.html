@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -59,16 +60,14 @@
         }
 
         .sidebar-brand {
-            padding: 28px 24px 24px;
+            padding: 20px 24px;
             border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: #ffffff;
+            border-radius: 0 0 12px 12px;
         }
 
         .sidebar-brand .brand-icon {
-            width: 36px; height: 36px;
-            background: linear-gradient(135deg, var(--accent), var(--teal));
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 18px;
+            width: 100%;
             margin-bottom: 12px;
         }
 
@@ -388,6 +387,14 @@
         .alert-banner .alert-icon { font-size: 18px; flex-shrink: 0; }
         .alert-banner strong { font-weight: 600; }
 
+        .brand-logo {
+            width: 100%;
+            max-width: 190px;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+
         /* Buttons */
         .btn {
             display: inline-flex;
@@ -510,9 +517,9 @@
 <!-- SIDEBAR -->
 <aside class="sidebar">
     <div class="sidebar-brand">
-        <div class="brand-icon">🏥</div>
-        <div class="brand-name">Centro Delta</div>
-        <div class="brand-sub">Medicina del Lavoro</div>
+        <div class="brand-icon">
+            <img src="{% static 'Logo_oriz.svg' %}" alt="Centro Delta Logo" class="brand-logo">
+        </div>
     </div>
 
     <div class="sidebar-section">

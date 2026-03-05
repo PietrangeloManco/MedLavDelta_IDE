@@ -2,9 +2,20 @@
 {% block title %}Nuova Azienda{% endblock %}
 
 {% block sidebar %}
-<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_dashboard' %}">🏠 Dashboard</a>
-<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_lavoratori' %}">👷 Lavoratori</a>
-<a class="d-block py-2 px-3 text-decoration-none" href="/admin/">⚙️ Pannello Admin</a>
+<div class="sidebar-label">Principale</div>
+<a class="nav-link" href="{% url 'admin_dashboard' %}">
+    <span class="nav-icon">⊞</span> Dashboard
+</a>
+<a class="nav-link" href="{% url 'admin_lavoratori' %}">
+    <span class="nav-icon">👷</span> Lavoratori
+</a>
+<a class="nav-link active" href="{% url 'admin_crea_azienda' %}">
+    <span class="nav-icon">＋</span> Nuova azienda
+</a>
+<div class="sidebar-label" style="margin-top:16px">Sistema</div>
+<a class="nav-link" href="/admin/">
+    <span class="nav-icon">⚙</span> Pannello Admin
+</a>
 {% endblock %}
 
 {% block content %}
