@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard Admin{% endblock %}
-{% block breadcrumb %}<strong>Dashboard</strong> Amministratore{% endblock %}
+{% block title %}Pannello di controllo Admin{% endblock %}
+{% block breadcrumb %}<strong>Pannello di controllo</strong> Amministratore{% endblock %}
 
 {% block sidebar %}
 <div class="sidebar-label">Principale</div>
 <a class="nav-link active" href="{% url 'admin_dashboard' %}">
-    <span class="nav-icon">⊞</span> Dashboard
+    <span class="nav-icon">⊞</span> Pannello di controllo
 </a>
 <a class="nav-link" href="{% url 'admin_lavoratori' %}">
-    <span class="nav-icon">👷</span> Lavoratori
+    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Lavoratori
 </a>
 <a class="nav-link" href="{% url 'admin_crea_azienda' %}">
     <span class="nav-icon">＋</span> Nuova azienda
@@ -16,14 +16,14 @@
 
 <div class="sidebar-label" style="margin-top:16px">Sistema</div>
 <a class="nav-link" href="/admin/">
-    <span class="nav-icon">⚙</span> Pannello Admin
+    <span class="nav-icon">{% include 'includes/icons/settings.html' %}</span> Pannello Admin
 </a>
 {% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">Buongiorno 👋</h1>
+        <h1 class="page-title">Buongiorno</h1>
         <p class="page-subtitle">Riepilogo attività — Centro Delta Srl</p>
     </div>
     <a href="{% url 'admin_crea_azienda' %}" class="btn btn-primary">
@@ -33,21 +33,21 @@
 
 <!-- Statistiche -->
 <div class="stat-grid">
-    <div class="stat-card" style="--card-accent: #3b82f6">
+    <div class="stat-card" style="--card-accent: #1d4ed8">
         <div class="stat-label">Aziende registrate</div>
         <div class="stat-value">{{ totale_aziende }}</div>
-        <div class="stat-icon">🏢</div>
+        <div class="stat-icon">{% include 'includes/icons/company.html' %}</div>
     </div>
-    <div class="stat-card" style="--card-accent: #10b981">
+    <div class="stat-card" style="--card-accent: #2563eb">
         <div class="stat-label">Lavoratori attivi</div>
         <div class="stat-value">{{ totale_lavoratori }}</div>
-        <div class="stat-icon">👷</div>
+        <div class="stat-icon">{% include 'includes/icons/worker.html' %}</div>
     </div>
     {% if totale_scadenze %}
-    <div class="stat-card" style="--card-accent: #f59e0b">
+    <div class="stat-card" style="--card-accent: #60a5fa">
         <div class="stat-label">Scadenze imminenti</div>
         <div class="stat-value">{{ totale_scadenze }}</div>
-        <div class="stat-icon">⏰</div>
+        <div class="stat-icon">{% include 'includes/icons/clock.html' %}</div>
     </div>
     {% endif %}
 </div>
@@ -64,7 +64,7 @@
 
 <div class="table-card">
     <div class="table-card-header">
-        <span class="table-card-title">⏰ Scadenze imminenti</span>
+        <span class="table-card-title icon-label">{% include 'includes/icons/clock.html' %} Scadenze imminenti</span>
     </div>
     <table class="delta-table">
         <thead>
@@ -98,7 +98,7 @@
 <!-- Aziende -->
 <div class="table-card">
     <div class="table-card-header">
-        <span class="table-card-title">🏢 Aziende registrate</span>
+        <span class="table-card-title icon-label">{% include 'includes/icons/company.html' %} Aziende registrate</span>
     </div>
     <table class="delta-table">
         <thead>
@@ -121,7 +121,7 @@
                 </td>
                 <td>
                     <a href="{% url 'admin_lavoratori' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">
-                        👷 Lavoratori
+                        <span class="icon-label">{% include 'includes/icons/worker.html' %} Lavoratori</span>
                     </a>
                 </td>
             </tr>

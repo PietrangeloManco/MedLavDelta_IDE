@@ -38,6 +38,12 @@ class LavoratoreForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if azienda:
             self.fields['sede'].queryset = Sede.objects.filter(azienda=azienda)
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault('style', 'width:auto; height:auto')
+                continue
+            existing = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = f"{existing} form-control".strip()
 
 class CreaAccountOperatoreForm(forms.Form):
     email = forms.EmailField(label='Email account lavoratore')

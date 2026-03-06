@@ -5,12 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Centro Delta{% endblock %} — Medicina del Lavoro</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
+            --font-sans: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
             --navy:       #0f2744;
             --navy-mid:   #1a3a5c;
             --navy-light: #2a5298;
@@ -30,7 +29,7 @@
         }
 
         body {
-            font-family: 'DM Sans', sans-serif;
+            font-family: var(--font-sans);
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
@@ -71,10 +70,16 @@
             margin-bottom: 12px;
         }
 
+        .sidebar-brand .brand-link {
+            display: block;
+            text-decoration: none;
+        }
+
         .sidebar-brand .brand-name {
-            font-family: 'DM Serif Display', serif;
+            font-family: var(--font-sans);
             color: #fff;
             font-size: 18px;
+            font-weight: 700;
             line-height: 1.2;
         }
 
@@ -89,6 +94,15 @@
         .sidebar-section {
             padding: 20px 12px 8px;
             flex: 1;
+        }
+
+        .sidebar-product-title {
+            color: rgba(255,255,255,0.92);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0 12px 14px;
         }
 
         .sidebar-label {
@@ -130,6 +144,24 @@
             text-align: center;
             font-size: 15px;
             opacity: 0.8;
+        }
+
+        .icon-svg {
+            width: 1em;
+            height: 1em;
+            display: block;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            flex-shrink: 0;
+        }
+
+        .icon-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .sidebar-footer {
@@ -174,16 +206,25 @@
         }
 
         .logout-btn {
-            background: none;
-            border: none;
-            color: rgba(255,255,255,0.35);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.18);
+            color: rgba(255,255,255,0.82);
             cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: color 0.15s;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
         }
-        .logout-btn:hover { color: var(--danger); }
+        .logout-btn:hover {
+            background: rgba(239,68,68,0.15);
+            border-color: rgba(239,68,68,0.45);
+            color: #fecaca;
+        }
 
         /* ── MAIN ─────────────────────────────────────────── */
         .main-wrap {
@@ -236,8 +277,9 @@
         }
 
         .page-title {
-            font-family: 'DM Serif Display', serif;
+            font-family: var(--font-sans);
             font-size: 26px;
+            font-weight: 700;
             color: var(--text);
             line-height: 1.2;
         }
@@ -286,8 +328,9 @@
         }
 
         .stat-value {
-            font-family: 'DM Serif Display', serif;
+            font-family: var(--font-sans);
             font-size: 36px;
+            font-weight: 700;
             color: var(--text);
             line-height: 1;
         }
@@ -404,7 +447,7 @@
             border-radius: 8px;
             font-size: 13px;
             font-weight: 500;
-            font-family: 'DM Sans', sans-serif;
+            font-family: var(--font-sans);
             cursor: pointer;
             text-decoration: none;
             border: none;
@@ -462,7 +505,8 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 14px;
-            font-family: 'DM Sans', sans-serif;
+            font-family: var(--font-sans);
+            line-height: 1.35;
             color: var(--text);
             background: var(--surface);
             transition: border-color 0.15s, box-shadow 0.15s;
@@ -474,7 +518,13 @@
             box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
         }
 
-        select.form-control { cursor: pointer; }
+        select.form-control {
+            cursor: pointer;
+            min-height: 40px;
+            padding-top: 9px;
+            padding-bottom: 9px;
+            line-height: 1.35;
+        }
         textarea.form-control { resize: vertical; min-height: 80px; }
 
         .form-error {
@@ -517,12 +567,13 @@
 <!-- SIDEBAR -->
 <aside class="sidebar">
     <div class="sidebar-brand">
-        <div class="brand-icon">
+        <a class="brand-icon brand-link" href="{% url 'dashboard' %}" title="Vai al pannello di controllo">
             <img src="{% static 'Logo_oriz.svg' %}" alt="Centro Delta Logo" class="brand-logo">
-        </div>
+        </a>
     </div>
 
     <div class="sidebar-section">
+        <div class="sidebar-product-title">Medicina del Lavoro</div>
         {% block sidebar %}{% endblock %}
     </div>
 
@@ -537,7 +588,7 @@
             </div>
             <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
-                <button class="logout-btn" title="Esci">⎋</button>
+                <button class="logout-btn" title="Esci">Esci</button>
             </form>
         </div>
     </div>
@@ -547,7 +598,7 @@
 <div class="main-wrap">
     <header class="topbar">
         <div class="topbar-title">
-            {% block breadcrumb %}<strong>Dashboard</strong>{% endblock %}
+            {% block breadcrumb %}<strong>Pannello di controllo</strong>{% endblock %}
         </div>
         <div class="topbar-date" id="current-date"></div>
     </header>

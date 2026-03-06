@@ -1,19 +1,34 @@
 {% extends 'base.html' %}
 {% block title %}La mia cartella{% endblock %}
+{% block breadcrumb %}<strong>La mia cartella</strong> {{ lavoratore.nome_completo }}{% endblock %}
 
 {% block sidebar %}
-<a class="d-block py-2 px-3 text-decoration-none fw-bold" href="{% url 'operatore_dashboard' %}">📋 La mia cartella</a>
+<div class="sidebar-label">Principale</div>
+<a class="nav-link active" href="{% url 'operatore_dashboard' %}">
+    <span class="nav-icon">{% include 'includes/icons/document.html' %}</span> La mia cartella
+</a>
 {% endblock %}
 
 {% block content %}
-<h4 class="mb-4 fw-bold">{{ lavoratore.nome_completo }}</h4>
-<p class="text-muted">{{ lavoratore.mansione }} — {{ lavoratore.azienda }}</p>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ lavoratore.nome_completo }}</h1>
+        <p class="page-subtitle">{{ lavoratore.mansione }} — {{ lavoratore.azienda }}</p>
+    </div>
+</div>
 
-<h5 class="mt-4 mb-3">Esiti idoneità</h5>
-<div class="table-responsive">
-    <table class="table bg-white rounded shadow-sm">
-        <thead class="table-light">
-            <tr><th>Data visita</th><th>Mansione</th><th>Esito</th><th>Scadenza</th></tr>
+<div class="table-card">
+    <div class="table-card-header">
+        <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneita</span>
+    </div>
+    <table class="delta-table">
+        <thead>
+            <tr>
+                <th>Data visita</th>
+                <th>Mansione</th>
+                <th>Esito</th>
+                <th>Scadenza</th>
+            </tr>
         </thead>
         <tbody>
             {% for esito in esiti %}
@@ -21,28 +36,54 @@
                 <td>{{ esito.data_visita }}</td>
                 <td>{{ esito.mansione }}</td>
                 <td>
-                    <span class="badge bg-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                    <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
                         {{ esito.get_esito_display }}
                     </span>
                 </td>
-                <td>{{ esito.data_scadenza }}</td>
+                <td>
+                    <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
+                        {{ esito.data_scadenza }}
+                    </span>
+                </td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" class="text-muted text-center">Nessun esito registrato</td></tr>
+            <tr>
+                <td colspan="4" style="text-align:center; color:var(--text-muted); padding: 32px">
+                    Nessun esito registrato.
+                </td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
 
 {% if documenti %}
-<h5 class="mt-4 mb-3">Documenti sanitari</h5>
-<div class="list-group">
-    {% for doc in documenti %}
-    <a href="{{ doc.file.url }}" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between">
-        <span>📄 {{ doc.titolo }}</span>
-        <small class="text-muted">{{ doc.get_tipo_display }} — {{ doc.data }}</small>
-    </a>
-    {% endfor %}
+<div class="table-card">
+    <div class="table-card-header">
+        <span class="table-card-title icon-label">{% include 'includes/icons/document.html' %} Documenti sanitari</span>
+    </div>
+    <table class="delta-table">
+        <thead>
+            <tr>
+                <th>Titolo</th>
+                <th>Tipo</th>
+                <th>Data</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in documenti %}
+            <tr>
+                <td><strong>{{ doc.titolo }}</strong></td>
+                <td>{{ doc.get_tipo_display }}</td>
+                <td style="color:var(--text-muted)">{{ doc.data }}</td>
+                <td>
+                    <a href="{{ doc.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri →</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endif %}
 {% endblock %}

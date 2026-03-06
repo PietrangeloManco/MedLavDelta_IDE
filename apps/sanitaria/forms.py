@@ -1,4 +1,5 @@
 from django import forms
+
 from .models import DocumentoSanitario, EsitoIdoneita
 
 
@@ -11,13 +12,19 @@ class DocumentoSanitarioForm(forms.ModelForm):
             'note': forms.Textarea(attrs={'rows': 3}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            existing = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = f"{existing} form-control".strip()
+
     def clean_file(self):
         file = self.cleaned_data.get('file')
         if file:
             if not file.name.endswith('.pdf'):
                 raise forms.ValidationError('Solo file PDF sono accettati.')
             if file.size > 10 * 1024 * 1024:  # 10MB
-                raise forms.ValidationError('Il file non può superare 10MB.')
+                raise forms.ValidationError('Il file non puo superare 10MB.')
         return file
 
 
@@ -30,3 +37,9 @@ class EsitoIdoneitaForm(forms.ModelForm):
             'data_scadenza': forms.DateInput(attrs={'type': 'date'}),
             'note': forms.Textarea(attrs={'rows': 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            existing = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = f"{existing} form-control".strip()

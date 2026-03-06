@@ -9,12 +9,12 @@
 
 {% block extrastyle %}
 {{ block.super }}
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
     *, *::before, *::after { box-sizing: border-box; }
+    :root { --font-sans: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
 
     body {
-        font-family: 'DM Sans', sans-serif !important;
+        font-family: var(--font-sans) !important;
         background: #f0f4f8 !important;
         margin: 0 !important;
     }
@@ -59,10 +59,24 @@
         display: block;
     }
 
+    .ds-brand-link {
+        display: block;
+        text-decoration: none !important;
+    }
+
     .ds-nav {
         padding: 20px 12px;
         flex: 1;
         overflow-y: auto;
+    }
+
+    .ds-product-title {
+        color: rgba(255,255,255,0.92);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0 12px 14px;
     }
 
     .ds-label {
@@ -116,13 +130,52 @@
 
     .ds-link .icon {
         width: 20px;
-        text-align: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         font-style: normal;
+        opacity: 0.85;
+    }
+
+    .icon-svg {
+        width: 1em;
+        height: 1em;
+        display: block;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex-shrink: 0;
     }
 
     .ds-footer {
         padding: 16px 12px;
         border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .ds-actions { margin-top: 10px; }
+
+    .ds-logout-btn {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.18);
+        color: rgba(255,255,255,0.82);
+        border-radius: 6px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .ds-logout-btn:hover {
+        background: rgba(239,68,68,0.15);
+        border-color: rgba(239,68,68,0.45);
+        color: #fecaca;
     }
 
     .ds-user {
@@ -207,11 +260,11 @@
     }
 
     #content h1 {
-        font-family: 'DM Serif Display', serif !important;
+        font-family: var(--font-sans) !important;
         font-size: 24px !important;
         color: #1e293b !important;
         margin-bottom: 20px !important;
-        font-weight: 400 !important;
+        font-weight: 700 !important;
     }
 
     /* Module */
@@ -227,7 +280,7 @@
     .module caption, .module h2 {
         background: #1a3a5c !important;
         color: white !important;
-        font-family: 'DM Sans', sans-serif !important;
+        font-family: var(--font-sans) !important;
         font-size: 12px !important;
         font-weight: 600 !important;
         letter-spacing: 0.06em !important;
@@ -264,11 +317,18 @@
         border: none !important;
         border-radius: 8px !important;
         padding: 8px 16px !important;
-        font-family: 'DM Sans', sans-serif !important;
+        font-family: var(--font-sans) !important;
         font-size: 13px !important;
         font-weight: 500 !important;
+        text-align: center !important;
         cursor: pointer !important;
         transition: background 0.15s !important;
+    }
+    .actions .action-run-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 90px !important;
     }
     .button:hover, input[type=submit]:hover { background: #0f2744 !important; }
     .button.default { background: #3b82f6 !important; }
@@ -287,8 +347,14 @@
         border: 1px solid #e2e8f0 !important;
         border-radius: 8px !important;
         padding: 8px 12px !important;
-        font-family: 'DM Sans', sans-serif !important;
+        font-family: var(--font-sans) !important;
         font-size: 14px !important;
+        line-height: 1.35 !important;
+    }
+    select {
+        min-height: 40px !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
     }
     input:focus, select:focus, textarea:focus {
         border-color: #3b82f6 !important;
@@ -351,34 +417,37 @@
 
 <div id="delta-sidebar">
     <div class="ds-brand">
-        <img src="{% static 'Logo_oriz.svg' %}" alt="Centro Delta Logo" class="ds-brand-logo">
+        <a href="{% url 'dashboard' %}" class="ds-brand-link" title="Vai al pannello di controllo">
+            <img src="{% static 'Logo_oriz.svg' %}" alt="Centro Delta Logo" class="ds-brand-logo">
+        </a>
     </div>
     <div class="ds-nav">
+        <div class="ds-product-title">Medicina del Lavoro</div>
         <span class="ds-label">Principale</span>
         <a class="ds-link" href="{% url 'admin_dashboard' %}">
-            <span class="icon">⊞</span> Dashboard
+            <span class="icon">⊞</span> Pannello di controllo
         </a>
         <a class="ds-link" href="{% url 'admin_lavoratori' %}">
-            <span class="icon">👷</span> Lavoratori
+            <span class="icon">{% include 'includes/icons/workers-group.html' %}</span> Lavoratori
         </a>
         <a class="ds-link" href="{% url 'admin_crea_azienda' %}">
             <span class="icon">＋</span> Nuova azienda
         </a>
         <span class="ds-label" style="margin-top:16px">Admin Django</span>
         <a class="ds-link" href="{% url 'admin:index' %}">
-            <span class="icon">⚙</span> Gestione dati
+            <span class="icon">{% include 'includes/icons/settings.html' %}</span> Gestione dati
         </a>
         <a class="ds-link" href="{% url 'admin:accounts_customuser_changelist' %}">
-            <span class="icon">👤</span> Utenti
+            <span class="icon">{% include 'includes/icons/user.html' %}</span> Utenti
         </a>
         <a class="ds-link" href="{% url 'admin:aziende_azienda_changelist' %}">
-            <span class="icon">🏢</span> Aziende
+            <span class="icon">{% include 'includes/icons/company.html' %}</span> Aziende
         </a>
         <a class="ds-link" href="{% url 'admin:aziende_lavoratore_changelist' %}">
-            <span class="icon">👷</span> Lavoratori
+            <span class="icon">{% include 'includes/icons/workers-group.html' %}</span> Lavoratori
         </a>
         <a class="ds-link" href="{% url 'admin:sanitaria_esitoidoneita_changelist' %}">
-            <span class="icon">✅</span> Esiti
+            <span class="icon">{% include 'includes/icons/check.html' %}</span> Esiti
         </a>
     </div>
     <div class="ds-footer">
@@ -389,13 +458,19 @@
                 <div class="ds-user-role">Amministratore</div>
             </div>
         </div>
+        <div class="ds-actions">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="ds-logout-btn">Esci</button>
+            </form>
+        </div>
     </div>
 </div>
 
 <div id="delta-topbar">
     <span>Pannello <strong>Amministrazione dati</strong></span>
     <a href="{% url 'admin_dashboard' %}" style="color:#3b82f6; font-size:13px; text-decoration:none">
-        ← Torna alla dashboard
+        ← Torna al pannello di controllo
     </a>
 </div>
 

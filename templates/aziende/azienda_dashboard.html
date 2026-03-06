@@ -1,50 +1,90 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard {{ azienda.ragione_sociale }}{% endblock %}
+{% block title %}Pannello di controllo {{ azienda.ragione_sociale }}{% endblock %}
+{% block breadcrumb %}<strong>Pannello di controllo</strong> {{ azienda.ragione_sociale }}{% endblock %}
 
 {% block sidebar %}
-<a class="d-block py-2 px-3 text-decoration-none fw-bold" href="{% url 'azienda_dashboard' %}">🏠 Dashboard</a>
+<div class="sidebar-label">Principale</div>
+<a class="nav-link active" href="{% url 'azienda_dashboard' %}">
+    <span class="nav-icon">⊞</span> Pannello di controllo
+</a>
+<a class="nav-link" href="{% url 'azienda_lavoratore_nuovo' %}">
+    <span class="nav-icon">＋</span> Nuovo lavoratore
+</a>
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0">{{ azienda.ragione_sociale }}</h4>
-    <a href="{% url 'azienda_lavoratore_nuovo' %}" class="btn text-white" style="background:#1a3a5c">+ Nuovo lavoratore</a>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ azienda.ragione_sociale }}</h1>
+        <p class="page-subtitle">Gestione lavoratori aziendali</p>
+    </div>
+    <a href="{% url 'azienda_lavoratore_nuovo' %}" class="btn btn-primary">
+        ＋ Nuovo lavoratore
+    </a>
 </div>
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card text-white" style="background:#1a3a5c">
-            <div class="card-body">
-                <h6>Lavoratori attivi</h6>
-                <h2>{{ totale_lavoratori }}</h2>
-            </div>
-        </div>
+
+<div class="stat-grid">
+    <div class="stat-card" style="--card-accent: #1d4ed8">
+        <div class="stat-label">Lavoratori attivi</div>
+        <div class="stat-value">{{ totale_lavoratori }}</div>
+        <div class="stat-icon">{% include 'includes/icons/workers-group.html' %}</div>
     </div>
 </div>
 
-<h5 class="mb-3">I tuoi lavoratori</h5>
-<div class="table-responsive">
-    <table class="table table-hover bg-white rounded shadow-sm">
-        <thead class="table-light">
-            <tr><th>Nominativo</th><th>Mansione</th><th>Sede</th><th>Ultimo esito</th></tr>
+<div class="table-card">
+    <div class="table-card-header">
+        <span class="table-card-title icon-label">{% include 'includes/icons/workers-group.html' %} I tuoi lavoratori</span>
+    </div>
+    <table class="delta-table">
+        <thead>
+            <tr>
+                <th>Nominativo</th>
+                <th>Mansione</th>
+                <th>Sede</th>
+                <th>Ultimo esito</th>
+                <th>Scadenza</th>
+                <th></th>
+            </tr>
         </thead>
         <tbody>
             {% for lavoratore in lavoratori %}
-            <tr style="cursor:pointer" onclick="location.href='{% url 'azienda_lavoratore' lavoratore.pk %}'">
-                <td class="fw-bold">{{ lavoratore.nome_completo }}</td>
+            <tr>
+                <td><strong>{{ lavoratore.nome_completo }}</strong></td>
                 <td>{{ lavoratore.mansione }}</td>
-                <td>{{ lavoratore.sede|default:"—" }}</td>
+                <td style="color:var(--text-muted)">{{ lavoratore.sede|default:"—" }}</td>
                 <td>
                     {% with lavoratore.idoneita.first as esito %}
                         {% if esito %}
-                            <span class="badge bg-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                            <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
                                 {{ esito.get_esito_display }}
                             </span>
-                        {% else %}—{% endif %}
+                        {% else %}
+                            <span style="color:var(--text-muted)">—</span>
+                        {% endif %}
                     {% endwith %}
+                </td>
+                <td>
+                    {% with lavoratore.idoneita.first as esito %}
+                        {% if esito %}
+                            <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
+                                {{ esito.data_scadenza }}
+                            </span>
+                        {% else %}
+                            <span style="color:var(--text-muted)">—</span>
+                        {% endif %}
+                    {% endwith %}
+                </td>
+                <td>
+                    <a href="{% url 'azienda_lavoratore' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda →</a>
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" class="text-muted text-center">Nessun lavoratore</td></tr>
+            <tr>
+                <td colspan="6" style="text-align:center; color:var(--text-muted); padding: 32px">
+                    Nessun lavoratore registrato.
+                    <a href="{% url 'azienda_lavoratore_nuovo' %}" style="color:var(--accent)">Aggiungine uno →</a>
+                </td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>

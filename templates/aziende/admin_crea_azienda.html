@@ -4,22 +4,21 @@
 {% block sidebar %}
 <div class="sidebar-label">Principale</div>
 <a class="nav-link" href="{% url 'admin_dashboard' %}">
-    <span class="nav-icon">⊞</span> Dashboard
+    <span class="nav-icon">⊞</span> Pannello di controllo
 </a>
 <a class="nav-link" href="{% url 'admin_lavoratori' %}">
-    <span class="nav-icon">👷</span> Lavoratori
+    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Lavoratori
 </a>
 <a class="nav-link active" href="{% url 'admin_crea_azienda' %}">
     <span class="nav-icon">＋</span> Nuova azienda
 </a>
 <div class="sidebar-label" style="margin-top:16px">Sistema</div>
 <a class="nav-link" href="/admin/">
-    <span class="nav-icon">⚙</span> Pannello Admin
+    <span class="nav-icon">{% include 'includes/icons/settings.html' %}</span> Pannello Admin
 </a>
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'admin_dashboard' %}" class="text-decoration-none text-muted small">← Torna alla dashboard</a>
 <h4 class="mt-2 mb-4 fw-bold">Nuova Azienda</h4>
 <div class="card shadow-sm" style="max-width:600px">
     <div class="card-body">
@@ -41,7 +40,7 @@
                     <h6 class="text-muted mb-3 mt-4">Dati azienda</h6>
                 {% endif %}
             {% endfor %}
-            <button type="submit" class="btn text-white w-100 mt-2" style="background:#1a3a5c">
+            <button type="submit" class="btn btn-primary" style="color:#fff">
                 Crea azienda
             </button>
         </form>

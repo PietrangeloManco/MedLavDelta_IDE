@@ -5,17 +5,17 @@
 {% block sidebar %}
 <div class="sidebar-label">Principale</div>
 <a class="nav-link" href="{% url 'admin_dashboard' %}">
-    <span class="nav-icon">⊞</span> Dashboard
+    <span class="nav-icon">⊞</span> Pannello di controllo
 </a>
 <a class="nav-link active" href="{% url 'admin_lavoratori' %}">
-    <span class="nav-icon">👷</span> Lavoratori
+    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Lavoratori
 </a>
 <a class="nav-link" href="{% url 'admin_crea_azienda' %}">
     <span class="nav-icon">＋</span> Nuova azienda
 </a>
 <div class="sidebar-label" style="margin-top:16px">Sistema</div>
 <a class="nav-link" href="/admin/">
-    <span class="nav-icon">⚙</span> Pannello Admin
+    <span class="nav-icon">{% include 'includes/icons/settings.html' %}</span> Pannello Admin
 </a>
 {% endblock %}
 
@@ -32,6 +32,7 @@
             </p>
         {% endif %}
     </div>
+    <a href="/admin/aziende/lavoratore/add/" class="btn btn-primary">＋ Nuovo lavoratore</a>
 </div>
 
 <div class="table-card">

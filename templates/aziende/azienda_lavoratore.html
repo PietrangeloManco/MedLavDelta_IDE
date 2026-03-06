@@ -1,40 +1,80 @@
 {% extends 'base.html' %}
 {% block title %}{{ lavoratore.nome_completo }}{% endblock %}
+{% block breadcrumb %}<strong>Lavoratore</strong> {{ lavoratore.nome_completo }}{% endblock %}
 
 {% block sidebar %}
-<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'azienda_dashboard' %}">🏠 Dashboard</a>
+<div class="sidebar-label">Principale</div>
+<a class="nav-link" href="{% url 'azienda_dashboard' %}">
+    <span class="nav-icon">⊞</span> Pannello di controllo
+</a>
+<a class="nav-link" href="{% url 'azienda_lavoratore_nuovo' %}">
+    <span class="nav-icon">＋</span> Nuovo lavoratore
+</a>
+<a class="nav-link active" href="{% url 'azienda_lavoratore' lavoratore.pk %}">
+    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Scheda lavoratore
+</a>
 {% endblock %}
 
 {% block content %}
 <a href="{% url 'azienda_dashboard' %}" class="text-decoration-none text-muted small">← Torna alla lista</a>
 
-<h4 class="mt-2 mb-1 fw-bold">{{ lavoratore.nome_completo }}</h4>
-<p class="text-muted">{{ lavoratore.mansione }}{% if lavoratore.sede %} — {{ lavoratore.sede }}{% endif %}</p>
+<div class="page-header" style="margin-top:8px">
+    <div>
+        <h1 class="page-title">{{ lavoratore.nome_completo }}</h1>
+        <p class="page-subtitle">{{ lavoratore.mansione }}{% if lavoratore.sede %} — {{ lavoratore.sede }}{% endif %}</p>
+    </div>
+    <a href="{% url 'azienda_lavoratore_modifica' lavoratore.pk %}" class="btn btn-outline">Modifica</a>
+</div>
 
-<div class="card mb-4 shadow-sm">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-4">
-                <small class="text-muted">Data di nascita</small>
-                <p class="fw-bold">{{ lavoratore.data_nascita }}</p>
+<div class="form-card">
+    <div class="form-card-title">Anagrafica</div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px">
+        <div>
+            <div class="form-label">Data di nascita</div>
+            <div><strong>{{ lavoratore.data_nascita }}</strong></div>
+        </div>
+        <div>
+            <div class="form-label">Codice fiscale</div>
+            <div><strong>{{ lavoratore.codice_fiscale }}</strong></div>
+        </div>
+        <div>
+            <div class="form-label">Azienda</div>
+            <div><strong>{{ lavoratore.azienda }}</strong></div>
+        </div>
+        <div>
+            <div class="form-label">Sede</div>
+            <div><strong>{{ lavoratore.sede|default:"—" }}</strong></div>
+        </div>
+        <div>
+            <div class="form-label">Stato</div>
+            <div>
+                {% if lavoratore.attivo %}
+                    <span class="badge badge-success">Attivo</span>
+                {% else %}
+                    <span class="badge badge-danger">Non attivo</span>
+                {% endif %}
             </div>
-            <div class="col-md-4">
-                <small class="text-muted">Codice Fiscale</small>
-                <p class="fw-bold">{{ lavoratore.codice_fiscale }}</p>
-            </div>
-            <div class="col-md-4">
-                <small class="text-muted">Azienda</small>
-                <p class="fw-bold">{{ lavoratore.azienda }}</p>
-            </div>
+        </div>
+        <div>
+            <div class="form-label">Note</div>
+            <div>{{ lavoratore.note|default:"—" }}</div>
         </div>
     </div>
 </div>
 
-<h5 class="mb-3">Esiti idoneità</h5>
-<div class="table-responsive">
-    <table class="table bg-white rounded shadow-sm">
-        <thead class="table-light">
-            <tr><th>Data visita</th><th>Mansione</th><th>Esito</th><th>Scadenza</th><th>Note</th></tr>
+<div class="table-card">
+    <div class="table-card-header">
+        <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneita</span>
+    </div>
+    <table class="delta-table">
+        <thead>
+            <tr>
+                <th>Data visita</th>
+                <th>Mansione</th>
+                <th>Esito</th>
+                <th>Scadenza</th>
+                <th>Note</th>
+            </tr>
         </thead>
         <tbody>
             {% for esito in esiti %}
@@ -42,18 +82,23 @@
                 <td>{{ esito.data_visita }}</td>
                 <td>{{ esito.mansione }}</td>
                 <td>
-                    <span class="badge bg-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                    <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
                         {{ esito.get_esito_display }}
                     </span>
                 </td>
-                <td class="{% if esito.is_scaduto %}text-danger fw-bold{% endif %}">
-                    {{ esito.data_scadenza }}
-                    {% if esito.is_scaduto %}<small>(scaduto)</small>{% endif %}
+                <td>
+                    <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
+                        {{ esito.data_scadenza }}
+                    </span>
                 </td>
                 <td>{{ esito.note|default:"—" }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="5" class="text-muted text-center">Nessun esito registrato</td></tr>
+            <tr>
+                <td colspan="5" style="text-align:center; color:var(--text-muted); padding: 32px">
+                    Nessun esito registrato.
+                </td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
