@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Contratto da saldare{% endblock %}
+{% block breadcrumb %}<strong>Contratto</strong> Pagamento non registrato{% endblock %}
+
+{% block sidebar %}
+<div class="sidebar-label">Principale</div>
+<a class="nav-link active" href="{% url 'azienda_dashboard' %}">
+    <span class="nav-icon">{% include 'includes/icons/company.html' %}</span> Pannello di controllo
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ azienda.ragione_sociale }}</h1>
+        <p class="page-subtitle">Accesso limitato</p>
+    </div>
+</div>
+
+<div class="alert-banner warning">
+    <span class="alert-icon">!</span>
+    <div>
+        <strong>Pagamento del contratto non registrato.</strong>
+        Per riattivare le funzionalita della piattaforma, contatta Centro Delta e salda il contratto.
+    </div>
+</div>
+
+<div class="form-card" style="max-width:720px">
+    <div class="form-card-title">Cosa fare</div>
+    <p class="page-subtitle" style="margin:0; color:var(--text-muted)">
+        Il tuo account resta attivo ma le funzioni operative sono bloccate fino alla conferma del saldo.
+        Se hai gia effettuato il pagamento, contatta Centro Delta per la verifica.
+    </p>
+</div>
+{% endblock %}

@@ -34,6 +34,21 @@ class AdminDashboardView(AdminRequiredMixin, View):
         return render(request, 'aziende/admin_dashboard.html', context)
 
 
+class AdminAggiornaContrattoView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        azienda = get_object_or_404(Azienda, pk=pk)
+        valore = request.POST.get('contratto_saldato')
+        if valore in ('1', 'true', 'True', 'on'):
+            azienda.contratto_saldato = True
+        elif valore in ('0', 'false', 'False'):
+            azienda.contratto_saldato = False
+        else:
+            azienda.contratto_saldato = not azienda.contratto_saldato
+        azienda.save(update_fields=['contratto_saldato'])
+        messages.success(request, f'Contratto aggiornato per {azienda.ragione_sociale}.')
+        return redirect('admin_dashboard')
+
+
 class AdminCreaAziendaView(AdminRequiredMixin, View):
     def get(self, request):
         return render(request, 'aziende/admin_crea_azienda.html', {
@@ -130,7 +145,7 @@ class AdminRegistraEsitoView(AdminRequiredMixin, View):
 
 class AziendaDashboardView(AziendaRequiredMixin, View):
     def get(self, request):
-        azienda = get_object_or_404(Azienda, user=request.user)
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         lavoratori = Lavoratore.objects.filter(
             azienda=azienda, attivo=True
         ).order_by('cognome')
@@ -144,14 +159,14 @@ class AziendaDashboardView(AziendaRequiredMixin, View):
 
 class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
     def get(self, request):
-        azienda = get_object_or_404(Azienda, user=request.user)
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         form = LavoratoreForm(azienda=azienda)
         return render(request, 'aziende/azienda_lavoratore_form.html', {
             'form': form, 'azienda': azienda, 'action': 'Nuovo lavoratore'
         })
 
     def post(self, request):
-        azienda = get_object_or_404(Azienda, user=request.user)
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         form = LavoratoreForm(request.POST, azienda=azienda)
         if form.is_valid():
             lavoratore = form.save(commit=False)
@@ -166,7 +181,7 @@ class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
 
 class AziendaLavoratoreEditView(AziendaRequiredMixin, View):
     def get(self, request, pk):
-        azienda = get_object_or_404(Azienda, user=request.user)
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
         form = LavoratoreForm(instance=lavoratore, azienda=azienda)
         return render(request, 'aziende/azienda_lavoratore_form.html', {
@@ -174,7 +189,7 @@ class AziendaLavoratoreEditView(AziendaRequiredMixin, View):
         })
 
     def post(self, request, pk):
-        azienda = get_object_or_404(Azienda, user=request.user)
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
         form = LavoratoreForm(request.POST, instance=lavoratore, azienda=azienda)
         if form.is_valid():
@@ -188,7 +203,7 @@ class AziendaLavoratoreEditView(AziendaRequiredMixin, View):
 
 class AziendaLavoratoreDetailView(AziendaRequiredMixin, View):
     def get(self, request, pk):
-        azienda = get_object_or_404(Azienda, user=request.user)
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
         esiti = EsitoIdoneita.objects.filter(lavoratore=lavoratore).order_by('-data_visita')
         return render(request, 'aziende/azienda_lavoratore.html', {

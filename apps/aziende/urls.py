@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     # Admin
     path('dashboard/', views.AdminDashboardView.as_view(), name='admin_dashboard'),
+    path('dashboard/aziende/<int:pk>/contratto/', views.AdminAggiornaContrattoView.as_view(), name='admin_azienda_contratto'),
     path('dashboard/aziende/nuova/', views.AdminCreaAziendaView.as_view(), name='admin_crea_azienda'),
     path('dashboard/lavoratori/', views.AdminLavoratoriView.as_view(), name='admin_lavoratori'),
     path('dashboard/lavoratori/<int:pk>/', views.AdminLavoratoreDetailView.as_view(), name='admin_lavoratore_detail'),

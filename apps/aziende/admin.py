@@ -150,7 +150,8 @@ class LavoratoreInline(admin.TabularInline):
 @admin.register(Azienda)
 class AziendaAdmin(admin.ModelAdmin):
     form = AziendaAdminForm
-    list_display = ['ragione_sociale', 'partita_iva', 'email_contatto', 'user']
+    list_display = ['ragione_sociale', 'partita_iva', 'email_contatto', 'contratto_saldato', 'user']
+    list_filter = ['contratto_saldato']
     inlines = [SedeInline, LavoratoreInline]
 
 

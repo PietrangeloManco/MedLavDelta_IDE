@@ -12,6 +12,10 @@ class Azienda(models.Model):
     partita_iva = models.CharField(max_length=11, blank=True)
     email_contatto = models.EmailField()
     telefono = models.CharField(max_length=20, blank=True)
+    contratto_saldato = models.BooleanField(
+        default=True,
+        help_text='Se non saldato, l\'azienda vedra un avviso e le funzionalita saranno limitate.',
+    )
     data_registrazione = models.DateTimeField(auto_now_add=True)
 
     class Meta:

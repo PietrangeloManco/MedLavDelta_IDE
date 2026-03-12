@@ -107,6 +107,7 @@
                 <th>P.IVA</th>
                 <th>Email</th>
                 <th>Lavoratori</th>
+                <th>Contratto</th>
                 <th></th>
             </tr>
         </thead>
@@ -120,14 +121,30 @@
                     <span class="badge badge-info">{{ azienda.lavoratori.count }}</span>
                 </td>
                 <td>
-                    <a href="{% url 'admin_lavoratori' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">
-                        <span class="icon-label">{% include 'includes/icons/worker.html' %} Lavoratori</span>
-                    </a>
+                    {% if azienda.contratto_saldato %}
+                        <span class="badge badge-success">Saldato</span>
+                    {% else %}
+                        <span class="badge badge-danger">Non saldato</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px">
+                        <a href="{% url 'admin_lavoratori' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">
+                            <span class="icon-label">{% include 'includes/icons/worker.html' %} Lavoratori</span>
+                        </a>
+                        <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}" style="margin:0">
+                            {% csrf_token %}
+                            <input type="hidden" name="contratto_saldato" value="{% if azienda.contratto_saldato %}0{% else %}1{% endif %}">
+                            <button type="submit" class="btn btn-outline btn-sm">
+                                {% if azienda.contratto_saldato %}Segna non saldato{% else %}Segna saldato{% endif %}
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align:center; color:var(--text-muted); padding: 32px">
+                <td colspan="6" style="text-align:center; color:var(--text-muted); padding: 32px">
                     Nessuna azienda registrata.
                     <a href="{% url 'admin_crea_azienda' %}" style="color:var(--accent)">Creane una →</a>
                 </td>
