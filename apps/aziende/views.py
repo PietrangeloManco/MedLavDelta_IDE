@@ -6,7 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from apps.accounts.mixins import AdminRequiredMixin, AziendaRequiredMixin, OperatoreRequiredMixin
 from apps.accounts.models import CustomUser
 from .models import Azienda, Lavoratore, Sede
-from .forms import CreaAziendaForm, LavoratoreForm, CreaAccountOperatoreForm
+from .forms import CreaAziendaForm, LavoratoreForm
 from apps.sanitaria.models import EsitoIdoneita, CartellaClinica, DocumentoSanitario
 from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm
 from datetime import timedelta
@@ -160,17 +160,26 @@ class AziendaDashboardView(AziendaRequiredMixin, View):
 class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
     def get(self, request):
         azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        form = LavoratoreForm(azienda=azienda)
+        form = LavoratoreForm(azienda=azienda, include_account_fields=True)
         return render(request, 'aziende/azienda_lavoratore_form.html', {
             'form': form, 'azienda': azienda, 'action': 'Nuovo lavoratore'
         })
 
     def post(self, request):
         azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        form = LavoratoreForm(request.POST, azienda=azienda)
+        form = LavoratoreForm(request.POST, azienda=azienda, include_account_fields=True)
         if form.is_valid():
             lavoratore = form.save(commit=False)
             lavoratore.azienda = azienda
+            account_email = form.cleaned_data.get('account_email')
+            account_password = form.cleaned_data.get('account_password')
+            if account_email and account_password:
+                user = CustomUser.objects.create_user(
+                    email=account_email,
+                    password=account_password,
+                    role=CustomUser.OPERATORE,
+                )
+                lavoratore.user = user
             lavoratore.save()
             messages.success(request, f'{lavoratore.nome_completo} aggiunto con successo.')
             return redirect('azienda_dashboard')
@@ -227,26 +236,3 @@ class OperatoreDashboardView(OperatoreRequiredMixin, View):
             'documenti': documenti,
         })
     
-class AdminCreaAccountOperatoreView(AdminRequiredMixin, View):
-    def post(self, request, pk):
-        lavoratore = get_object_or_404(Lavoratore, pk=pk)
-
-        # Blocca se ha già un account
-        if lavoratore.user:
-            messages.warning(request, 'Questo lavoratore ha già un account.')
-            return redirect('admin_lavoratore_detail', pk=pk)
-
-        form = CreaAccountOperatoreForm(request.POST)
-        if form.is_valid():
-            user = CustomUser.objects.create_user(
-                email=form.cleaned_data['email'],
-                password=form.cleaned_data['password'],
-                role=CustomUser.OPERATORE
-            )
-            lavoratore.user = user
-            lavoratore.save()
-            messages.success(request, f'Account creato per {lavoratore.nome_completo}.')
-        else:
-            messages.error(request, 'Errore nella creazione dell\'account.')
-
-        return redirect('admin_lavoratore_detail', pk=pk)

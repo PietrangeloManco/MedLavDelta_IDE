@@ -2,21 +2,26 @@
 {% block title %}{{ lavoratore.nome_completo }}{% endblock %}
 
 {% block sidebar %}
-<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_dashboard' %}">
-    <span class="icon-label">⊞ Pannello di controllo</span>
+<div class="sidebar-label">Principale</div>
+<a class="nav-link" href="{% url 'admin_dashboard' %}">
+    <span class="nav-icon">⊞</span> Pannello di controllo
 </a>
-<a class="d-block py-2 px-3 text-decoration-none" href="{% url 'admin_lavoratori' %}">
-    <span class="icon-label">{% include 'includes/icons/worker.html' %} Lavoratori</span>
+<a class="nav-link active" href="{% url 'admin_lavoratori' %}">
+    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Lavoratori
 </a>
-<a class="d-block py-2 px-3 text-decoration-none" href="/admin/">
-    <span class="icon-label">{% include 'includes/icons/settings.html' %} Pannello Admin</span>
+<a class="nav-link" href="{% url 'admin_crea_azienda' %}">
+    <span class="nav-icon">＋</span> Nuova azienda
+</a>
+<div class="sidebar-label" style="margin-top:16px">Sistema</div>
+<a class="nav-link" href="/admin/">
+    <span class="nav-icon">{% include 'includes/icons/settings.html' %}</span> Pannello Admin
 </a>
 {% endblock %}
 
 {% block content %}
 <a href="{% url 'admin_lavoratori' %}" class="text-decoration-none text-muted small">← Torna ai lavoratori</a>
 <h4 class="mt-2 mb-1 fw-bold">{{ lavoratore.nome_completo }}</h4>
-<p class="text-muted">{{ lavoratore.mansione }} — {{ lavoratore.azienda }}</p>
+<p class="text-muted">{{ lavoratore.azienda }}</p>
 
 <div class="row g-4 mt-1">
 
@@ -82,21 +87,9 @@
                         <small class="text-muted">{{ lavoratore.user.email }}</small>
                     </div>
                 {% else %}
-                    <p class="text-muted small mb-3">Nessun account — il lavoratore non può accedere al portale.</p>
-                    <form method="post" action="{% url 'admin_crea_account_operatore' lavoratore.pk %}">
-                        {% csrf_token %}
-                        {% with form=operatore_form %}
-                        <div class="mb-2">
-                            <label class="form-label small fw-semibold">Email</label>
-                            <input type="email" name="email" class="form-control form-control-sm">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-semibold">Password temporanea</label>
-                            <input type="password" name="password" class="form-control form-control-sm">
-                        </div>
-                        {% endwith %}
-                        <button type="submit" class="btn btn-outline-primary w-100 btn-sm">Crea account</button>
-                    </form>
+                    <div class="alert alert-secondary py-2 mb-0">
+                        Nessun account collegato.
+                    </div>
                 {% endif %}
             </div>
         </div>

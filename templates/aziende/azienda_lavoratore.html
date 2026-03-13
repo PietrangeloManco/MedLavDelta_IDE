@@ -21,7 +21,9 @@
 <div class="page-header" style="margin-top:8px">
     <div>
         <h1 class="page-title">{{ lavoratore.nome_completo }}</h1>
-        <p class="page-subtitle">{{ lavoratore.mansione }}{% if lavoratore.sede %} — {{ lavoratore.sede }}{% endif %}</p>
+        {% if lavoratore.sede %}
+            <p class="page-subtitle">{{ lavoratore.sede }}</p>
+        {% endif %}
     </div>
     <a href="{% url 'azienda_lavoratore_modifica' lavoratore.pk %}" class="btn btn-outline">Modifica</a>
 </div>
@@ -70,7 +72,6 @@
         <thead>
             <tr>
                 <th>Data visita</th>
-                <th>Mansione</th>
                 <th>Esito</th>
                 <th>Scadenza</th>
                 <th>Note</th>
@@ -80,7 +81,6 @@
             {% for esito in esiti %}
             <tr>
                 <td>{{ esito.data_visita }}</td>
-                <td>{{ esito.mansione }}</td>
                 <td>
                     <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
                         {{ esito.get_esito_display }}
@@ -95,7 +95,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align:center; color:var(--text-muted); padding: 32px">
+                <td colspan="4" style="text-align:center; color:var(--text-muted); padding: 32px">
                     Nessun esito registrato.
                 </td>
             </tr>

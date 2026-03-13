@@ -19,5 +19,4 @@ urlpatterns = [
 
     # Operatore
     path('operatore/dashboard/', views.OperatoreDashboardView.as_view(), name='operatore_dashboard'),
-    path('dashboard/lavoratori/<int:pk>/crea-account/', views.AdminCreaAccountOperatoreView.as_view(), name='admin_crea_account_operatore'),
 ]
