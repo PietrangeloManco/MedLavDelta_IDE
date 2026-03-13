@@ -154,7 +154,7 @@
         border-top: 1px solid rgba(255,255,255,0.08);
     }
 
-    .ds-actions { margin-top: 10px; }
+    .ds-user form { margin-left: auto; }
 
     .ds-logout-btn {
         display: inline-flex;
@@ -459,8 +459,6 @@
                 <div class="ds-user-email">{{ request.user.email }}</div>
                 <div class="ds-user-role">Amministratore</div>
             </div>
-        </div>
-        <div class="ds-actions">
             <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="ds-logout-btn">Esci</button>
