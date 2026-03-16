@@ -17,6 +17,61 @@
     </div>
 </div>
 
+<div class="form-card">
+    <div class="form-card-title">Scheda lavoratore</div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px">
+        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
+            <div class="form-label" style="margin-bottom:8px">Dati personali</div>
+            <div style="display:grid; gap:8px">
+                <div>
+                    <div class="text-muted small">Data di nascita</div>
+                    <div><strong>{{ lavoratore.data_nascita }}</strong></div>
+                </div>
+                <div>
+                    <div class="text-muted small">Codice fiscale</div>
+                    <div><strong>{{ lavoratore.codice_fiscale }}</strong></div>
+                </div>
+                <div>
+                    <div class="text-muted small">Mansione</div>
+                    <div><strong>{{ lavoratore.mansione }}</strong></div>
+                </div>
+            </div>
+        </div>
+        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
+            <div class="form-label" style="margin-bottom:8px">Inquadramento</div>
+            <div style="display:grid; gap:8px">
+                <div>
+                    <div class="text-muted small">Azienda</div>
+                    <div><strong>{{ lavoratore.azienda }}</strong></div>
+                </div>
+                <div>
+                    <div class="text-muted small">Sede</div>
+                    <div><strong>{{ lavoratore.sede|default:"-" }}</strong></div>
+                </div>
+            </div>
+        </div>
+        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
+            <div class="form-label" style="margin-bottom:8px">Stato e note</div>
+            <div style="display:grid; gap:8px">
+                <div>
+                    <div class="text-muted small">Stato</div>
+                    <div>
+                        {% if lavoratore.attivo %}
+                            <span class="badge badge-success">Attivo</span>
+                        {% else %}
+                            <span class="badge badge-danger">Non attivo</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-muted small">Note</div>
+                    <div>{{ lavoratore.note|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="table-card">
     <div class="table-card-header">
         <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneita</span>
@@ -39,6 +94,9 @@
                     <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
                         {{ esito.get_esito_display }}
                     </span>
+                    {% if esito.esito == 'idoneo' and esito.certificato %}
+                        <a href="{{ esito.certificato.url }}" target="_blank" class="btn btn-link btn-sm" style="margin-left:6px">Certificato</a>
+                    {% endif %}
                 </td>
                 <td>
                     <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">

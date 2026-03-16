@@ -3,6 +3,9 @@ from django.views import View
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
+from django.core.mail import send_mail
+from django.conf import settings
+import logging
 from apps.accounts.mixins import AdminRequiredMixin, AziendaRequiredMixin, OperatoreRequiredMixin
 from apps.accounts.models import CustomUser
 from .models import Azienda, Lavoratore, Sede
@@ -11,6 +14,28 @@ from apps.sanitaria.models import EsitoIdoneita, CartellaClinica, DocumentoSanit
 from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm
 from datetime import timedelta
 from django.utils import timezone
+
+
+def send_notification_email(subject, message, recipients):
+    recipient_list = [email for email in recipients if email]
+    if not recipient_list:
+        return
+    logger = logging.getLogger(__name__)
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipient_list,
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception(
+            "Errore invio email. Subject=%s, From=%s, To=%s",
+            subject,
+            settings.DEFAULT_FROM_EMAIL,
+            ", ".join(recipient_list),
+        )
 
 # ─── ADMIN ────────────────────────────────────────────────────────────────────
 
@@ -56,7 +81,7 @@ class AdminCreaAziendaView(AdminRequiredMixin, View):
         })
 
     def post(self, request):
-        form = CreaAziendaForm(request.POST)
+        form = CreaAziendaForm(request.POST, request.FILES)
         if form.is_valid():
             # Crea utente
             user = CustomUser.objects.create_user(
@@ -72,6 +97,11 @@ class AdminCreaAziendaView(AdminRequiredMixin, View):
                 partita_iva=form.cleaned_data['partita_iva'],
                 email_contatto=form.cleaned_data['email_contatto'],
                 telefono=form.cleaned_data['telefono'],
+                protocollo_sanitario=form.cleaned_data['protocollo_sanitario'],
+                nomina_medico=form.cleaned_data['nomina_medico'],
+                verbali_sopralluogo=form.cleaned_data['verbali_sopralluogo'],
+                varie_documento=form.cleaned_data.get('varie_documento'),
+                varie_note=form.cleaned_data.get('varie_note', ''),
             )
             messages.success(request, f'Azienda {form.cleaned_data["ragione_sociale"]} creata con successo.')
             return redirect('admin_dashboard')
@@ -122,6 +152,17 @@ class AdminCaricaDocumentoView(AdminRequiredMixin, View):
             doc.cartella = cartella
             doc.save()
             messages.success(request, 'Documento caricato con successo.')
+            if doc.tipo == DocumentoSanitario.REFERTO and getattr(lavoratore, 'user', None):
+                subject = 'I suoi referti sono disponibili — Centro Medico Delta'
+                corpo = (
+                    "Gentile,\n"
+                    "Le comunichiamo che Centro Medico Delta ha caricato sulla piattaforma i referti relativi alla sua visita medica.\n"
+                    "Può consultarli in qualsiasi momento accedendo alla sua area personale.\n"
+                    "Per qualsiasi informazione, rimaniamo a sua disposizione.\n"
+                    "Cordiali saluti,\n"
+                    "Centro Medico Delta"
+                )
+                send_notification_email(subject, corpo, [lavoratore.user.email])
         else:
             messages.error(request, 'Errore nel caricamento del documento.')
         return redirect('admin_lavoratore_detail', pk=pk)
@@ -130,11 +171,24 @@ class AdminCaricaDocumentoView(AdminRequiredMixin, View):
 class AdminRegistraEsitoView(AdminRequiredMixin, View):
     def post(self, request, pk):
         lavoratore = get_object_or_404(Lavoratore, pk=pk)
-        form = EsitoIdoneitaForm(request.POST)
+        form = EsitoIdoneitaForm(request.POST, request.FILES)
         if form.is_valid():
             esito = form.save(commit=False)
             esito.lavoratore = lavoratore
             esito.save()
+            azienda = lavoratore.azienda
+            destinatario = azienda.user.email if getattr(azienda, 'user', None) else azienda.email_contatto
+            subject = 'Idoneità alla mansione disponibile'
+            corpo = (
+                "Gentile,\n"
+                f"Le comunichiamo che Centro Medico Delta ha caricato sulla piattaforma il giudizio di idoneità alla mansione relativo al lavoratore {lavoratore.nome_completo}.\n"
+                "Il documento è ora consultabile accedendo alla sua area riservata.\n"
+                "[ ACCEDI ALLA PIATTAFORMA ]\n"
+                "Per qualsiasi informazione, rimaniamo a sua disposizione.\n"
+                "Cordiali saluti,\n"
+                "Centro Medico Delta"
+            )
+            send_notification_email(subject, corpo, [destinatario])
             messages.success(request, 'Esito idoneità registrato.')
         else:
             messages.error(request, 'Errore nella registrazione dell\'esito.')

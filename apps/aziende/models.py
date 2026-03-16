@@ -2,6 +2,11 @@ from django.db import models
 from apps.accounts.models import CustomUser
 
 
+def upload_documento_azienda(instance, filename):
+    user_id = instance.user_id or 'senza_utente'
+    return f'aziende/{user_id}/{filename}'
+
+
 class Azienda(models.Model):
     user = models.OneToOneField(
         CustomUser, on_delete=models.CASCADE,
@@ -12,6 +17,19 @@ class Azienda(models.Model):
     partita_iva = models.CharField(max_length=11, blank=True)
     email_contatto = models.EmailField()
     telefono = models.CharField(max_length=20, blank=True)
+    protocollo_sanitario = models.FileField(
+        upload_to=upload_documento_azienda, blank=True, null=True
+    )
+    nomina_medico = models.FileField(
+        upload_to=upload_documento_azienda, blank=True, null=True
+    )
+    verbali_sopralluogo = models.FileField(
+        upload_to=upload_documento_azienda, blank=True, null=True
+    )
+    varie_documento = models.FileField(
+        upload_to=upload_documento_azienda, blank=True, null=True
+    )
+    varie_note = models.TextField(blank=True)
     contratto_saldato = models.BooleanField(
         default=True,
         help_text='Se non saldato, l\'azienda vedra un avviso e le funzionalita saranno limitate.',

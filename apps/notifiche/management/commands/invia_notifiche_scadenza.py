@@ -4,6 +4,9 @@ from django.utils import timezone
 from django.conf import settings
 from apps.sanitaria.models import EsitoIdoneita
 from datetime import timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -13,7 +16,7 @@ class Command(BaseCommand):
         oggi = timezone.now().date()
         soglia = oggi + timedelta(days=30)
 
-        # Trova tutti gli esiti che scadono entro 30 giorni e non sono già scaduti
+        # Trova tutti gli esiti che scadono entro 30 giorni e non sono gia scaduti
         esiti = EsitoIdoneita.objects.filter(
             data_scadenza__gte=oggi,
             data_scadenza__lte=soglia,
@@ -23,57 +26,79 @@ class Command(BaseCommand):
             self.stdout.write('Nessuna scadenza nei prossimi 30 giorni.')
             return
 
-        # Raggruppa per azienda per mandare una sola email per azienda
-        aziende_map = {}
+        # Raggruppa per azienda e data scadenza (una email per data)
+        gruppi = {}
         for esito in esiti:
             azienda = esito.lavoratore.azienda
-            if azienda not in aziende_map:
-                aziende_map[azienda] = []
-            aziende_map[azienda].append(esito)
+            chiave = (azienda, esito.data_scadenza)
+            if chiave not in gruppi:
+                gruppi[chiave] = []
+            gruppi[chiave].append(esito)
 
         inviate = 0
         errori = 0
 
-        for azienda, esiti_azienda in aziende_map.items():
-            # Costruisci il corpo dell'email
-            righe = []
+        for (azienda, data_scadenza), esiti_azienda in gruppi.items():
+            nomi = []
             for esito in esiti_azienda:
-                giorni_mancanti = (esito.data_scadenza - oggi).days
-                righe.append(
-                    f"  - {esito.lavoratore.nome_completo} | "
-                    f"Mansione: {esito.mansione} | "
-                    f"Scadenza: {esito.data_scadenza.strftime('%d/%m/%Y')} "
-                    f"(tra {giorni_mancanti} giorni)"
+                nomi.append(f"• {esito.lavoratore.nome_completo}")
+
+            corpo = (
+                "Gentile,\n"
+                "Le segnaliamo che i seguenti dipendenti hanno il giudizio di idoneità alla mansione in scadenza in data "
+                f"{data_scadenza.strftime('%d/%m/%Y')}:\n"
+                f"{chr(10).join(nomi)}\n"
+                "Siamo a disposizione per pianificare insieme le visite di rinnovo nel momento più comodo per la sua organizzazione.\n"
+                "\n"
+                "Accedi alla Piattaforma: https://medlavdelta.it/\n"
+                "\n"
+                "Per qualsiasi informazione, rimaniamo a sua disposizione.\n"
+                "Cordiali saluti,\n"
+                "Centro Medico Delta"
+            )
+
+            destinatari = []
+            if getattr(azienda, 'user', None) and azienda.user.email:
+                destinatari.append(azienda.user.email)
+            elif azienda.email_contatto:
+                destinatari.append(azienda.email_contatto)
+            centro_email = getattr(settings, 'CENTRO_MEDICO_EMAIL', None)
+            if centro_email:
+                destinatari.append(centro_email)
+            destinatari = list(dict.fromkeys(destinatari))
+
+            if not destinatari:
+                errori += 1
+                self.stdout.write(
+                    self.style.ERROR(f'Nessun destinatario per {azienda.ragione_sociale}.')
                 )
-
-            corpo = f"""Gentile {azienda.ragione_sociale},
-
-le segnaliamo che i seguenti lavoratori hanno una visita medica in scadenza nei prossimi 30 giorni:
-
-{chr(10).join(righe)}
-
-La invitiamo a contattare Centro Delta per pianificare le visite.
-
-Cordiali saluti,
-Centro Delta Srl — Medicina del Lavoro
-"""
+                continue
 
             try:
                 send_mail(
-                    subject='⚠️ Scadenza visite mediche — Centro Delta',
+                    subject='PROMEMORIA — Scadenze idoneità',
                     message=corpo,
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[azienda.email_contatto],
+                    recipient_list=destinatari,
                     fail_silently=False,
                 )
                 inviate += 1
                 self.stdout.write(
-                    self.style.SUCCESS(f'✓ Email inviata a {azienda.ragione_sociale} ({azienda.email_contatto})')
+                    self.style.SUCCESS(
+                        f'Email inviata a {azienda.ragione_sociale} ({", ".join(destinatari)})'
+                    )
                 )
             except Exception as e:
                 errori += 1
+                logger.exception(
+                    "Errore invio email scadenza. Host=%s Port=%s From=%s To=%s",
+                    settings.EMAIL_HOST,
+                    settings.EMAIL_PORT,
+                    settings.DEFAULT_FROM_EMAIL,
+                    ", ".join(destinatari),
+                )
                 self.stdout.write(
-                    self.style.ERROR(f'✗ Errore per {azienda.ragione_sociale}: {e}')
+                    self.style.ERROR(f'Errore per {azienda.ragione_sociale}: {e}')
                 )
 
         self.stdout.write(f'\nCompletato: {inviate} email inviate, {errori} errori.')

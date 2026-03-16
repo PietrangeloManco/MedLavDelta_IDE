@@ -78,10 +78,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtps.aruba.it')
 EMAIL_PORT = config('EMAIL_PORT', cast=int, default=465)
-EMAIL_USE_SSL = False
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', cast=bool, default=False)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool, default=False)
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', cast=int, default=15)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+CENTRO_MEDICO_EMAIL = config('CENTRO_MEDICO_EMAIL', default=DEFAULT_FROM_EMAIL)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

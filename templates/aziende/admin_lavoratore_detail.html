@@ -4,13 +4,13 @@
 {% block sidebar %}
 <div class="sidebar-label">Principale</div>
 <a class="nav-link" href="{% url 'admin_dashboard' %}">
-    <span class="nav-icon">⊞</span> Pannello di controllo
+    <span class="nav-icon">Ã¢Å Å¾</span> Pannello di controllo
 </a>
 <a class="nav-link active" href="{% url 'admin_lavoratori' %}">
     <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Lavoratori
 </a>
 <a class="nav-link" href="{% url 'admin_crea_azienda' %}">
-    <span class="nav-icon">＋</span> Nuova azienda
+    <span class="nav-icon">Ã¯Â¼â€¹</span> Nuova azienda
 </a>
 <div class="sidebar-label" style="margin-top:16px">Sistema</div>
 <a class="nav-link" href="/admin/">
@@ -19,112 +19,163 @@
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'admin_lavoratori' %}" class="text-decoration-none text-muted small">← Torna ai lavoratori</a>
+<a href="{% url 'admin_lavoratori' %}" class="text-decoration-none text-muted small">&larr; Torna ai lavoratori</a>
 <h4 class="mt-2 mb-1 fw-bold">{{ lavoratore.nome_completo }}</h4>
 <p class="text-muted">{{ lavoratore.azienda }}</p>
 
-<div class="row g-4 mt-1">
-
-    <!-- Colonna sinistra: documenti + esiti -->
-    <div class="col-md-7">
-
-        <!-- Esiti idoneità -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header fw-bold">✅ Esiti idoneità</div>
-            <div class="card-body p-0">
-                <table class="table mb-0">
-                    <thead class="table-light">
-                        <tr><th>Data</th><th>Esito</th><th>Scadenza</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for esito in esiti %}
-                        <tr>
-                            <td>{{ esito.data_visita }}</td>
-                            <td>
-                                <span class="badge bg-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
-                                    {{ esito.get_esito_display }}
-                                </span>
-                            </td>
-                            <td class="{% if esito.is_scaduto %}text-danger fw-bold{% endif %}">
-                                {{ esito.data_scadenza }}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="3" class="text-muted text-center py-3">Nessun esito</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+<div class="form-card">
+    <div class="form-card-title">Scheda lavoratore</div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px">
+        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
+            <div class="form-label" style="margin-bottom:8px">Dati personali</div>
+            <div style="display:grid; gap:8px">
+                <div>
+                    <div class="text-muted small">Data di nascita</div>
+                    <div><strong>{{ lavoratore.data_nascita }}</strong></div>
+                </div>
+                <div>
+                    <div class="text-muted small">Codice fiscale</div>
+                    <div><strong>{{ lavoratore.codice_fiscale }}</strong></div>
+                </div>
+                <div>
+                    <div class="text-muted small">Mansione</div>
+                    <div><strong>{{ lavoratore.mansione }}</strong></div>
+                </div>
             </div>
         </div>
-
-        <!-- Documenti -->
-        <div class="card shadow-sm">
-            <div class="card-header fw-bold">📄 Documenti sanitari</div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for doc in documenti %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>{{ doc.titolo }} <small class="text-muted">({{ doc.get_tipo_display }})</small></span>
-                        <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">📥 Apri</a>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-muted text-center py-3">Nessun documento</li>
-                    {% endfor %}
-                </ul>
+        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
+            <div class="form-label" style="margin-bottom:8px">Inquadramento</div>
+            <div style="display:grid; gap:8px">
+                <div>
+                    <div class="text-muted small">Azienda</div>
+                    <div><strong>{{ lavoratore.azienda }}</strong></div>
+                </div>
+                <div>
+                    <div class="text-muted small">Sede</div>
+                    <div><strong>{{ lavoratore.sede|default:"-" }}</strong></div>
+                </div>
+            </div>
+        </div>
+        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
+            <div class="form-label" style="margin-bottom:8px">Stato e note</div>
+            <div style="display:grid; gap:8px">
+                <div>
+                    <div class="text-muted small">Stato</div>
+                    <div>
+                        {% if lavoratore.attivo %}
+                            <span class="badge badge-success">Attivo</span>
+                        {% else %}
+                            <span class="badge badge-danger">Non attivo</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-muted small">Note</div>
+                    <div>{{ lavoratore.note|default:"-" }}</div>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Colonna destra: form -->
-    <div class="col-md-5">
-        <!-- Account operatore -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header fw-bold">👤 Account lavoratore</div>
-            <div class="card-body">
-                {% if lavoratore.user %}
-                    <div class="alert alert-success py-2 mb-0">
-                        ✅ Account attivo<br>
-                        <small class="text-muted">{{ lavoratore.user.email }}</small>
-                    </div>
-                {% else %}
-                    <div class="alert alert-secondary py-2 mb-0">
-                        Nessun account collegato.
-                    </div>
-                {% endif %}
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px">
+    <div>
+        <div class="table-card">
+            <div class="table-card-header">
+                <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneita</span>
             </div>
-        </div>
-        <!-- Form esito -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header fw-bold">➕ Registra esito idoneità</div>
-            <div class="card-body">
-                <form method="post" action="{% url 'admin_registra_esito' lavoratore.pk %}">
-                    {% csrf_token %}
-                    {% for field in esito_form %}
-                    <div class="mb-2">
-                        <label class="form-label small fw-semibold">{{ field.label }}</label>
-                        {{ field.as_widget }}
-                    </div>
+            <table class="delta-table">
+                <thead>
+                    <tr><th>Data</th><th>Esito</th><th>Scadenza</th></tr>
+                </thead>
+                <tbody>
+                    {% for esito in esiti %}
+                    <tr>
+                        <td>{{ esito.data_visita }}</td>
+                        <td>
+                            <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                                {{ esito.get_esito_display }}
+                            </span>
+                            {% if esito.esito == 'idoneo' and esito.certificato %}
+                                <a href="{{ esito.certificato.url }}" target="_blank" class="btn btn-link btn-sm" style="margin-left:6px">Certificato</a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
+                                {{ esito.data_scadenza }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="text-muted text-center" style="padding:24px">Nessun esito</td></tr>
                     {% endfor %}
-                    <button type="submit" class="btn btn-success w-100 mt-2">Registra</button>
-                </form>
-            </div>
+                </tbody>
+            </table>
         </div>
 
-        <!-- Form documento -->
-        <div class="card shadow-sm">
-            <div class="card-header fw-bold">📤 Carica documento</div>
-            <div class="card-body">
-                <form method="post" action="{% url 'admin_carica_documento' lavoratore.pk %}" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    {% for field in doc_form %}
-                    <div class="mb-2">
-                        <label class="form-label small fw-semibold">{{ field.label }}</label>
-                        {{ field.as_widget }}
-                    </div>
-                    {% endfor %}
-                    <button type="submit" class="btn w-100 mt-2 text-white" style="background:#1a3a5c">Carica PDF</button>
-                </form>
+        <div class="table-card">
+            <div class="table-card-header">
+                <span class="table-card-title icon-label">{% include 'includes/icons/document.html' %} Documenti sanitari</span>
             </div>
+            <table class="delta-table">
+                <thead>
+                    <tr><th>Titolo</th><th>Tipo</th><th>Data</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for doc in documenti %}
+                    <tr>
+                        <td><strong>{{ doc.titolo }}</strong></td>
+                        <td>{{ doc.get_tipo_display }}</td>
+                        <td style="color:var(--text-muted)">{{ doc.data }}</td>
+                        <td>
+                            <a href="{{ doc.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-muted text-center" style="padding:24px">Nessun documento</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="form-card">
+            <div class="form-card-title">Carica documento</div>
+            <form method="post" action="{% url 'admin_carica_documento' lavoratore.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% for field in doc_form %}
+                <div class="form-group">
+                    <label class="form-label">{{ field.label }}</label>
+                    {{ field.as_widget }}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn" style="background:#1a3a5c; color:#fff; width:100%">Carica documento</button>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <div class="form-card">
+            <div class="form-card-title">Account lavoratore</div>
+            {% if lavoratore.user %}
+                <div class="badge badge-success">Account attivo</div>
+                <div class="text-muted small" style="margin-top:8px">{{ lavoratore.user.email }}</div>
+            {% else %}
+                <div class="badge badge-neutral">Nessun account collegato</div>
+            {% endif %}
+        </div>
+
+        <div class="form-card">
+            <div class="form-card-title">Registra esito idoneita</div>
+            <form method="post" action="{% url 'admin_registra_esito' lavoratore.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% for field in esito_form %}
+                <div class="form-group">
+                    <label class="form-label">{{ field.label }}</label>
+                    {{ field.as_widget }}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary" style="width:100%">Registra</button>
+            </form>
         </div>
     </div>
 </div>

@@ -7,6 +7,10 @@ def upload_documento(instance, filename):
     return f'documenti/{instance.cartella.lavoratore.id}/{filename}'
 
 
+def upload_certificato_idoneita(instance, filename):
+    return f'idoneita/{instance.lavoratore_id}/{filename}'
+
+
 class CartellaClinica(models.Model):
     lavoratore = models.OneToOneField(
         Lavoratore, on_delete=models.CASCADE, related_name='cartella'
@@ -75,6 +79,9 @@ class EsitoIdoneita(models.Model):
     data_visita = models.DateField()
     data_scadenza = models.DateField()
     note = models.TextField(blank=True)
+    certificato = models.FileField(
+        upload_to=upload_certificato_idoneita, blank=True, null=True
+    )
     comunicato_azienda = models.BooleanField(default=False)
     data_comunicazione = models.DateTimeField(null=True, blank=True)
 

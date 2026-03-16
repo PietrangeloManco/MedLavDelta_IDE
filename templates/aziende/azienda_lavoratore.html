@@ -5,10 +5,10 @@
 {% block sidebar %}
 <div class="sidebar-label">Principale</div>
 <a class="nav-link" href="{% url 'azienda_dashboard' %}">
-    <span class="nav-icon">⊞</span> Pannello di controllo
+    <span class="nav-icon">Ã¢Å Å¾</span> Pannello di controllo
 </a>
 <a class="nav-link" href="{% url 'azienda_lavoratore_nuovo' %}">
-    <span class="nav-icon">＋</span> Nuovo lavoratore
+    <span class="nav-icon">Ã¯Â¼â€¹</span> Nuovo lavoratore
 </a>
 <a class="nav-link active" href="{% url 'azienda_lavoratore' lavoratore.pk %}">
     <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Scheda lavoratore
@@ -16,7 +16,7 @@
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'azienda_dashboard' %}" class="text-decoration-none text-muted small">← Torna alla lista</a>
+<a href="{% url 'azienda_dashboard' %}" class="text-decoration-none text-muted small">&larr; Torna alla lista</a>
 
 <div class="page-header" style="margin-top:8px">
     <div>
@@ -28,38 +28,105 @@
     <a href="{% url 'azienda_lavoratore_modifica' lavoratore.pk %}" class="btn btn-outline">Modifica</a>
 </div>
 
+{% with esiti|first as ultimo_esito %}
+<div class="stat-grid">
+    <div class="stat-card" style="--card-accent: #16a34a">
+        <div class="stat-label">Stato</div>
+        <div style="font-size:18px; font-weight:700; color:var(--text)">
+            {% if lavoratore.attivo %}Attivo{% else %}Non attivo{% endif %}
+        </div>
+        <div class="text-muted small">Anagrafica</div>
+    </div>
+    <div class="stat-card" style="--card-accent: #0ea5e9">
+        <div class="stat-label">Mansione</div>
+        <div style="font-size:18px; font-weight:700; color:var(--text)">{{ lavoratore.mansione }}</div>
+        <div class="text-muted small">{{ lavoratore.sede|default:"-" }}</div>
+    </div>
+    <div class="stat-card" style="--card-accent: #f59e0b">
+        <div class="stat-label">Ultima visita</div>
+        <div style="font-size:18px; font-weight:700; color:var(--text)">
+            {% if ultimo_esito %}{{ ultimo_esito.data_visita }}{% else %}-{% endif %}
+        </div>
+        <div class="text-muted small">
+            {% if ultimo_esito %}{{ ultimo_esito.get_esito_display }}{% else %}Nessun esito{% endif %}
+        </div>
+    </div>
+    <div class="stat-card" style="--card-accent: #ef4444">
+        <div class="stat-label">Scadenza</div>
+        <div style="font-size:18px; font-weight:700; color:var(--text)">
+            {% if ultimo_esito %}{{ ultimo_esito.data_scadenza }}{% else %}-{% endif %}
+        </div>
+        <div class="text-muted small">
+            {% if ultimo_esito %}
+                {% if ultimo_esito.is_scaduto %}Scaduto{% else %}In corso{% endif %}
+            {% else %}
+                N/D
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if ultimo_esito and ultimo_esito.is_scaduto %}
+<div class="alert-banner warning">
+    <div class="alert-icon">!</div>
+    <div>
+        <strong>Idoneita scaduta.</strong> Pianifica il rinnovo della visita medica.
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+
 <div class="form-card">
-    <div class="form-card-title">Anagrafica</div>
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px">
-        <div>
-            <div class="form-label">Data di nascita</div>
-            <div><strong>{{ lavoratore.data_nascita }}</strong></div>
-        </div>
-        <div>
-            <div class="form-label">Codice fiscale</div>
-            <div><strong>{{ lavoratore.codice_fiscale }}</strong></div>
-        </div>
-        <div>
-            <div class="form-label">Azienda</div>
-            <div><strong>{{ lavoratore.azienda }}</strong></div>
-        </div>
-        <div>
-            <div class="form-label">Sede</div>
-            <div><strong>{{ lavoratore.sede|default:"—" }}</strong></div>
-        </div>
-        <div>
-            <div class="form-label">Stato</div>
-            <div>
-                {% if lavoratore.attivo %}
-                    <span class="badge badge-success">Attivo</span>
-                {% else %}
-                    <span class="badge badge-danger">Non attivo</span>
-                {% endif %}
+    <div class="form-card-title">Scheda lavoratore</div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px">
+        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
+            <div class="form-label" style="margin-bottom:8px">Dati personali</div>
+            <div style="display:grid; gap:8px">
+                <div>
+                    <div class="text-muted small">Data di nascita</div>
+                    <div><strong>{{ lavoratore.data_nascita }}</strong></div>
+                </div>
+                <div>
+                    <div class="text-muted small">Codice fiscale</div>
+                    <div><strong>{{ lavoratore.codice_fiscale }}</strong></div>
+                </div>
+                <div>
+                    <div class="text-muted small">Mansione</div>
+                    <div><strong>{{ lavoratore.mansione }}</strong></div>
+                </div>
             </div>
         </div>
-        <div>
-            <div class="form-label">Note</div>
-            <div>{{ lavoratore.note|default:"—" }}</div>
+        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
+            <div class="form-label" style="margin-bottom:8px">Inquadramento</div>
+            <div style="display:grid; gap:8px">
+                <div>
+                    <div class="text-muted small">Azienda</div>
+                    <div><strong>{{ lavoratore.azienda }}</strong></div>
+                </div>
+                <div>
+                    <div class="text-muted small">Sede</div>
+                    <div><strong>{{ lavoratore.sede|default:"-" }}</strong></div>
+                </div>
+            </div>
+        </div>
+        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
+            <div class="form-label" style="margin-bottom:8px">Stato e note</div>
+            <div style="display:grid; gap:8px">
+                <div>
+                    <div class="text-muted small">Stato</div>
+                    <div>
+                        {% if lavoratore.attivo %}
+                            <span class="badge badge-success">Attivo</span>
+                        {% else %}
+                            <span class="badge badge-danger">Non attivo</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-muted small">Note</div>
+                    <div>{{ lavoratore.note|default:"-" }}</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -67,11 +134,17 @@
 <div class="table-card">
     <div class="table-card-header">
         <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneita</span>
+        {% with esiti|first as ultimo_esito %}
+        <div class="text-muted small">
+            Totale: {{ esiti|length }}{% if ultimo_esito %} | Ultimo aggiornamento: {{ ultimo_esito.data_visita }}{% endif %}
+        </div>
+        {% endwith %}
     </div>
     <table class="delta-table">
         <thead>
             <tr>
                 <th>Data visita</th>
+                <th>Mansione</th>
                 <th>Esito</th>
                 <th>Scadenza</th>
                 <th>Note</th>
@@ -81,21 +154,25 @@
             {% for esito in esiti %}
             <tr>
                 <td>{{ esito.data_visita }}</td>
+                <td>{{ esito.mansione }}</td>
                 <td>
                     <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
                         {{ esito.get_esito_display }}
                     </span>
+                    {% if esito.esito == 'idoneo' and esito.certificato %}
+                        <a href="{{ esito.certificato.url }}" target="_blank" class="btn btn-link btn-sm" style="margin-left:6px">Certificato</a>
+                    {% endif %}
                 </td>
                 <td>
                     <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
                         {{ esito.data_scadenza }}
                     </span>
                 </td>
-                <td>{{ esito.note|default:"—" }}</td>
+                <td>{{ esito.note|default:"-" }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="4" style="text-align:center; color:var(--text-muted); padding: 32px">
+                <td colspan="5" style="text-align:center; color:var(--text-muted); padding: 32px">
                     Nessun esito registrato.
                 </td>
             </tr>
