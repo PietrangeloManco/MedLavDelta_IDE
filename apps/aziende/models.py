@@ -1,10 +1,19 @@
 from django.db import models
 from apps.accounts.models import CustomUser
+from .validators import (
+    validate_company_document_upload,
+    validate_company_logo_upload,
+)
 
 
 def upload_documento_azienda(instance, filename):
     user_id = instance.user_id or 'senza_utente'
     return f'aziende/{user_id}/{filename}'
+
+
+def upload_logo_azienda(instance, filename):
+    user_id = instance.user_id or 'senza_utente'
+    return f'aziende/{user_id}/logo/{filename}'
 
 
 class Azienda(models.Model):
@@ -13,21 +22,41 @@ class Azienda(models.Model):
         limit_choices_to={'role': 'azienda'}
     )
     ragione_sociale = models.CharField(max_length=255)
+    codice_univoco = models.CharField(max_length=20, null=True)
+    logo_azienda = models.FileField(
+        upload_to=upload_logo_azienda,
+        null=True,
+        validators=[validate_company_logo_upload],
+    )
+    pec = models.EmailField(null=True)
+    referente_azienda = models.CharField(max_length=255, null=True)
     codice_fiscale = models.CharField(max_length=16, blank=True)
     partita_iva = models.CharField(max_length=11, blank=True)
     email_contatto = models.EmailField()
     telefono = models.CharField(max_length=20, blank=True)
     protocollo_sanitario = models.FileField(
-        upload_to=upload_documento_azienda, blank=True, null=True
+        upload_to=upload_documento_azienda,
+        blank=True,
+        null=True,
+        validators=[validate_company_document_upload],
     )
     nomina_medico = models.FileField(
-        upload_to=upload_documento_azienda, blank=True, null=True
+        upload_to=upload_documento_azienda,
+        blank=True,
+        null=True,
+        validators=[validate_company_document_upload],
     )
     verbali_sopralluogo = models.FileField(
-        upload_to=upload_documento_azienda, blank=True, null=True
+        upload_to=upload_documento_azienda,
+        blank=True,
+        null=True,
+        validators=[validate_company_document_upload],
     )
     varie_documento = models.FileField(
-        upload_to=upload_documento_azienda, blank=True, null=True
+        upload_to=upload_documento_azienda,
+        blank=True,
+        null=True,
+        validators=[validate_company_document_upload],
     )
     varie_note = models.TextField(blank=True)
     contratto_saldato = models.BooleanField(

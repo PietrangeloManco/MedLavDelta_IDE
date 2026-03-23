@@ -24,21 +24,33 @@
     <div class="card-body">
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <h6 class="text-muted mb-3">Credenziali accesso</h6>
-            {% for field in form %}
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">{{ field.label }}</label>
-                    {{ field }}
-                    {% for error in field.errors %}
-                        <div class="invalid-feedback">{{ error }}</div>
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
                     {% endfor %}
                 </div>
-                {% if field.html_name == 'password' %}
-                    <h6 class="text-muted mb-3 mt-4">Dati azienda</h6>
+            {% endif %}
+            <h6 class="text-muted mb-3">Credenziali accesso</h6>
+            {% for field in form %}
+                {% if field.html_name == 'ragione_sociale' %}
+                    <h6 class="text-muted mb-3 mt-4">Profilazione aziendale</h6>
                 {% endif %}
-                {% if field.html_name == 'telefono' %}
+                {% if field.html_name == 'protocollo_sanitario' %}
                     <h6 class="text-muted mb-3 mt-4">Allegati</h6>
                 {% endif %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="{{ field.id_for_label }}">
+                        {{ field.label }}{% if field.field.required %} *{% endif %}
+                    </label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
             {% endfor %}
             <button type="submit" class="btn btn-primary" style="color:#fff">
                 Crea azienda

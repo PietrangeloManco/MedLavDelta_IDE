@@ -1,21 +1,14 @@
 from django import forms
-from pathlib import Path
-from .models import Azienda, Lavoratore, Sede
+
 from apps.accounts.models import CustomUser
 
-ALLOWED_DOC_EXTENSIONS = {'.pdf', '.docx'}
-MAX_UPLOAD_SIZE = 10 * 1024 * 1024
-
-
-def validate_document_upload(upload):
-    if not upload:
-        return upload
-    ext = Path(upload.name).suffix.lower()
-    if ext not in ALLOWED_DOC_EXTENSIONS:
-        raise forms.ValidationError('Sono accettati solo file PDF o DOCX.')
-    if upload.size > MAX_UPLOAD_SIZE:
-        raise forms.ValidationError('Il file non puo superare 10MB.')
-    return upload
+from .models import Lavoratore, Sede
+from .validators import (
+    COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
+    COMPANY_LOGO_MAX_UPLOAD_SIZE,
+    validate_company_document_upload,
+    validate_company_logo_upload,
+)
 
 
 class CreaAziendaForm(forms.Form):
@@ -25,10 +18,21 @@ class CreaAziendaForm(forms.Form):
 
     # Dati azienda
     ragione_sociale = forms.CharField(max_length=255)
+    codice_univoco = forms.CharField(max_length=20, label='Codice univoco')
+    pec = forms.EmailField(label='PEC')
+    referente_azienda = forms.CharField(max_length=255, label='Referente azienda')
     codice_fiscale = forms.CharField(max_length=16, required=False)
     partita_iva = forms.CharField(max_length=11, required=False)
     email_contatto = forms.EmailField(label='Email di contatto')
     telefono = forms.CharField(max_length=20, required=False)
+    logo_azienda = forms.FileField(
+        label='Logo azienda',
+        required=True,
+        help_text=(
+            'Formati ammessi: PNG, JPG, JPEG, SVG, WEBP. '
+            f'Max {COMPANY_LOGO_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
+        ),
+    )
     protocollo_sanitario = forms.FileField(label='Protocollo sanitario', required=True)
     nomina_medico = forms.FileField(label='Nomina del medico', required=True)
     verbali_sopralluogo = forms.FileField(
@@ -43,14 +47,29 @@ class CreaAziendaForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
+        document_help_text = (
+            f'Formati ammessi: PDF, DOCX. Max {COMPANY_DOCUMENT_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
+        )
+
+        for field_name, field in self.fields.items():
             if isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs.setdefault('style', 'width:auto; height:auto')
                 continue
             existing = field.widget.attrs.get('class', '')
             field.widget.attrs['class'] = f"{existing} form-control".strip()
             if isinstance(field, forms.FileField):
-                field.widget.attrs.setdefault('accept', '.pdf,.docx')
+                if field_name == 'logo_azienda':
+                    field.widget.attrs.setdefault('accept', '.png,.jpg,.jpeg,.svg,.webp')
+                else:
+                    field.widget.attrs.setdefault('accept', '.pdf,.docx')
+
+        for field_name in (
+            'protocollo_sanitario',
+            'nomina_medico',
+            'verbali_sopralluogo',
+            'varie_documento',
+        ):
+            self.fields[field_name].help_text = document_help_text
 
     def clean_email(self):
         email = self.cleaned_data['email']
@@ -58,17 +77,23 @@ class CreaAziendaForm(forms.Form):
             raise forms.ValidationError('Esiste già un account con questa email.')
         return email
 
+    def clean_codice_univoco(self):
+        return self.cleaned_data['codice_univoco'].strip().upper()
+
+    def clean_logo_azienda(self):
+        return validate_company_logo_upload(self.cleaned_data.get('logo_azienda'))
+
     def clean_protocollo_sanitario(self):
-        return validate_document_upload(self.cleaned_data.get('protocollo_sanitario'))
+        return validate_company_document_upload(self.cleaned_data.get('protocollo_sanitario'))
 
     def clean_nomina_medico(self):
-        return validate_document_upload(self.cleaned_data.get('nomina_medico'))
+        return validate_company_document_upload(self.cleaned_data.get('nomina_medico'))
 
     def clean_verbali_sopralluogo(self):
-        return validate_document_upload(self.cleaned_data.get('verbali_sopralluogo'))
+        return validate_company_document_upload(self.cleaned_data.get('verbali_sopralluogo'))
 
     def clean_varie_documento(self):
-        return validate_document_upload(self.cleaned_data.get('varie_documento'))
+        return validate_company_document_upload(self.cleaned_data.get('varie_documento'))
 
 
 class LavoratoreForm(forms.ModelForm):

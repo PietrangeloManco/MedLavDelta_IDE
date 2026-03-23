@@ -93,6 +93,10 @@ class AdminCreaAziendaView(AdminRequiredMixin, View):
             Azienda.objects.create(
                 user=user,
                 ragione_sociale=form.cleaned_data['ragione_sociale'],
+                codice_univoco=form.cleaned_data['codice_univoco'],
+                logo_azienda=form.cleaned_data['logo_azienda'],
+                pec=form.cleaned_data['pec'],
+                referente_azienda=form.cleaned_data['referente_azienda'],
                 codice_fiscale=form.cleaned_data['codice_fiscale'],
                 partita_iva=form.cleaned_data['partita_iva'],
                 email_contatto=form.cleaned_data['email_contatto'],
