@@ -31,11 +31,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         (OPERATORE, 'Operatore / Lavoratore'),
     ]
 
-    email = models.EmailField(unique=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    data_creazione = models.DateTimeField(auto_now_add=True)
+    email = models.EmailField(unique=True, verbose_name='Email')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, verbose_name='Ruolo')
+    is_active = models.BooleanField(default=True, verbose_name='Attivo')
+    is_staff = models.BooleanField(default=False, verbose_name='Accesso amministrazione')
+    data_creazione = models.DateTimeField(auto_now_add=True, verbose_name='Data creazione')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []

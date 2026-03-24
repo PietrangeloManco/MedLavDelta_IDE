@@ -622,7 +622,7 @@
     const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date').textContent = d.toLocaleDateString('it-IT', opts);
 
-    // Active nav link
+    // Evidenzia il link attivo nella navigazione
     document.querySelectorAll('.nav-link').forEach(link => {
         if (link.href === window.location.href) link.classList.add('active');
     });

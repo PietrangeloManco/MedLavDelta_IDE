@@ -15,6 +15,13 @@ from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm
 from datetime import timedelta
 from django.utils import timezone
 
+CENTRO_DELTA_CONTACT = {
+    'nome': 'Rosanna Cocozza',
+    'email': 'rosanna.cocozza@tecnobios.com',
+    'telefono': '351 6572647',
+    'ruolo': 'Referente Centro Delta',
+}
+
 
 def send_notification_email(subject, message, recipients):
     recipient_list = [email for email in recipients if email]
@@ -212,6 +219,7 @@ class AziendaDashboardView(AziendaRequiredMixin, View):
             'azienda': azienda,
             'lavoratori': lavoratori,
             'totale_lavoratori': lavoratori.count(),
+            'centro_delta_contact': CENTRO_DELTA_CONTACT,
         }
         return render(request, 'aziende/azienda_dashboard.html', context)
 

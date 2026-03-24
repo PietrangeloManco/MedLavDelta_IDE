@@ -5,11 +5,101 @@
 {% block sidebar %}
 <div class="sidebar-label">Principale</div>
 <a class="nav-link active" href="{% url 'azienda_dashboard' %}">
-    <span class="nav-icon">⊞</span> Pannello di controllo
+    <span class="nav-icon">{% include 'includes/icons/company.html' %}</span> Pannello di controllo
 </a>
 <a class="nav-link" href="{% url 'azienda_lavoratore_nuovo' %}">
-    <span class="nav-icon">＋</span> Nuovo lavoratore
+    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Nuovo lavoratore
 </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+        gap: 24px;
+        align-items: start;
+    }
+
+    .contact-card {
+        background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 100%);
+        border-color: transparent;
+        color: white;
+        overflow: hidden;
+    }
+
+    .contact-card .table-card-header {
+        border-bottom-color: rgba(255,255,255,0.12);
+    }
+
+    .contact-card .table-card-title {
+        color: white;
+    }
+
+    .contact-card-body {
+        padding: 22px;
+        display: grid;
+        gap: 16px;
+    }
+
+    .contact-role {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.68);
+    }
+
+    .contact-name {
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .contact-summary {
+        color: rgba(255,255,255,0.82);
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .contact-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .contact-item {
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .contact-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.62);
+        margin-bottom: 4px;
+    }
+
+    .contact-link {
+        color: white;
+        text-decoration: none;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .contact-link:hover {
+        color: #bfdbfe;
+    }
+
+    @media (max-width: 1100px) {
+        .dashboard-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -19,7 +109,7 @@
         <p class="page-subtitle">Gestione lavoratori aziendali</p>
     </div>
     <a href="{% url 'azienda_lavoratore_nuovo' %}" class="btn btn-primary">
-        ＋ Nuovo lavoratore
+        + Nuovo lavoratore
     </a>
 </div>
 
@@ -31,62 +121,89 @@
     </div>
 </div>
 
-<div class="table-card">
-    <div class="table-card-header">
-        <span class="table-card-title icon-label">{% include 'includes/icons/workers-group.html' %} I tuoi lavoratori</span>
+<div class="dashboard-layout">
+    <div class="table-card">
+        <div class="table-card-header">
+            <span class="table-card-title icon-label">{% include 'includes/icons/workers-group.html' %} I tuoi lavoratori</span>
+        </div>
+        <table class="delta-table">
+            <thead>
+                <tr>
+                    <th>Nominativo</th>
+                    <th>Mansione</th>
+                    <th>Sede</th>
+                    <th>Ultimo esito</th>
+                    <th>Scadenza</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lavoratore in lavoratori %}
+                <tr>
+                    <td><strong>{{ lavoratore.nome_completo }}</strong></td>
+                    <td>{{ lavoratore.mansione }}</td>
+                    <td style="color:var(--text-muted)">{{ lavoratore.sede|default:"-" }}</td>
+                    <td>
+                        {% with lavoratore.idoneita.first as esito %}
+                            {% if esito %}
+                                <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                                    {{ esito.get_esito_display }}
+                                </span>
+                            {% else %}
+                                <span style="color:var(--text-muted)">-</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% with lavoratore.idoneita.first as esito %}
+                            {% if esito %}
+                                <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
+                                    {{ esito.data_scadenza }}
+                                </span>
+                            {% else %}
+                                <span style="color:var(--text-muted)">-</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        <a href="{% url 'azienda_lavoratore' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda -></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align:center; color:var(--text-muted); padding: 32px">
+                        Nessun lavoratore registrato.
+                        <a href="{% url 'azienda_lavoratore_nuovo' %}" style="color:var(--accent)">Aggiungine uno -></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    <table class="delta-table">
-        <thead>
-            <tr>
-                <th>Nominativo</th>
-                <th>Mansione</th>
-                <th>Sede</th>
-                <th>Ultimo esito</th>
-                <th>Scadenza</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for lavoratore in lavoratori %}
-            <tr>
-                <td><strong>{{ lavoratore.nome_completo }}</strong></td>
-                <td>{{ lavoratore.mansione }}</td>
-                <td style="color:var(--text-muted)">{{ lavoratore.sede|default:"—" }}</td>
-                <td>
-                    {% with lavoratore.idoneita.first as esito %}
-                        {% if esito %}
-                            <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
-                                {{ esito.get_esito_display }}
-                            </span>
-                        {% else %}
-                            <span style="color:var(--text-muted)">—</span>
-                        {% endif %}
-                    {% endwith %}
-                </td>
-                <td>
-                    {% with lavoratore.idoneita.first as esito %}
-                        {% if esito %}
-                            <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
-                                {{ esito.data_scadenza }}
-                            </span>
-                        {% else %}
-                            <span style="color:var(--text-muted)">—</span>
-                        {% endif %}
-                    {% endwith %}
-                </td>
-                <td>
-                    <a href="{% url 'azienda_lavoratore' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda →</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" style="text-align:center; color:var(--text-muted); padding: 32px">
-                    Nessun lavoratore registrato.
-                    <a href="{% url 'azienda_lavoratore_nuovo' %}" style="color:var(--accent)">Aggiungine uno →</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+
+    <aside class="table-card contact-card">
+        <div class="table-card-header">
+            <span class="table-card-title">Contatti Centro Delta</span>
+        </div>
+        <div class="contact-card-body">
+            <div>
+                <div class="contact-role">{{ centro_delta_contact.ruolo }}</div>
+                <div class="contact-name">{{ centro_delta_contact.nome }}</div>
+            </div>
+            <p class="contact-summary">
+                Per supporto organizzativo o operativo puoi contattare direttamente la referente dedicata.
+            </p>
+            <div class="contact-list">
+                <div class="contact-item">
+                    <div class="contact-label">Email</div>
+                    <a class="contact-link" href="mailto:{{ centro_delta_contact.email }}">{{ centro_delta_contact.email }}</a>
+                </div>
+                <div class="contact-item">
+                    <div class="contact-label">Telefono</div>
+                    <a class="contact-link" href="tel:{{ centro_delta_contact.telefono|cut:' ' }}">{{ centro_delta_contact.telefono }}</a>
+                </div>
+            </div>
+        </div>
+    </aside>
 </div>
 {% endblock %}
