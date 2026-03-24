@@ -1,0 +1,20 @@
+<div class="sidebar-label">Principale</div>
+<a class="nav-link{% if admin_nav_section == 'dashboard' %} active{% endif %}" href="{% url 'admin_dashboard' %}">
+    <span class="nav-icon">+</span> Pannello di controllo
+</a>
+<a class="nav-link{% if admin_nav_section == 'lavoratori' %} active{% endif %}" href="{% url 'admin_lavoratori' %}">
+    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Lavoratori
+</a>
+<a class="nav-link{% if admin_nav_section == 'aziende' %} active{% endif %}" href="{% url 'admin_crea_azienda' %}">
+    <span class="nav-icon">+</span> Nuova azienda
+</a>
+<a class="nav-link{% if admin_nav_section == 'preventivi' %} active{% endif %}" href="{% url 'admin_preventivi' %}">
+    <span class="nav-icon">{% include 'includes/icons/document.html' %}</span> Preventivi
+</a>
+<a class="nav-link{% if admin_nav_section == 'fatture' %} active{% endif %}" href="{% url 'admin_fatture' %}">
+    <span class="nav-icon">{% include 'includes/icons/document.html' %}</span> Fatture
+</a>
+<div class="sidebar-label" style="margin-top:16px">Sistema</div>
+<a class="nav-link" href="/admin/">
+    <span class="nav-icon">{% include 'includes/icons/settings.html' %}</span> Pannello Admin
+</a>

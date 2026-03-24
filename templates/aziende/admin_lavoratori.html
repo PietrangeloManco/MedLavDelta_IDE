@@ -3,20 +3,7 @@
 {% block breadcrumb %}<strong>Lavoratori</strong>{% endblock %}
 
 {% block sidebar %}
-<div class="sidebar-label">Principale</div>
-<a class="nav-link" href="{% url 'admin_dashboard' %}">
-    <span class="nav-icon">⊞</span> Pannello di controllo
-</a>
-<a class="nav-link active" href="{% url 'admin_lavoratori' %}">
-    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Lavoratori
-</a>
-<a class="nav-link" href="{% url 'admin_crea_azienda' %}">
-    <span class="nav-icon">＋</span> Nuova azienda
-</a>
-<div class="sidebar-label" style="margin-top:16px">Sistema</div>
-<a class="nav-link" href="/admin/">
-    <span class="nav-icon">{% include 'includes/icons/settings.html' %}</span> Pannello Admin
-</a>
+{% include 'includes/admin_sidebar_links.html' with admin_nav_section='lavoratori' %}
 {% endblock %}
 
 {% block content %}
@@ -28,7 +15,7 @@
         </h1>
         {% if azienda_selezionata %}
             <p class="page-subtitle">
-                <a href="{% url 'admin_lavoratori' %}" style="color:var(--accent)">✕ Rimuovi filtro azienda</a>
+                <a href="{% url 'admin_lavoratori' %}" style="color:var(--accent)">Rimuovi filtro azienda</a>
             </p>
         {% endif %}
     </div>
@@ -52,7 +39,7 @@
             <tr>
                 <td><strong>{{ lavoratore.nome_completo }}</strong></td>
                 <td style="color:var(--text-muted)">{{ lavoratore.azienda }}</td>
-                <td style="color:var(--text-muted)">{{ lavoratore.sede|default:"—" }}</td>
+                <td style="color:var(--text-muted)">{{ lavoratore.sede|default:"-" }}</td>
                 <td>{{ lavoratore.mansione }}</td>
                 <td>
                     {% with lavoratore.idoneita.first as esito %}
@@ -60,7 +47,7 @@
                             <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
                                 {{ esito.get_esito_display }}
                             </span>
-                        {% else %}<span style="color:var(--text-muted)">—</span>{% endif %}
+                        {% else %}<span style="color:var(--text-muted)">-</span>{% endif %}
                     {% endwith %}
                 </td>
                 <td>
@@ -69,12 +56,12 @@
                             <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
                                 {{ esito.data_scadenza }}
                             </span>
-                        {% else %}—{% endif %}
+                        {% else %}-{% endif %}
                     {% endwith %}
                 </td>
                 <td>
                     <a href="{% url 'admin_lavoratore_detail' lavoratore.pk %}" class="btn btn-outline btn-sm">
-                        Scheda →
+                        Scheda ->
                     </a>
                 </td>
             </tr>

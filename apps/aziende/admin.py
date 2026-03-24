@@ -49,6 +49,7 @@ class AziendaAdminForm(forms.ModelForm):
             ('codice_univoco', 'Codice univoco'),
             ('pec', 'PEC'),
             ('referente_azienda', 'Referente azienda'),
+            ('condizioni_pagamento_riservate', 'Condizioni Pagamento Riservate'),
         ):
             if field_name in self.fields:
                 self.fields[field_name].label = label

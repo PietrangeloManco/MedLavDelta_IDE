@@ -101,6 +101,7 @@ class AdminCreaAziendaView(AdminRequiredMixin, View):
                 partita_iva=form.cleaned_data['partita_iva'],
                 email_contatto=form.cleaned_data['email_contatto'],
                 telefono=form.cleaned_data['telefono'],
+                condizioni_pagamento_riservate=form.cleaned_data['condizioni_pagamento_riservate'],
                 protocollo_sanitario=form.cleaned_data['protocollo_sanitario'],
                 nomina_medico=form.cleaned_data['nomina_medico'],
                 verbali_sopralluogo=form.cleaned_data['verbali_sopralluogo'],

@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }}{% endblock %}
+{% block breadcrumb %}<strong>Fatture</strong> {{ action }}{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/admin_sidebar_links.html' with admin_nav_section='fatture' %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .doc-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .doc-grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .lines-table td {
+        padding: 12px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: top;
+    }
+
+    .lines-table input,
+    .lines-table select,
+    .lines-table textarea {
+        width: 100%;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .summary-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        background: #f8fafc;
+    }
+
+    @media (max-width: 960px) {
+        .doc-grid,
+        .doc-grid-4,
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ action }}</h1>
+        <p class="page-subtitle">Il campo "Condizioni Pagamento Riservate" viene valorizzato dal profilo aziendale.</p>
+    </div>
+    <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Torna all'elenco</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="form-card">
+        <div class="form-card-title">Testata fattura</div>
+        {% if form.non_field_errors %}
+        <ul class="messages">
+            {% for error in form.non_field_errors %}
+            <li class="error">{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <div class="doc-grid-4">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.anno_fattura.id_for_label }}">{{ form.anno_fattura.label }}</label>
+                {{ form.anno_fattura }}
+                {% for error in form.anno_fattura.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.prefisso_numero.id_for_label }}">{{ form.prefisso_numero.label }}</label>
+                {{ form.prefisso_numero }}
+                {% for error in form.prefisso_numero.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.numero_progressivo.id_for_label }}">{{ form.numero_progressivo.label }}</label>
+                {{ form.numero_progressivo }}
+                {% for error in form.numero_progressivo.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.data_fattura.id_for_label }}">{{ form.data_fattura.label }}</label>
+                {{ form.data_fattura }}
+                {% for error in form.data_fattura.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+        <div class="doc-grid">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.azienda.id_for_label }}">{{ form.azienda.label }}</label>
+                {{ form.azienda }}
+                {% for error in form.azienda.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.data_accettazione_campione.id_for_label }}">{{ form.data_accettazione_campione.label }}</label>
+                {{ form.data_accettazione_campione }}
+                {% for error in form.data_accettazione_campione.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+        <div class="doc-grid">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.indirizzo_fatturazione.id_for_label }}">{{ form.indirizzo_fatturazione.label }}</label>
+                {{ form.indirizzo_fatturazione }}
+                {% for error in form.indirizzo_fatturazione.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.modalita_pagamento.id_for_label }}">{{ form.modalita_pagamento.label }}</label>
+                {{ form.modalita_pagamento }}
+                {% for error in form.modalita_pagamento.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ form.condizioni_pagamento_riservate.id_for_label }}">{{ form.condizioni_pagamento_riservate.label }}</label>
+            {{ form.condizioni_pagamento_riservate }}
+            {% for error in form.condizioni_pagamento_riservate.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="doc-grid-4" style="margin-bottom:16px">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.aliquota_iva.id_for_label }}">{{ form.aliquota_iva.label }}</label>
+                {{ form.aliquota_iva }}
+                {% for error in form.aliquota_iva.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.esente_iva.id_for_label }}">{{ form.esente_iva.label }}</label>
+                {{ form.esente_iva }}
+                {% for error in form.esente_iva.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.esigibilita_iva.id_for_label }}">{{ form.esigibilita_iva.label }}</label>
+                {{ form.esigibilita_iva }}
+                {% for error in form.esigibilita_iva.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group" style="display:flex; align-items:end">
+                <div style="width:100%">
+                    <label class="form-label" for="{{ form.fine_mese.id_for_label }}">{{ form.fine_mese.label }}</label>
+                    {{ form.fine_mese }}
+                    {% for error in form.fine_mese.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="doc-grid-4">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.gdd.id_for_label }}">{{ form.gdd.label }}</label>
+                {{ form.gdd }}
+                {% for error in form.gdd.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.scadenza.id_for_label }}">{{ form.scadenza.label }}</label>
+                {{ form.scadenza }}
+                {% for error in form.scadenza.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.banca_appoggio.id_for_label }}">{{ form.banca_appoggio.label }}</label>
+                {{ form.banca_appoggio }}
+                {% for error in form.banca_appoggio.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.inviata_il.id_for_label }}">{{ form.inviata_il.label }}</label>
+                {{ form.inviata_il }}
+                {% for error in form.inviata_il.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+            {{ form.note }}
+            {% for error in form.note.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-card-header">
+            <span class="table-card-title">Dettaglio fattura</span>
+            <button type="button" class="btn btn-outline btn-sm" id="add-line-btn">Aggiungi riga</button>
+        </div>
+        {% if formset.non_form_errors %}
+        <div style="padding:16px 22px 0">
+            {% for error in formset.non_form_errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {{ formset.management_form }}
+        <table class="delta-table lines-table">
+            <thead>
+                <tr>
+                    <th>Descrizione</th>
+                    <th>Quantita</th>
+                    <th>Costo Unitario</th>
+                    <th>Sconto (%)</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="lines-body">
+                {% for voce_form in formset.forms %}
+                <tr class="line-row">
+                    <td>
+                        {% for hidden in voce_form.hidden_fields %}{{ hidden }}{% endfor %}
+                        <div style="display:none">{{ voce_form.DELETE }}</div>
+                        {{ voce_form.ordine.as_hidden }}
+                        {{ voce_form.descrizione }}
+                        {% for error in voce_form.descrizione.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                    </td>
+                    <td>
+                        {{ voce_form.quantita }}
+                        {% for error in voce_form.quantita.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                    </td>
+                    <td>
+                        {{ voce_form.costo_unitario }}
+                        {% for error in voce_form.costo_unitario.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                    </td>
+                    <td>
+                        {{ voce_form.sconto_percentuale }}
+                        {% for error in voce_form.sconto_percentuale.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-outline btn-sm" data-remove-line>Rimuovi</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if fattura %}
+    <div class="summary-grid" style="margin:24px 0">
+        <div class="summary-item">
+            <div class="form-label">Totale imponibile</div>
+            <div><strong>EUR {{ fattura.totale_imponibile|floatformat:2 }}</strong></div>
+        </div>
+        <div class="summary-item">
+            <div class="form-label">IVA</div>
+            <div><strong>EUR {{ fattura.totale_iva|floatformat:2 }}</strong></div>
+        </div>
+        <div class="summary-item">
+            <div class="form-label">Totale fattura</div>
+            <div><strong>EUR {{ fattura.totale_complessivo|floatformat:2 }}</strong></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div style="display:flex; gap:12px; justify-content:flex-end">
+        <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Annulla</a>
+        <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+    </div>
+</form>
+
+<template id="empty-row-template">
+    <tr class="line-row">
+        <td>
+            {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div style="display:none">{{ formset.empty_form.DELETE }}</div>
+            {{ formset.empty_form.ordine.as_hidden }}
+            {{ formset.empty_form.descrizione }}
+        </td>
+        <td>{{ formset.empty_form.quantita }}</td>
+        <td>{{ formset.empty_form.costo_unitario }}</td>
+        <td>{{ formset.empty_form.sconto_percentuale }}</td>
+        <td>
+            <button type="button" class="btn btn-outline btn-sm" data-remove-line>Rimuovi</button>
+        </td>
+    </tr>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+    const linesBody = document.getElementById('lines-body');
+    const addButton = document.getElementById('add-line-btn');
+    const totalForms = document.getElementById('id_voci-TOTAL_FORMS');
+    const emptyTemplate = document.getElementById('empty-row-template');
+    const companySelect = document.getElementById('{{ form.azienda.id_for_label }}');
+    const paymentField = document.getElementById('{{ form.condizioni_pagamento_riservate.id_for_label }}');
+    const paymentUrlTemplate = "{% url 'admin_api_azienda_condizioni_pagamento' 999999 %}";
+
+    addButton.addEventListener('click', () => {
+        const index = Number(totalForms.value);
+        const html = emptyTemplate.innerHTML.replace(/__prefix__/g, index);
+        linesBody.insertAdjacentHTML('beforeend', html);
+        totalForms.value = index + 1;
+    });
+
+    linesBody.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-remove-line]');
+        if (!trigger) {
+            return;
+        }
+        const row = trigger.closest('tr');
+        const deleteInput = row.querySelector('input[name$="-DELETE"]');
+        if (deleteInput) {
+            deleteInput.checked = true;
+        }
+        row.style.display = 'none';
+    });
+
+    if (paymentField) {
+        paymentField.addEventListener('input', () => {
+            paymentField.dataset.autofilled = 'false';
+        });
+    }
+
+    async function syncReservedTerms() {
+        if (!companySelect || !paymentField || !companySelect.value) {
+            return;
+        }
+        const response = await fetch(paymentUrlTemplate.replace('999999', companySelect.value));
+        if (!response.ok) {
+            return;
+        }
+        const payload = await response.json();
+        if (!paymentField.value.trim() || paymentField.dataset.autofilled !== 'false') {
+            paymentField.value = payload.condizioni_pagamento_riservate || '';
+            paymentField.dataset.autofilled = 'true';
+        }
+    }
+
+    if (companySelect) {
+        companySelect.addEventListener('change', () => {
+            if (paymentField) {
+                paymentField.dataset.autofilled = 'true';
+            }
+            syncReservedTerms();
+        });
+        syncReservedTerms();
+    }
+})();
+</script>
+{% endblock %}

@@ -43,6 +43,7 @@ class CreaAziendaFlowTests(TestCase):
             'partita_iva': '12345678901',
             'email_contatto': 'contatti@example.com',
             'telefono': '0123456789',
+            'condizioni_pagamento_riservate': 'Pagamento completo entro 30 giorni data fattura.',
             'varie_note': 'Note azienda',
         }
 
@@ -82,6 +83,7 @@ class CreaAziendaFlowTests(TestCase):
         data.pop('codice_univoco')
         data.pop('pec')
         data.pop('referente_azienda')
+        data.pop('condizioni_pagamento_riservate')
         files.pop('logo_azienda')
 
         form = CreaAziendaForm(data=data, files=files)
@@ -90,6 +92,7 @@ class CreaAziendaFlowTests(TestCase):
         self.assertIn('codice_univoco', form.errors)
         self.assertIn('pec', form.errors)
         self.assertIn('referente_azienda', form.errors)
+        self.assertIn('condizioni_pagamento_riservate', form.errors)
         self.assertIn('logo_azienda', form.errors)
 
     def test_form_rejects_oversized_logo_and_documents(self):
@@ -133,6 +136,10 @@ class CreaAziendaFlowTests(TestCase):
         self.assertEqual(azienda.codice_univoco, 'AB12CD7')
         self.assertEqual(azienda.pec, 'azienda@pec.example.com')
         self.assertEqual(azienda.referente_azienda, 'Mario Rossi')
+        self.assertEqual(
+            azienda.condizioni_pagamento_riservate,
+            'Pagamento completo entro 30 giorni data fattura.',
+        )
         self.assertTrue(azienda.logo_azienda.name.endswith('logo.svg'))
         self.assertTrue(azienda.protocollo_sanitario.name.endswith('protocollo.pdf'))
         self.assertEqual(azienda.user.email, 'azienda@example.com')

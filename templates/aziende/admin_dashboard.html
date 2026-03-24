@@ -3,35 +3,20 @@
 {% block breadcrumb %}<strong>Pannello di controllo</strong> Amministratore{% endblock %}
 
 {% block sidebar %}
-<div class="sidebar-label">Principale</div>
-<a class="nav-link active" href="{% url 'admin_dashboard' %}">
-    <span class="nav-icon">⊞</span> Pannello di controllo
-</a>
-<a class="nav-link" href="{% url 'admin_lavoratori' %}">
-    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Lavoratori
-</a>
-<a class="nav-link" href="{% url 'admin_crea_azienda' %}">
-    <span class="nav-icon">＋</span> Nuova azienda
-</a>
-
-<div class="sidebar-label" style="margin-top:16px">Sistema</div>
-<a class="nav-link" href="/admin/">
-    <span class="nav-icon">{% include 'includes/icons/settings.html' %}</span> Pannello Admin
-</a>
+{% include 'includes/admin_sidebar_links.html' with admin_nav_section='dashboard' %}
 {% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Buongiorno</h1>
-        <p class="page-subtitle">Riepilogo attività — Centro Delta Srl</p>
+        <p class="page-subtitle">Riepilogo attivita - Centro Delta Srl</p>
     </div>
     <a href="{% url 'admin_crea_azienda' %}" class="btn btn-primary">
-        ＋ Nuova azienda
+        + Nuova azienda
     </a>
 </div>
 
-<!-- Statistiche -->
 <div class="stat-grid">
     <div class="stat-card" style="--card-accent: #1d4ed8">
         <div class="stat-label">Aziende registrate</div>
@@ -52,10 +37,9 @@
     {% endif %}
 </div>
 
-<!-- Alert scadenze -->
 {% if scadenze_imminenti %}
 <div class="alert-banner warning">
-    <span class="alert-icon">⚠️</span>
+    <span class="alert-icon">!</span>
     <div>
         <strong>{{ totale_scadenze }} visita/e in scadenza nei prossimi 30 giorni.</strong>
         Contatta le aziende interessate per pianificare le visite.
@@ -85,7 +69,7 @@
                 <td><span class="badge badge-warning">{{ esito.data_scadenza }}</span></td>
                 <td>
                     <a href="{% url 'admin_lavoratore_detail' esito.lavoratore.pk %}" class="btn btn-outline btn-sm">
-                        Vai alla scheda →
+                        Vai alla scheda ->
                     </a>
                 </td>
             </tr>
@@ -95,7 +79,6 @@
 </div>
 {% endif %}
 
-<!-- Aziende -->
 <div class="table-card">
     <div class="table-card-header">
         <span class="table-card-title icon-label">{% include 'includes/icons/company.html' %} Aziende registrate</span>
@@ -115,7 +98,7 @@
             {% for azienda in aziende %}
             <tr>
                 <td><strong>{{ azienda.ragione_sociale }}</strong></td>
-                <td style="color: var(--text-muted)">{{ azienda.partita_iva|default:"—" }}</td>
+                <td style="color: var(--text-muted)">{{ azienda.partita_iva|default:"-" }}</td>
                 <td style="color: var(--text-muted)">{{ azienda.email_contatto }}</td>
                 <td>
                     <span class="badge badge-info">{{ azienda.lavoratori.count }}</span>
@@ -132,6 +115,12 @@
                         <a href="{% url 'admin_lavoratori' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">
                             <span class="icon-label">{% include 'includes/icons/worker.html' %} Lavoratori</span>
                         </a>
+                        <a href="{% url 'admin_preventivo_nuovo' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">
+                            Preventivo
+                        </a>
+                        <a href="{% url 'admin_fattura_nuova' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">
+                            Fattura
+                        </a>
                         <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}" style="margin:0">
                             {% csrf_token %}
                             <input type="hidden" name="contratto_saldato" value="{% if azienda.contratto_saldato %}0{% else %}1{% endif %}">
@@ -146,7 +135,7 @@
             <tr>
                 <td colspan="6" style="text-align:center; color:var(--text-muted); padding: 32px">
                     Nessuna azienda registrata.
-                    <a href="{% url 'admin_crea_azienda' %}" style="color:var(--accent)">Creane una →</a>
+                    <a href="{% url 'admin_crea_azienda' %}" style="color:var(--accent)">Creane una -></a>
                 </td>
             </tr>
             {% endfor %}

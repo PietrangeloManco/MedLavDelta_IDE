@@ -34,6 +34,7 @@ class Azienda(models.Model):
     partita_iva = models.CharField(max_length=11, blank=True)
     email_contatto = models.EmailField()
     telefono = models.CharField(max_length=20, blank=True)
+    condizioni_pagamento_riservate = models.TextField(blank=True)
     protocollo_sanitario = models.FileField(
         upload_to=upload_documento_azienda,
         blank=True,

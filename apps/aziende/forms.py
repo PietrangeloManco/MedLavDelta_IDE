@@ -25,6 +25,10 @@ class CreaAziendaForm(forms.Form):
     partita_iva = forms.CharField(max_length=11, required=False)
     email_contatto = forms.EmailField(label='Email di contatto')
     telefono = forms.CharField(max_length=20, required=False)
+    condizioni_pagamento_riservate = forms.CharField(
+        label='Condizioni Pagamento Riservate',
+        widget=forms.Textarea(attrs={'rows': 3}),
+    )
     logo_azienda = forms.FileField(
         label='Logo azienda',
         required=True,

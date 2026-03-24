@@ -2,20 +2,7 @@
 {% block title %}{{ lavoratore.nome_completo }}{% endblock %}
 
 {% block sidebar %}
-<div class="sidebar-label">Principale</div>
-<a class="nav-link" href="{% url 'admin_dashboard' %}">
-    <span class="nav-icon">Ã¢Å Å¾</span> Pannello di controllo
-</a>
-<a class="nav-link active" href="{% url 'admin_lavoratori' %}">
-    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Lavoratori
-</a>
-<a class="nav-link" href="{% url 'admin_crea_azienda' %}">
-    <span class="nav-icon">Ã¯Â¼â€¹</span> Nuova azienda
-</a>
-<div class="sidebar-label" style="margin-top:16px">Sistema</div>
-<a class="nav-link" href="/admin/">
-    <span class="nav-icon">{% include 'includes/icons/settings.html' %}</span> Pannello Admin
-</a>
+{% include 'includes/admin_sidebar_links.html' with admin_nav_section='lavoratori' %}
 {% endblock %}
 
 {% block content %}

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Fatture{% endblock %}
+{% block breadcrumb %}<strong>Fatture</strong> Area admin{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/admin_sidebar_links.html' with admin_nav_section='fatture' %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Fatture emesse</h1>
+        <p class="page-subtitle">Con evidenza della data di accettazione del campione</p>
+    </div>
+    <a href="{% url 'admin_fattura_nuova' %}" class="btn btn-primary">Nuova fattura</a>
+</div>
+
+<div class="form-card">
+    <form method="get" style="display:grid; grid-template-columns:minmax(260px, 360px) auto; gap:12px; align-items:end">
+        <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Filtra per azienda</label>
+            <select name="azienda" class="form-control">
+                <option value="">Tutte le aziende</option>
+                {% for azienda in aziende %}
+                <option value="{{ azienda.pk }}"{% if azienda_selezionata and azienda_selezionata.pk == azienda.pk %} selected{% endif %}>
+                    {{ azienda.ragione_sociale }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display:flex; gap:8px">
+            <button type="submit" class="btn btn-outline">Applica filtro</button>
+            {% if azienda_selezionata %}
+            <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<div class="table-card">
+    <div class="table-card-header">
+        <span class="table-card-title">Elenco fatture emesse</span>
+    </div>
+    <table class="delta-table">
+        <thead>
+            <tr>
+                <th>N. Fattura</th>
+                <th>Data Fattura</th>
+                <th>Data Accettazione Campione</th>
+                <th>Intestatario</th>
+                <th>Modalita Pagamento</th>
+                <th>Imponibile</th>
+                <th>Totale Dovuto</th>
+                <th>Inviata</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fattura in fatture %}
+            <tr>
+                <td><strong>{{ fattura.numero_completo }}</strong></td>
+                <td>{{ fattura.data_fattura|date:"d/m/Y" }}</td>
+                <td>{{ fattura.data_accettazione_campione|date:"d/m/Y"|default:"-" }}</td>
+                <td>{{ fattura.azienda.ragione_sociale }}</td>
+                <td>{{ fattura.modalita_pagamento|default:"-" }}</td>
+                <td>EUR {{ fattura.totale_imponibile|floatformat:2 }}</td>
+                <td>EUR {{ fattura.totale_complessivo|floatformat:2 }}</td>
+                <td>{{ fattura.inviata_il|date:"d/m/Y"|default:"-" }}</td>
+                <td>
+                    <a href="{% url 'admin_fattura_modifica' fattura.pk %}" class="btn btn-outline btn-sm">Modifica</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" style="text-align:center; color:var(--text-muted); padding:32px">
+                    Nessuna fattura registrata.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
