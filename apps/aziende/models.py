@@ -4,10 +4,16 @@ from .validators import (
     validate_company_document_upload,
     validate_company_logo_upload,
 )
+from pathlib import Path
 
 
 def upload_documento_azienda(instance, filename):
-    user_id = instance.user_id or 'senza_utente'
+    if hasattr(instance, 'user_id'):
+        user_id = instance.user_id
+    elif hasattr(instance, 'azienda') and getattr(instance.azienda, 'user_id', None):
+        user_id = instance.azienda.user_id
+    else:
+        user_id = 'senza_utente'
     return f'aziende/{user_id}/{filename}'
 
 
@@ -17,6 +23,13 @@ def upload_logo_azienda(instance, filename):
 
 
 class Azienda(models.Model):
+    INITIAL_DOCUMENT_FIELDS = (
+        ('protocollo_sanitario', 'Protocollo sanitario'),
+        ('nomina_medico', 'Nomina del medico'),
+        ('verbali_sopralluogo', 'Verbali sopralluogo ambiente di lavoro'),
+        ('varie_documento', 'Documento aggiuntivo iniziale'),
+    )
+
     user = models.OneToOneField(
         CustomUser, on_delete=models.CASCADE,
         limit_choices_to={'role': 'azienda'}
@@ -72,6 +85,71 @@ class Azienda(models.Model):
 
     def __str__(self):
         return self.ragione_sociale
+
+    def get_documenti_iniziali(self):
+        documenti = []
+        for field_name, label in self.INITIAL_DOCUMENT_FIELDS:
+            documento = getattr(self, field_name)
+            if not documento:
+                continue
+            documenti.append({
+                'field_name': field_name,
+                'titolo': label,
+                'file': documento,
+                'nome_file': Path(documento.name).name,
+                'note': self.varie_note if field_name == 'varie_documento' else '',
+                'data_caricamento': self.data_registrazione,
+                'origine': 'admin',
+                'origine_label': 'Admin',
+            })
+        return documenti
+
+
+class DocumentoAziendale(models.Model):
+    ORIGINE_ADMIN = 'admin'
+    ORIGINE_AZIENDA = 'azienda'
+
+    ORIGINE_CHOICES = [
+        (ORIGINE_ADMIN, 'Admin'),
+        (ORIGINE_AZIENDA, 'Azienda'),
+    ]
+
+    azienda = models.ForeignKey(
+        Azienda,
+        on_delete=models.CASCADE,
+        related_name='documenti_generici',
+    )
+    titolo = models.CharField(max_length=255)
+    file = models.FileField(
+        upload_to=upload_documento_azienda,
+        validators=[validate_company_document_upload],
+    )
+    note = models.TextField(blank=True)
+    origine = models.CharField(
+        max_length=20,
+        choices=ORIGINE_CHOICES,
+        default=ORIGINE_AZIENDA,
+    )
+    caricato_da = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='documenti_aziendali_caricati',
+    )
+    data_caricamento = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Documento aziendale'
+        verbose_name_plural = 'Documenti aziendali'
+        ordering = ['-data_caricamento', '-id']
+
+    def __str__(self):
+        return f'{self.azienda} - {self.titolo}'
+
+    @property
+    def nome_file(self):
+        return Path(self.file.name).name
 
 
 class Sede(models.Model):

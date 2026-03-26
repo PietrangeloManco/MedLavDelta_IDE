@@ -3,13 +3,7 @@
 {% block breadcrumb %}<strong>Pannello di controllo</strong> {{ azienda.ragione_sociale }}{% endblock %}
 
 {% block sidebar %}
-<div class="sidebar-label">Principale</div>
-<a class="nav-link active" href="{% url 'azienda_dashboard' %}">
-    <span class="nav-icon">{% include 'includes/icons/company.html' %}</span> Pannello di controllo
-</a>
-<a class="nav-link" href="{% url 'azienda_lavoratore_nuovo' %}">
-    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Nuovo lavoratore
-</a>
+{% include 'includes/azienda_sidebar_links.html' with azienda_nav_section='dashboard' %}
 {% endblock %}
 
 {% block extra_css %}
@@ -106,11 +100,12 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">{{ azienda.ragione_sociale }}</h1>
-        <p class="page-subtitle">Gestione lavoratori aziendali</p>
+        <p class="page-subtitle">Gestione lavoratori e archivio documenti aziendali.</p>
     </div>
-    <a href="{% url 'azienda_lavoratore_nuovo' %}" class="btn btn-primary">
-        + Nuovo lavoratore
-    </a>
+    <div class="stack-actions">
+        <a href="{% url 'azienda_documenti' %}" class="btn btn-outline">Documenti</a>
+        <a href="{% url 'azienda_lavoratore_nuovo' %}" class="btn btn-primary">Nuovo lavoratore</a>
+    </div>
 </div>
 
 <div class="stat-grid">
@@ -119,6 +114,11 @@
         <div class="stat-value">{{ totale_lavoratori }}</div>
         <div class="stat-icon">{% include 'includes/icons/workers-group.html' %}</div>
     </div>
+    <div class="stat-card" style="--card-accent: #0ea5e9">
+        <div class="stat-label">Documenti aggiuntivi</div>
+        <div class="stat-value">{{ totale_documenti_aggiuntivi }}</div>
+        <div class="stat-icon">{% include 'includes/icons/document.html' %}</div>
+    </div>
 </div>
 
 <div class="dashboard-layout">
@@ -126,59 +126,56 @@
         <div class="table-card-header">
             <span class="table-card-title icon-label">{% include 'includes/icons/workers-group.html' %} I tuoi lavoratori</span>
         </div>
-        <table class="delta-table">
-            <thead>
-                <tr>
-                    <th>Nominativo</th>
-                    <th>Mansione</th>
-                    <th>Sede</th>
-                    <th>Ultimo esito</th>
-                    <th>Scadenza</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for lavoratore in lavoratori %}
-                <tr>
-                    <td><strong>{{ lavoratore.nome_completo }}</strong></td>
-                    <td>{{ lavoratore.mansione }}</td>
-                    <td style="color:var(--text-muted)">{{ lavoratore.sede|default:"-" }}</td>
-                    <td>
-                        {% with lavoratore.idoneita.first as esito %}
-                            {% if esito %}
+        <div class="table-scroll">
+            <table class="delta-table">
+                <thead>
+                    <tr>
+                        <th>Nominativo</th>
+                        <th>Mansione</th>
+                        <th>Sede</th>
+                        <th>Ultimo esito</th>
+                        <th>Scadenza</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lavoratore in lavoratori %}
+                    <tr>
+                        <td><strong>{{ lavoratore.nome_completo }}</strong></td>
+                        <td>{{ lavoratore.mansione }}</td>
+                        <td class="text-muted">{{ lavoratore.sede|default:"-" }}</td>
+                        <td>
+                            {% with lavoratore.idoneita.first as esito %}
+                                {% if esito %}
                                 <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
                                     {{ esito.get_esito_display }}
                                 </span>
-                            {% else %}
-                                <span style="color:var(--text-muted)">-</span>
-                            {% endif %}
-                        {% endwith %}
-                    </td>
-                    <td>
-                        {% with lavoratore.idoneita.first as esito %}
-                            {% if esito %}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% with lavoratore.idoneita.first as esito %}
+                                {% if esito %}
                                 <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
                                     {{ esito.data_scadenza }}
                                 </span>
-                            {% else %}
-                                <span style="color:var(--text-muted)">-</span>
-                            {% endif %}
-                        {% endwith %}
-                    </td>
-                    <td>
-                        <a href="{% url 'azienda_lavoratore' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda -></a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" style="text-align:center; color:var(--text-muted); padding: 32px">
-                        Nessun lavoratore registrato.
-                        <a href="{% url 'azienda_lavoratore_nuovo' %}" style="color:var(--accent)">Aggiungine uno -></a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td><a href="{% url 'azienda_lavoratore' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6"><div class="empty-state">Nessun lavoratore registrato.</div></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <aside class="table-card contact-card">
@@ -201,6 +198,10 @@
                 <div class="contact-item">
                     <div class="contact-label">Telefono</div>
                     <a class="contact-link" href="tel:{{ centro_delta_contact.telefono|cut:' ' }}">{{ centro_delta_contact.telefono }}</a>
+                </div>
+                <div class="contact-item">
+                    <div class="contact-label">Archivio documenti</div>
+                    <a class="contact-link" href="{% url 'azienda_documenti' %}">Apri sezione documenti</a>
                 </div>
             </div>
         </div>

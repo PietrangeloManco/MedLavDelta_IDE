@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% block title %}{{ azienda.ragione_sociale }}{% endblock %}
+{% block breadcrumb %}<strong>Azienda</strong> {{ azienda.ragione_sociale }}{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/admin_sidebar_links.html' with admin_nav_section='aziende' %}
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'admin_aziende' %}" class="text-decoration-none text-muted small">&larr; Torna all'elenco aziende</a>
+
+<div class="page-header" style="margin-top:8px">
+    <div>
+        <h1 class="page-title">{{ azienda.ragione_sociale }}</h1>
+        <p class="page-subtitle">{{ azienda.codice_univoco }} | {{ azienda.email_contatto }}</p>
+    </div>
+    <div class="stack-actions">
+        {% if request.user.admin_permission_map.preventives_manage %}
+        <a href="{% url 'admin_preventivo_nuovo' %}?azienda={{ azienda.pk }}" class="btn btn-outline">Nuovo preventivo</a>
+        {% endif %}
+        {% if request.user.admin_permission_map.invoices_manage %}
+        <a href="{% url 'admin_fattura_nuova' %}?azienda={{ azienda.pk }}" class="btn btn-outline">Nuova fattura</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card" style="--card-accent: #1d4ed8">
+        <div class="stat-label">Lavoratori attivi</div>
+        <div class="stat-value">{{ lavoratori|length }}</div>
+        <div class="stat-icon">{% include 'includes/icons/workers-group.html' %}</div>
+    </div>
+    <div class="stat-card" style="--card-accent: #0ea5e9">
+        <div class="stat-label">Documenti iniziali</div>
+        <div class="stat-value">{{ documenti_iniziali|length }}</div>
+        <div class="stat-icon">{% include 'includes/icons/document.html' %}</div>
+    </div>
+    <div class="stat-card" style="--card-accent: #2563eb">
+        <div class="stat-label">Documenti aggiuntivi</div>
+        <div class="stat-value">{{ documenti_aggiuntivi|length }}</div>
+        <div class="stat-icon">{% include 'includes/icons/document.html' %}</div>
+    </div>
+    <div class="stat-card" style="--card-accent: {% if azienda.contratto_saldato %}#16a34a{% else %}#ef4444{% endif %}">
+        <div class="stat-label">Contratto</div>
+        <div style="font-size:18px; font-weight:700; color:var(--text)">
+            {% if azienda.contratto_saldato %}Saldato{% else %}Non saldato{% endif %}
+        </div>
+        <div class="text-muted small">Stato operativo azienda</div>
+    </div>
+</div>
+
+<div class="split-grid">
+    <div>
+        <div class="form-card">
+            <div class="form-card-title">Profilo azienda</div>
+            <div class="detail-grid">
+                <div class="detail-panel">
+                    <div class="form-label">Contatti</div>
+                    <div style="display:grid; gap:8px">
+                        <div>
+                            <div class="text-muted small">Email contatto</div>
+                            <div><strong>{{ azienda.email_contatto }}</strong></div>
+                        </div>
+                        <div>
+                            <div class="text-muted small">PEC</div>
+                            <div><strong>{{ azienda.pec|default:"-" }}</strong></div>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Telefono</div>
+                            <div><strong>{{ azienda.telefono|default:"-" }}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-panel">
+                    <div class="form-label">Riferimenti</div>
+                    <div style="display:grid; gap:8px">
+                        <div>
+                            <div class="text-muted small">Referente</div>
+                            <div><strong>{{ azienda.referente_azienda|default:"-" }}</strong></div>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Codice fiscale</div>
+                            <div><strong>{{ azienda.codice_fiscale|default:"-" }}</strong></div>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Partita IVA</div>
+                            <div><strong>{{ azienda.partita_iva|default:"-" }}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-panel">
+                    <div class="form-label">Accesso e contratto</div>
+                    <div style="display:grid; gap:12px">
+                        <div>
+                            <div class="text-muted small">Account azienda</div>
+                            <div><strong>{{ azienda.user.email|default:"-" }}</strong></div>
+                        </div>
+                        {% if can_manage_company %}
+                        <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <input type="hidden" name="contratto_saldato" value="{% if azienda.contratto_saldato %}0{% else %}1{% endif %}">
+                            <button type="submit" class="btn btn-outline" style="width:100%">
+                                {% if azienda.contratto_saldato %}Segna non saldato{% else %}Segna saldato{% endif %}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-card-header">
+                <span class="table-card-title icon-label">{% include 'includes/icons/document.html' %} Documenti iniziali</span>
+            </div>
+            <div class="table-scroll">
+                <table class="delta-table">
+                    <thead>
+                        <tr>
+                            <th>Documento</th>
+                            <th>Origine</th>
+                            <th>Data</th>
+                            <th>Note</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for documento in documenti_iniziali %}
+                        <tr>
+                            <td>
+                                <strong>{{ documento.titolo }}</strong><br>
+                                <span class="text-muted small">{{ documento.nome_file }}</span>
+                            </td>
+                            <td><span class="badge badge-info">{{ documento.origine_label }}</span></td>
+                            <td>{{ documento.data_caricamento|date:"d/m/Y H:i" }}</td>
+                            <td>{{ documento.note|default:"-" }}</td>
+                            <td><a href="{{ documento.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5"><div class="empty-state">Nessun documento iniziale disponibile.</div></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-card-header">
+                <span class="table-card-title icon-label">{% include 'includes/icons/document.html' %} Documenti aggiuntivi</span>
+            </div>
+            <div class="table-scroll">
+                <table class="delta-table">
+                    <thead>
+                        <tr>
+                            <th>Titolo</th>
+                            <th>Origine</th>
+                            <th>Caricato da</th>
+                            <th>Data</th>
+                            <th>Note</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for documento in documenti_aggiuntivi %}
+                        <tr>
+                            <td>
+                                <strong>{{ documento.titolo }}</strong><br>
+                                <span class="text-muted small">{{ documento.nome_file }}</span>
+                            </td>
+                            <td><span class="badge badge-neutral">{{ documento.get_origine_display }}</span></td>
+                            <td>{{ documento.caricato_da.email|default:"-" }}</td>
+                            <td>{{ documento.data_caricamento|date:"d/m/Y H:i" }}</td>
+                            <td>{{ documento.note|default:"-" }}</td>
+                            <td><a href="{{ documento.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6"><div class="empty-state">Nessun documento aggiuntivo caricato.</div></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        {% if can_upload_documents %}
+        <div class="form-card">
+            <div class="form-card-title">Carica nuovo documento</div>
+            <form method="post" action="{% url 'admin_azienda_carica_documento' azienda.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% for field in document_form %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary" style="width:100%">Carica documento</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="table-card">
+            <div class="table-card-header">
+                <span class="table-card-title icon-label">{% include 'includes/icons/worker.html' %} Lavoratori collegati</span>
+            </div>
+            <div class="table-scroll">
+                <table class="delta-table">
+                    <thead>
+                        <tr>
+                            <th>Nominativo</th>
+                            <th>Mansione</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lavoratore in lavoratori %}
+                        <tr>
+                            <td><strong>{{ lavoratore.nome_completo }}</strong></td>
+                            <td>{{ lavoratore.mansione }}</td>
+                            <td>
+                                {% if request.user.admin_permission_map.medical_records_manage %}
+                                <a href="{% url 'admin_lavoratore_detail' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda</a>
+                                {% else %}
+                                <span class="text-muted small">Solo elenco</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3"><div class="empty-state">Nessun lavoratore attivo collegato.</div></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

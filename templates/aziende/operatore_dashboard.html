@@ -13,15 +13,15 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">{{ lavoratore.nome_completo }}</h1>
-        <p class="page-subtitle">{{ lavoratore.mansione }} — {{ lavoratore.azienda }}</p>
+        <p class="page-subtitle">{{ lavoratore.mansione }} - {{ lavoratore.azienda }}</p>
     </div>
 </div>
 
 <div class="form-card">
     <div class="form-card-title">Scheda lavoratore</div>
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px">
-        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
-            <div class="form-label" style="margin-bottom:8px">Dati personali</div>
+    <div class="detail-grid">
+        <div class="detail-panel">
+            <div class="form-label">Dati personali</div>
             <div style="display:grid; gap:8px">
                 <div>
                     <div class="text-muted small">Data di nascita</div>
@@ -37,8 +37,8 @@
                 </div>
             </div>
         </div>
-        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
-            <div class="form-label" style="margin-bottom:8px">Inquadramento</div>
+        <div class="detail-panel">
+            <div class="form-label">Inquadramento</div>
             <div style="display:grid; gap:8px">
                 <div>
                     <div class="text-muted small">Azienda</div>
@@ -50,16 +50,16 @@
                 </div>
             </div>
         </div>
-        <div style="border:1px solid var(--border); border-radius:12px; padding:12px">
-            <div class="form-label" style="margin-bottom:8px">Stato e note</div>
+        <div class="detail-panel">
+            <div class="form-label">Stato e note</div>
             <div style="display:grid; gap:8px">
                 <div>
                     <div class="text-muted small">Stato</div>
                     <div>
                         {% if lavoratore.attivo %}
-                            <span class="badge badge-success">Attivo</span>
+                        <span class="badge badge-success">Attivo</span>
                         {% else %}
-                            <span class="badge badge-danger">Non attivo</span>
+                        <span class="badge badge-danger">Non attivo</span>
                         {% endif %}
                     </div>
                 </div>
@@ -76,43 +76,43 @@
     <div class="table-card-header">
         <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneita</span>
     </div>
-    <table class="delta-table">
-        <thead>
-            <tr>
-                <th>Data visita</th>
-                <th>Mansione</th>
-                <th>Esito</th>
-                <th>Scadenza</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for esito in esiti %}
-            <tr>
-                <td>{{ esito.data_visita }}</td>
-                <td>{{ esito.mansione }}</td>
-                <td>
-                    <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
-                        {{ esito.get_esito_display }}
-                    </span>
-                    {% if esito.esito == 'idoneo' and esito.certificato %}
-                        <a href="{{ esito.certificato.url }}" target="_blank" class="btn btn-link btn-sm" style="margin-left:6px">Certificato</a>
-                    {% endif %}
-                </td>
-                <td>
-                    <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
-                        {{ esito.data_scadenza }}
-                    </span>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4" style="text-align:center; color:var(--text-muted); padding: 32px">
-                    Nessun esito registrato.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-scroll">
+        <table class="delta-table">
+            <thead>
+                <tr>
+                    <th>Data visita</th>
+                    <th>Mansione</th>
+                    <th>Esito</th>
+                    <th>Scadenza</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for esito in esiti %}
+                <tr>
+                    <td>{{ esito.data_visita }}</td>
+                    <td>{{ esito.mansione }}</td>
+                    <td>
+                        <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                            {{ esito.get_esito_display }}
+                        </span>
+                        {% if esito.esito == 'idoneo' and esito.certificato %}
+                        <a href="{{ esito.certificato.url }}" target="_blank" class="btn btn-link btn-sm">Certificato</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
+                            {{ esito.data_scadenza }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4"><div class="empty-state">Nessun esito registrato.</div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 {% if documenti %}
@@ -120,28 +120,28 @@
     <div class="table-card-header">
         <span class="table-card-title icon-label">{% include 'includes/icons/document.html' %} Documenti sanitari</span>
     </div>
-    <table class="delta-table">
-        <thead>
-            <tr>
-                <th>Titolo</th>
-                <th>Tipo</th>
-                <th>Data</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for doc in documenti %}
-            <tr>
-                <td><strong>{{ doc.titolo }}</strong></td>
-                <td>{{ doc.get_tipo_display }}</td>
-                <td style="color:var(--text-muted)">{{ doc.data }}</td>
-                <td>
-                    <a href="{{ doc.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri →</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-scroll">
+        <table class="delta-table">
+            <thead>
+                <tr>
+                    <th>Titolo</th>
+                    <th>Tipo</th>
+                    <th>Data</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documenti %}
+                <tr>
+                    <td><strong>{{ doc.titolo }}</strong></td>
+                    <td>{{ doc.get_tipo_display }}</td>
+                    <td class="text-muted">{{ doc.data }}</td>
+                    <td><a href="{{ doc.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endif %}
 {% endblock %}

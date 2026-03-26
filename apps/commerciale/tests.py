@@ -16,6 +16,7 @@ class CommercialeAdminFlowTests(TestCase):
             password='admin-pass-123',
             role=CustomUser.ADMIN,
             is_staff=True,
+            is_superuser=True,
         )
         self.azienda_user = CustomUser.objects.create_user(
             email='azienda@example.com',

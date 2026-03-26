@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Documenti {{ azienda.ragione_sociale }}{% endblock %}
+{% block breadcrumb %}<strong>Documenti</strong> {{ azienda.ragione_sociale }}{% endblock %}
+
+{% block sidebar %}
+{% include 'includes/azienda_sidebar_links.html' with azienda_nav_section='documenti' %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Documenti</h1>
+        <p class="page-subtitle">Archivio dei documenti caricati all'avvio del profilo aziendale e dei documenti aggiuntivi.</p>
+    </div>
+</div>
+
+<div class="split-grid">
+    <div>
+        <div class="table-card">
+            <div class="table-card-header">
+                <span class="table-card-title icon-label">{% include 'includes/icons/document.html' %} Documenti iniziali</span>
+            </div>
+            <div class="table-scroll">
+                <table class="delta-table">
+                    <thead>
+                        <tr>
+                            <th>Documento</th>
+                            <th>Origine</th>
+                            <th>Data</th>
+                            <th>Note</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for documento in documenti_iniziali %}
+                        <tr>
+                            <td>
+                                <strong>{{ documento.titolo }}</strong><br>
+                                <span class="text-muted small">{{ documento.nome_file }}</span>
+                            </td>
+                            <td><span class="badge badge-info">{{ documento.origine_label }}</span></td>
+                            <td>{{ documento.data_caricamento|date:"d/m/Y H:i" }}</td>
+                            <td>{{ documento.note|default:"-" }}</td>
+                            <td><a href="{{ documento.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5"><div class="empty-state">Nessun documento iniziale disponibile.</div></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-card-header">
+                <span class="table-card-title icon-label">{% include 'includes/icons/document.html' %} Documenti aggiuntivi</span>
+            </div>
+            <div class="table-scroll">
+                <table class="delta-table">
+                    <thead>
+                        <tr>
+                            <th>Titolo</th>
+                            <th>Origine</th>
+                            <th>Data</th>
+                            <th>Note</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for documento in documenti_aggiuntivi %}
+                        <tr>
+                            <td>
+                                <strong>{{ documento.titolo }}</strong><br>
+                                <span class="text-muted small">{{ documento.nome_file }}</span>
+                            </td>
+                            <td><span class="badge badge-neutral">{{ documento.get_origine_display }}</span></td>
+                            <td>{{ documento.data_caricamento|date:"d/m/Y H:i" }}</td>
+                            <td>{{ documento.note|default:"-" }}</td>
+                            <td><a href="{{ documento.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5"><div class="empty-state">Nessun documento aggiuntivo caricato.</div></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <aside class="form-card">
+        <div class="form-card-title">Carica nuovo documento</div>
+        <form method="post" action="{% url 'azienda_carica_documento' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in document_form %}
+            <div class="form-group">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary" style="width:100%">Carica documento</button>
+        </form>
+    </aside>
+</div>
+{% endblock %}

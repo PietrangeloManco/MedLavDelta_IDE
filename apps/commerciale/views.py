@@ -3,7 +3,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
-from apps.accounts.mixins import AdminRequiredMixin
+from apps.accounts.mixins import AdminPermissionRequiredMixin
+from apps.accounts.models import CustomUser
 from apps.aziende.models import Azienda
 
 from .forms import (
@@ -15,7 +16,9 @@ from .forms import (
 from .models import Fattura, Preventivo
 
 
-class AdminPreventiviListView(AdminRequiredMixin, View):
+class AdminPreventiviListView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_PREVENTIVI,)
+
     def get(self, request):
         preventivi = Preventivo.objects.select_related('azienda').prefetch_related('voci')
         azienda_pk = request.GET.get('azienda')
@@ -31,7 +34,9 @@ class AdminPreventiviListView(AdminRequiredMixin, View):
         return render(request, 'commerciale/admin_preventivi_list.html', context)
 
 
-class AdminPreventivoCreateView(AdminRequiredMixin, View):
+class AdminPreventivoCreateView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_PREVENTIVI,)
+
     def get(self, request):
         form = PreventivoForm(initial=self._initial(request))
         formset = PreventivoVoceFormSet(prefix='voci')
@@ -63,7 +68,9 @@ class AdminPreventivoCreateView(AdminRequiredMixin, View):
         }
 
 
-class AdminPreventivoUpdateView(AdminRequiredMixin, View):
+class AdminPreventivoUpdateView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_PREVENTIVI,)
+
     def get(self, request, pk):
         preventivo = get_object_or_404(Preventivo, pk=pk)
         form = PreventivoForm(instance=preventivo)
@@ -92,7 +99,9 @@ class AdminPreventivoUpdateView(AdminRequiredMixin, View):
         }
 
 
-class AdminFattureListView(AdminRequiredMixin, View):
+class AdminFattureListView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_FATTURE,)
+
     def get(self, request):
         fatture = Fattura.objects.select_related('azienda').prefetch_related('voci')
         azienda_pk = request.GET.get('azienda')
@@ -108,7 +117,9 @@ class AdminFattureListView(AdminRequiredMixin, View):
         return render(request, 'commerciale/admin_fatture_list.html', context)
 
 
-class AdminFatturaCreateView(AdminRequiredMixin, View):
+class AdminFatturaCreateView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_FATTURE,)
+
     def get(self, request):
         form = FatturaForm(initial=self._initial(request))
         formset = FatturaVoceFormSet(prefix='voci')
@@ -140,7 +151,9 @@ class AdminFatturaCreateView(AdminRequiredMixin, View):
         }
 
 
-class AdminFatturaUpdateView(AdminRequiredMixin, View):
+class AdminFatturaUpdateView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_FATTURE,)
+
     def get(self, request, pk):
         fattura = get_object_or_404(Fattura, pk=pk)
         form = FatturaForm(instance=fattura)
@@ -169,7 +182,13 @@ class AdminFatturaUpdateView(AdminRequiredMixin, View):
         }
 
 
-class AdminAziendaCondizioniPagamentoApiView(AdminRequiredMixin, View):
+class AdminAziendaCondizioniPagamentoApiView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (
+        CustomUser.ADMIN_PERMISSION_PREVENTIVI,
+        CustomUser.ADMIN_PERMISSION_FATTURE,
+    )
+    admin_permissions_mode = 'any'
+
     def get(self, request, pk):
         azienda = get_object_or_404(Azienda, pk=pk)
         return JsonResponse({

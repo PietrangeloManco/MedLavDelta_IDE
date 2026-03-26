@@ -9,12 +9,17 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">Buongiorno</h1>
-        <p class="page-subtitle">Riepilogo attivita - Centro Delta Srl</p>
+        <h1 class="page-title">Panoramica operativa</h1>
+        <p class="page-subtitle">Riepilogo rapido delle attivita di Centro Delta.</p>
     </div>
-    <a href="{% url 'admin_crea_azienda' %}" class="btn btn-primary">
-        + Nuova azienda
-    </a>
+    <div class="stack-actions">
+        {% if request.user.admin_permission_map.company_profiles_manage or request.user.admin_permission_map.company_documents_manage or request.user.admin_permission_map.preventives_manage or request.user.admin_permission_map.invoices_manage %}
+        <a href="{% url 'admin_aziende' %}" class="btn btn-outline">Apri elenco aziende</a>
+        {% endif %}
+        {% if request.user.admin_permission_map.company_profiles_manage %}
+        <a href="{% url 'admin_crea_azienda' %}" class="btn btn-primary">Nuova azienda</a>
+        {% endif %}
+    </div>
 </div>
 
 <div class="stat-grid">
@@ -28,13 +33,11 @@
         <div class="stat-value">{{ totale_lavoratori }}</div>
         <div class="stat-icon">{% include 'includes/icons/worker.html' %}</div>
     </div>
-    {% if totale_scadenze %}
     <div class="stat-card" style="--card-accent: #60a5fa">
         <div class="stat-label">Scadenze imminenti</div>
         <div class="stat-value">{{ totale_scadenze }}</div>
         <div class="stat-icon">{% include 'includes/icons/clock.html' %}</div>
     </div>
-    {% endif %}
 </div>
 
 {% if scadenze_imminenti %}
@@ -42,7 +45,7 @@
     <span class="alert-icon">!</span>
     <div>
         <strong>{{ totale_scadenze }} visita/e in scadenza nei prossimi 30 giorni.</strong>
-        Contatta le aziende interessate per pianificare le visite.
+        Contatta le aziende interessate per pianificare i rinnovi.
     </div>
 </div>
 
@@ -50,96 +53,40 @@
     <div class="table-card-header">
         <span class="table-card-title icon-label">{% include 'includes/icons/clock.html' %} Scadenze imminenti</span>
     </div>
-    <table class="delta-table">
-        <thead>
-            <tr>
-                <th>Lavoratore</th>
-                <th>Azienda</th>
-                <th>Mansione</th>
-                <th>Scadenza</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for esito in scadenze_imminenti %}
-            <tr>
-                <td><strong>{{ esito.lavoratore.nome_completo }}</strong></td>
-                <td>{{ esito.lavoratore.azienda }}</td>
-                <td>{{ esito.mansione }}</td>
-                <td><span class="badge badge-warning">{{ esito.data_scadenza }}</span></td>
-                <td>
-                    <a href="{% url 'admin_lavoratore_detail' esito.lavoratore.pk %}" class="btn btn-outline btn-sm">
-                        Vai alla scheda ->
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-scroll">
+        <table class="delta-table">
+            <thead>
+                <tr>
+                    <th>Lavoratore</th>
+                    <th>Azienda</th>
+                    <th>Mansione</th>
+                    <th>Scadenza</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for esito in scadenze_imminenti %}
+                <tr>
+                    <td><strong>{{ esito.lavoratore.nome_completo }}</strong></td>
+                    <td>{{ esito.lavoratore.azienda }}</td>
+                    <td>{{ esito.mansione }}</td>
+                    <td><span class="badge badge-warning">{{ esito.data_scadenza }}</span></td>
+                    <td>
+                        {% if request.user.admin_permission_map.medical_records_manage %}
+                        <a href="{% url 'admin_lavoratore_detail' esito.lavoratore.pk %}" class="btn btn-outline btn-sm">Vai alla scheda</a>
+                        {% else %}
+                        <span class="text-muted small">Solo consultazione</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="form-card">
+    <div class="empty-state">Nessuna scadenza imminente nei prossimi 30 giorni.</div>
 </div>
 {% endif %}
-
-<div class="table-card">
-    <div class="table-card-header">
-        <span class="table-card-title icon-label">{% include 'includes/icons/company.html' %} Aziende registrate</span>
-    </div>
-    <table class="delta-table">
-        <thead>
-            <tr>
-                <th>Ragione Sociale</th>
-                <th>P.IVA</th>
-                <th>Email</th>
-                <th>Lavoratori</th>
-                <th>Contratto</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for azienda in aziende %}
-            <tr>
-                <td><strong>{{ azienda.ragione_sociale }}</strong></td>
-                <td style="color: var(--text-muted)">{{ azienda.partita_iva|default:"-" }}</td>
-                <td style="color: var(--text-muted)">{{ azienda.email_contatto }}</td>
-                <td>
-                    <span class="badge badge-info">{{ azienda.lavoratori.count }}</span>
-                </td>
-                <td>
-                    {% if azienda.contratto_saldato %}
-                        <span class="badge badge-success">Saldato</span>
-                    {% else %}
-                        <span class="badge badge-danger">Non saldato</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <div style="display:flex; flex-wrap:wrap; gap:8px">
-                        <a href="{% url 'admin_lavoratori' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">
-                            <span class="icon-label">{% include 'includes/icons/worker.html' %} Lavoratori</span>
-                        </a>
-                        <a href="{% url 'admin_preventivo_nuovo' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">
-                            Preventivo
-                        </a>
-                        <a href="{% url 'admin_fattura_nuova' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">
-                            Fattura
-                        </a>
-                        <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}" style="margin:0">
-                            {% csrf_token %}
-                            <input type="hidden" name="contratto_saldato" value="{% if azienda.contratto_saldato %}0{% else %}1{% endif %}">
-                            <button type="submit" class="btn btn-outline btn-sm">
-                                {% if azienda.contratto_saldato %}Segna non saldato{% else %}Segna saldato{% endif %}
-                            </button>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" style="text-align:center; color:var(--text-muted); padding: 32px">
-                    Nessuna azienda registrata.
-                    <a href="{% url 'admin_crea_azienda' %}" style="color:var(--accent)">Creane una -></a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
 {% endblock %}

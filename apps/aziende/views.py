@@ -1,19 +1,24 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views import View
-from django.contrib import messages
-from django.contrib.auth import login, logout
-from django.contrib.auth.forms import AuthenticationForm
-from django.core.mail import send_mail
-from django.conf import settings
 import logging
-from apps.accounts.mixins import AdminRequiredMixin, AziendaRequiredMixin, OperatoreRequiredMixin
-from apps.accounts.models import CustomUser
-from .models import Azienda, Lavoratore, Sede
-from .forms import CreaAziendaForm, LavoratoreForm
-from apps.sanitaria.models import EsitoIdoneita, CartellaClinica, DocumentoSanitario
-from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm
 from datetime import timedelta
+
+from django.conf import settings
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views import View
+
+from apps.accounts.mixins import (
+    AdminPermissionRequiredMixin,
+    AziendaRequiredMixin,
+    OperatoreRequiredMixin,
+)
+from apps.accounts.models import CustomUser
+from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm
+from apps.sanitaria.models import CartellaClinica, DocumentoSanitario, EsitoIdoneita
+
+from .forms import CreaAziendaForm, DocumentoAziendaleForm, LavoratoreForm
+from .models import Azienda, DocumentoAziendale, Lavoratore
 
 CENTRO_DELTA_CONTACT = {
     'nome': 'Rosanna Cocozza',
@@ -44,20 +49,27 @@ def send_notification_email(subject, message, recipients):
             ", ".join(recipient_list),
         )
 
-# ─── ADMIN ────────────────────────────────────────────────────────────────────
 
-class AdminDashboardView(AdminRequiredMixin, View):
+def get_azienda_documenti_context(azienda):
+    return {
+        'documenti_iniziali': azienda.get_documenti_iniziali(),
+        'documenti_aggiuntivi': azienda.documenti_generici.select_related('caricato_da'),
+    }
+
+
+class AdminDashboardView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_DASHBOARD,)
+
     def get(self, request):
         oggi = timezone.now().date()
         soglia = oggi + timedelta(days=30)
-        
+
         scadenze_imminenti = EsitoIdoneita.objects.filter(
             data_scadenza__gte=oggi,
             data_scadenza__lte=soglia,
         ).select_related('lavoratore__azienda').order_by('data_scadenza')
 
         context = {
-            'aziende': Azienda.objects.all().order_by('ragione_sociale'),
             'totale_aziende': Azienda.objects.count(),
             'totale_lavoratori': Lavoratore.objects.filter(attivo=True).count(),
             'scadenze_imminenti': scadenze_imminenti,
@@ -66,7 +78,48 @@ class AdminDashboardView(AdminRequiredMixin, View):
         return render(request, 'aziende/admin_dashboard.html', context)
 
 
-class AdminAggiornaContrattoView(AdminRequiredMixin, View):
+class AdminAziendeListView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (
+        CustomUser.ADMIN_PERMISSION_COMPANIES,
+        CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS,
+        CustomUser.ADMIN_PERMISSION_PREVENTIVI,
+        CustomUser.ADMIN_PERMISSION_FATTURE,
+    )
+    admin_permissions_mode = 'any'
+
+    def get(self, request):
+        return render(request, 'aziende/admin_aziende_list.html', {
+            'aziende': Azienda.objects.all().order_by('ragione_sociale'),
+        })
+
+
+class AdminAziendaDetailView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (
+        CustomUser.ADMIN_PERMISSION_COMPANIES,
+        CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS,
+    )
+    admin_permissions_mode = 'any'
+
+    def get(self, request, pk):
+        azienda = get_object_or_404(Azienda, pk=pk)
+        context = {
+            'azienda': azienda,
+            'lavoratori': azienda.lavoratori.filter(attivo=True).order_by('cognome', 'nome'),
+            'document_form': DocumentoAziendaleForm(),
+            'can_manage_company': request.user.has_admin_permission(
+                CustomUser.ADMIN_PERMISSION_COMPANIES
+            ),
+            'can_upload_documents': request.user.has_admin_permission(
+                CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS
+            ),
+            **get_azienda_documenti_context(azienda),
+        }
+        return render(request, 'aziende/admin_azienda_detail.html', context)
+
+
+class AdminAggiornaContrattoView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_COMPANIES,)
+
     def post(self, request, pk):
         azienda = get_object_or_404(Azienda, pk=pk)
         valore = request.POST.get('contratto_saldato')
@@ -78,26 +131,29 @@ class AdminAggiornaContrattoView(AdminRequiredMixin, View):
             azienda.contratto_saldato = not azienda.contratto_saldato
         azienda.save(update_fields=['contratto_saldato'])
         messages.success(request, f'Contratto aggiornato per {azienda.ragione_sociale}.')
-        return redirect('admin_dashboard')
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
+        return redirect('admin_azienda_detail', pk=pk)
 
 
-class AdminCreaAziendaView(AdminRequiredMixin, View):
+class AdminCreaAziendaView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_COMPANIES,)
+
     def get(self, request):
         return render(request, 'aziende/admin_crea_azienda.html', {
-            'form': CreaAziendaForm()
+            'form': CreaAziendaForm(),
         })
 
     def post(self, request):
         form = CreaAziendaForm(request.POST, request.FILES)
         if form.is_valid():
-            # Crea utente
             user = CustomUser.objects.create_user(
                 email=form.cleaned_data['email'],
                 password=form.cleaned_data['password'],
-                role=CustomUser.AZIENDA
+                role=CustomUser.AZIENDA,
             )
-            # Crea azienda collegata
-            Azienda.objects.create(
+            azienda = Azienda.objects.create(
                 user=user,
                 ragione_sociale=form.cleaned_data['ragione_sociale'],
                 codice_univoco=form.cleaned_data['codice_univoco'],
@@ -115,16 +171,41 @@ class AdminCreaAziendaView(AdminRequiredMixin, View):
                 varie_documento=form.cleaned_data.get('varie_documento'),
                 varie_note=form.cleaned_data.get('varie_note', ''),
             )
-            messages.success(request, f'Azienda {form.cleaned_data["ragione_sociale"]} creata con successo.')
-            return redirect('admin_dashboard')
+            messages.success(
+                request,
+                f'Azienda {form.cleaned_data["ragione_sociale"]} creata con successo.',
+            )
+            return redirect('admin_azienda_detail', pk=azienda.pk)
         return render(request, 'aziende/admin_crea_azienda.html', {'form': form})
 
 
-class AdminLavoratoriView(AdminRequiredMixin, View):
+class AdminCaricaDocumentoAziendaleView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS,)
+
+    def post(self, request, pk):
+        azienda = get_object_or_404(Azienda, pk=pk)
+        form = DocumentoAziendaleForm(request.POST, request.FILES)
+        if form.is_valid():
+            documento = form.save(commit=False)
+            documento.azienda = azienda
+            documento.origine = DocumentoAziendale.ORIGINE_ADMIN
+            documento.caricato_da = request.user
+            documento.save()
+            messages.success(request, 'Documento aziendale caricato con successo.')
+        else:
+            messages.error(request, 'Errore nel caricamento del documento aziendale.')
+        return redirect('admin_azienda_detail', pk=pk)
+
+
+class AdminLavoratoriView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (
+        CustomUser.ADMIN_PERMISSION_WORKERS,
+        CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,
+    )
+    admin_permissions_mode = 'any'
+
     def get(self, request):
         lavoratori = Lavoratore.objects.select_related('azienda', 'sede').filter(attivo=True)
-        
-        # Filtro opzionale per azienda
         azienda_pk = request.GET.get('azienda')
         azienda_selezionata = None
         if azienda_pk:
@@ -138,7 +219,9 @@ class AdminLavoratoriView(AdminRequiredMixin, View):
         })
 
 
-class AdminLavoratoreDetailView(AdminRequiredMixin, View):
+class AdminLavoratoreDetailView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,)
+
     def get(self, request, pk):
         lavoratore = get_object_or_404(Lavoratore, pk=pk)
         cartella, _ = CartellaClinica.objects.get_or_create(lavoratore=lavoratore)
@@ -154,7 +237,9 @@ class AdminLavoratoreDetailView(AdminRequiredMixin, View):
         })
 
 
-class AdminCaricaDocumentoView(AdminRequiredMixin, View):
+class AdminCaricaDocumentoView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,)
+
     def post(self, request, pk):
         lavoratore = get_object_or_404(Lavoratore, pk=pk)
         cartella, _ = CartellaClinica.objects.get_or_create(lavoratore=lavoratore)
@@ -165,11 +250,12 @@ class AdminCaricaDocumentoView(AdminRequiredMixin, View):
             doc.save()
             messages.success(request, 'Documento caricato con successo.')
             if doc.tipo == DocumentoSanitario.REFERTO and getattr(lavoratore, 'user', None):
-                subject = 'I suoi referti sono disponibili — Centro Medico Delta'
+                subject = 'I suoi referti sono disponibili - Centro Medico Delta'
                 corpo = (
                     "Gentile,\n"
-                    "Le comunichiamo che Centro Medico Delta ha caricato sulla piattaforma i referti relativi alla sua visita medica.\n"
-                    "Può consultarli in qualsiasi momento accedendo alla sua area personale.\n"
+                    "Le comunichiamo che Centro Medico Delta ha caricato sulla piattaforma "
+                    "i referti relativi alla sua visita medica.\n"
+                    "Puo consultarli in qualsiasi momento accedendo alla sua area personale.\n"
                     "Per qualsiasi informazione, rimaniamo a sua disposizione.\n"
                     "Cordiali saluti,\n"
                     "Centro Medico Delta"
@@ -180,7 +266,9 @@ class AdminCaricaDocumentoView(AdminRequiredMixin, View):
         return redirect('admin_lavoratore_detail', pk=pk)
 
 
-class AdminRegistraEsitoView(AdminRequiredMixin, View):
+class AdminRegistraEsitoView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,)
+
     def post(self, request, pk):
         lavoratore = get_object_or_404(Lavoratore, pk=pk)
         form = EsitoIdoneitaForm(request.POST, request.FILES)
@@ -189,39 +277,71 @@ class AdminRegistraEsitoView(AdminRequiredMixin, View):
             esito.lavoratore = lavoratore
             esito.save()
             azienda = lavoratore.azienda
-            destinatario = azienda.user.email if getattr(azienda, 'user', None) else azienda.email_contatto
-            subject = 'Idoneità alla mansione disponibile'
+            destinatario = (
+                azienda.user.email
+                if getattr(azienda, 'user', None)
+                else azienda.email_contatto
+            )
+            subject = 'Idoneita alla mansione disponibile'
             corpo = (
                 "Gentile,\n"
-                f"Le comunichiamo che Centro Medico Delta ha caricato sulla piattaforma il giudizio di idoneità alla mansione relativo al lavoratore {lavoratore.nome_completo}.\n"
-                "Il documento è ora consultabile accedendo alla sua area riservata.\n"
+                "Le comunichiamo che Centro Medico Delta ha caricato sulla piattaforma "
+                f"il giudizio di idoneita alla mansione relativo al lavoratore {lavoratore.nome_completo}.\n"
+                "Il documento e ora consultabile accedendo alla sua area riservata.\n"
                 "[ ACCEDI ALLA PIATTAFORMA ]\n"
                 "Per qualsiasi informazione, rimaniamo a sua disposizione.\n"
                 "Cordiali saluti,\n"
                 "Centro Medico Delta"
             )
             send_notification_email(subject, corpo, [destinatario])
-            messages.success(request, 'Esito idoneità registrato.')
+            messages.success(request, 'Esito idoneita registrato.')
         else:
-            messages.error(request, 'Errore nella registrazione dell\'esito.')
+            messages.error(request, "Errore nella registrazione dell'esito.")
         return redirect('admin_lavoratore_detail', pk=pk)
 
-
-# ─── AZIENDA ──────────────────────────────────────────────────────────────────
 
 class AziendaDashboardView(AziendaRequiredMixin, View):
     def get(self, request):
         azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         lavoratori = Lavoratore.objects.filter(
-            azienda=azienda, attivo=True
+            azienda=azienda,
+            attivo=True,
         ).order_by('cognome')
         context = {
             'azienda': azienda,
             'lavoratori': lavoratori,
             'totale_lavoratori': lavoratori.count(),
+            'totale_documenti_aggiuntivi': azienda.documenti_generici.count(),
             'centro_delta_contact': CENTRO_DELTA_CONTACT,
         }
         return render(request, 'aziende/azienda_dashboard.html', context)
+
+
+class AziendaDocumentiView(AziendaRequiredMixin, View):
+    def get(self, request):
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
+        context = {
+            'azienda': azienda,
+            'document_form': DocumentoAziendaleForm(),
+            **get_azienda_documenti_context(azienda),
+        }
+        return render(request, 'aziende/azienda_documenti.html', context)
+
+
+class AziendaCaricaDocumentoView(AziendaRequiredMixin, View):
+    def post(self, request):
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
+        form = DocumentoAziendaleForm(request.POST, request.FILES)
+        if form.is_valid():
+            documento = form.save(commit=False)
+            documento.azienda = azienda
+            documento.origine = DocumentoAziendale.ORIGINE_AZIENDA
+            documento.caricato_da = request.user
+            documento.save()
+            messages.success(request, 'Documento caricato con successo.')
+        else:
+            messages.error(request, 'Errore nel caricamento del documento.')
+        return redirect('azienda_documenti')
 
 
 class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
@@ -229,7 +349,9 @@ class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
         azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         form = LavoratoreForm(azienda=azienda, include_account_fields=True)
         return render(request, 'aziende/azienda_lavoratore_form.html', {
-            'form': form, 'azienda': azienda, 'action': 'Nuovo lavoratore'
+            'form': form,
+            'azienda': azienda,
+            'action': 'Nuovo lavoratore',
         })
 
     def post(self, request):
@@ -251,7 +373,9 @@ class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
             messages.success(request, f'{lavoratore.nome_completo} aggiunto con successo.')
             return redirect('azienda_dashboard')
         return render(request, 'aziende/azienda_lavoratore_form.html', {
-            'form': form, 'azienda': azienda, 'action': 'Nuovo lavoratore'
+            'form': form,
+            'azienda': azienda,
+            'action': 'Nuovo lavoratore',
         })
 
 
@@ -261,7 +385,9 @@ class AziendaLavoratoreEditView(AziendaRequiredMixin, View):
         lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
         form = LavoratoreForm(instance=lavoratore, azienda=azienda)
         return render(request, 'aziende/azienda_lavoratore_form.html', {
-            'form': form, 'azienda': azienda, 'action': 'Modifica lavoratore'
+            'form': form,
+            'azienda': azienda,
+            'action': 'Modifica lavoratore',
         })
 
     def post(self, request, pk):
@@ -273,7 +399,9 @@ class AziendaLavoratoreEditView(AziendaRequiredMixin, View):
             messages.success(request, 'Lavoratore aggiornato.')
             return redirect('azienda_dashboard')
         return render(request, 'aziende/azienda_lavoratore_form.html', {
-            'form': form, 'azienda': azienda, 'action': 'Modifica lavoratore'
+            'form': form,
+            'azienda': azienda,
+            'action': 'Modifica lavoratore',
         })
 
 
@@ -288,8 +416,6 @@ class AziendaLavoratoreDetailView(AziendaRequiredMixin, View):
         })
 
 
-# ─── OPERATORE ────────────────────────────────────────────────────────────────
-
 class OperatoreDashboardView(OperatoreRequiredMixin, View):
     def get(self, request):
         lavoratore = get_object_or_404(Lavoratore, user=request.user)
@@ -302,4 +428,3 @@ class OperatoreDashboardView(OperatoreRequiredMixin, View):
             'esiti': esiti,
             'documenti': documenti,
         })
-    

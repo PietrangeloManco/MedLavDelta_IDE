@@ -10,69 +10,74 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">
-            {% if azienda_selezionata %}{{ azienda_selezionata.ragione_sociale }}
-            {% else %}Tutti i lavoratori{% endif %}
+            {% if azienda_selezionata %}{{ azienda_selezionata.ragione_sociale }}{% else %}Tutti i lavoratori{% endif %}
         </h1>
         {% if azienda_selezionata %}
-            <p class="page-subtitle">
-                <a href="{% url 'admin_lavoratori' %}" style="color:var(--accent)">Rimuovi filtro azienda</a>
-            </p>
+        <p class="page-subtitle"><a href="{% url 'admin_lavoratori' %}" style="color:var(--accent)">Rimuovi filtro azienda</a></p>
+        {% else %}
+        <p class="page-subtitle">Elenco lavoratori attivi.</p>
         {% endif %}
     </div>
 </div>
 
 <div class="table-card">
-    <table class="delta-table">
-        <thead>
-            <tr>
-                <th>Nominativo</th>
-                <th>Azienda</th>
-                <th>Sede</th>
-                <th>Mansione</th>
-                <th>Ultimo esito</th>
-                <th>Scadenza</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for lavoratore in lavoratori %}
-            <tr>
-                <td><strong>{{ lavoratore.nome_completo }}</strong></td>
-                <td style="color:var(--text-muted)">{{ lavoratore.azienda }}</td>
-                <td style="color:var(--text-muted)">{{ lavoratore.sede|default:"-" }}</td>
-                <td>{{ lavoratore.mansione }}</td>
-                <td>
-                    {% with lavoratore.idoneita.first as esito %}
-                        {% if esito %}
+    <div class="table-scroll">
+        <table class="delta-table">
+            <thead>
+                <tr>
+                    <th>Nominativo</th>
+                    <th>Azienda</th>
+                    <th>Sede</th>
+                    <th>Mansione</th>
+                    <th>Ultimo esito</th>
+                    <th>Scadenza</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lavoratore in lavoratori %}
+                <tr>
+                    <td><strong>{{ lavoratore.nome_completo }}</strong></td>
+                    <td class="text-muted">{{ lavoratore.azienda }}</td>
+                    <td class="text-muted">{{ lavoratore.sede|default:"-" }}</td>
+                    <td>{{ lavoratore.mansione }}</td>
+                    <td>
+                        {% with lavoratore.idoneita.first as esito %}
+                            {% if esito %}
                             <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
                                 {{ esito.get_esito_display }}
                             </span>
-                        {% else %}<span style="color:var(--text-muted)">-</span>{% endif %}
-                    {% endwith %}
-                </td>
-                <td>
-                    {% with lavoratore.idoneita.first as esito %}
-                        {% if esito %}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% with lavoratore.idoneita.first as esito %}
+                            {% if esito %}
                             <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
                                 {{ esito.data_scadenza }}
                             </span>
-                        {% else %}-{% endif %}
-                    {% endwith %}
-                </td>
-                <td>
-                    <a href="{% url 'admin_lavoratore_detail' lavoratore.pk %}" class="btn btn-outline btn-sm">
-                        Scheda ->
-                    </a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" style="text-align:center; color:var(--text-muted); padding:32px">
-                    Nessun lavoratore trovato.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% if request.user.admin_permission_map.medical_records_manage %}
+                        <a href="{% url 'admin_lavoratore_detail' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda</a>
+                        {% else %}
+                        <span class="text-muted small">Solo elenco</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7"><div class="empty-state">Nessun lavoratore trovato.</div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

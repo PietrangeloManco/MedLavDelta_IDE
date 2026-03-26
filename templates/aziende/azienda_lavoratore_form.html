@@ -3,64 +3,54 @@
 {% block breadcrumb %}<strong>Lavoratori</strong> {{ action }}{% endblock %}
 
 {% block sidebar %}
-<div class="sidebar-label">Principale</div>
-<a class="nav-link" href="{% url 'azienda_dashboard' %}">
-    <span class="nav-icon">⊞</span> Pannello di controllo
-</a>
-<a class="nav-link active" href="#">
-    <span class="nav-icon">＋</span> {{ action }}
-</a>
+{% include 'includes/azienda_sidebar_links.html' with azienda_nav_section='lavoratore_nuovo' %}
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'azienda_dashboard' %}" class="text-decoration-none text-muted small">← Torna alla lista</a>
+<a href="{% url 'azienda_dashboard' %}" class="text-decoration-none text-muted small">&larr; Torna alla lista</a>
 
 <div class="page-header" style="margin-top:8px">
     <div>
         <h1 class="page-title">{{ action }}</h1>
-        <p class="page-subtitle">Compila i dati del lavoratore</p>
+        <p class="page-subtitle">Compila i dati del lavoratore.</p>
     </div>
 </div>
 
-<div class="form-card" style="max-width:760px">
+<div class="form-card" style="max-width:900px">
     <div class="form-card-title">Dati lavoratore</div>
     <form method="post" novalidate>
         {% csrf_token %}
 
         {% if form.non_field_errors %}
-            <ul class="messages">
-                {% for error in form.non_field_errors %}
-                    <li class="error">{{ error }}</li>
-                {% endfor %}
-            </ul>
+        <ul class="messages">
+            {% for error in form.non_field_errors %}
+            <li class="error">{{ error }}</li>
+            {% endfor %}
+        </ul>
         {% endif %}
 
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px">
+        <div class="detail-grid">
             {% for field in form %}
-                <div class="form-group" style="{% if field.field.widget.input_type == 'textarea' %}grid-column:1/-1{% endif %}">
-                    {% if field.field.widget.input_type == 'checkbox' %}
-                        <div style="display:flex; align-items:center; gap:10px; padding-top:8px">
-                            {{ field.as_widget }}
-                            <label class="form-label" for="{{ field.id_for_label }}" style="margin:0; text-transform:none; letter-spacing:0; font-size:14px; color:var(--text)">
-                                {{ field.label }}
-                            </label>
-                        </div>
-                    {% else %}
-                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                        {{ field.as_widget }}
-                    {% endif %}
-
-                    {% if field.help_text %}
-                        <div style="margin-top:4px; font-size:12px; color:var(--text-muted)">{{ field.help_text }}</div>
-                    {% endif %}
-                    {% for error in field.errors %}
-                        <div class="form-error">{{ error }}</div>
-                    {% endfor %}
+            <div class="form-group" style="{% if field.field.widget.input_type == 'textarea' %}grid-column:1/-1{% endif %}">
+                {% if field.field.widget.input_type == 'checkbox' %}
+                <div style="display:flex; align-items:center; gap:10px; padding-top:8px">
+                    {{ field.as_widget }}
+                    <label class="form-label" for="{{ field.id_for_label }}" style="margin:0; text-transform:none; letter-spacing:0; font-size:14px; color:var(--text)">
+                        {{ field.label }}
+                    </label>
                 </div>
+                {% else %}
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field.as_widget }}
+                {% endif %}
+
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
             {% endfor %}
         </div>
 
-        <div style="display:flex; gap:10px; margin-top:14px">
+        <div class="stack-actions" style="margin-top:14px">
             <button type="submit" class="btn btn-primary">Salva</button>
             <a href="{% url 'azienda_dashboard' %}" class="btn btn-outline">Annulla</a>
         </div>

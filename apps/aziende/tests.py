@@ -9,7 +9,7 @@ from apps.accounts.models import CustomUser
 
 from .admin import AziendaAdminForm, LavoratoreAdminForm
 from .forms import CreaAziendaForm
-from .models import Azienda, Lavoratore
+from .models import Azienda, DocumentoAziendale, Lavoratore
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
     COMPANY_LOGO_MAX_UPLOAD_SIZE,
@@ -27,6 +27,7 @@ class CreaAziendaFlowTests(TestCase):
             password='admin-pass-123',
             role=CustomUser.ADMIN,
             is_staff=True,
+            is_superuser=True,
         )
 
     def tearDown(self):
@@ -160,10 +161,9 @@ class CreaAziendaFlowTests(TestCase):
             data={**self.build_valid_data(), **self.build_valid_files()},
         )
 
-        self.assertRedirects(response, reverse('admin_dashboard'))
-
         azienda = Azienda.objects.get(ragione_sociale='Azienda Test SRL')
 
+        self.assertRedirects(response, reverse('admin_azienda_detail', args=[azienda.pk]))
         self.assertEqual(azienda.codice_univoco, 'AB12CD7')
         self.assertEqual(azienda.pec, 'azienda@pec.example.com')
         self.assertEqual(azienda.referente_azienda, 'Mario Rossi')
@@ -206,6 +206,95 @@ class CreaAziendaFlowTests(TestCase):
         azienda.user.refresh_from_db()
 
         self.assertTrue(azienda.user.check_password('NuovaPassAzienda-456'))
+
+
+class DocumentoAziendaFlowTests(TestCase):
+    def setUp(self):
+        self.media_dir = TemporaryDirectory()
+        self.media_override = override_settings(MEDIA_ROOT=self.media_dir.name)
+        self.media_override.enable()
+
+        self.admin_user = CustomUser.objects.create_user(
+            email='admin-docs@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.azienda_user = CustomUser.objects.create_user(
+            email='azienda-docs@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        self.azienda = Azienda.objects.create(
+            user=self.azienda_user,
+            ragione_sociale='Azienda Documenti SRL',
+            codice_univoco='DOCS001',
+            pec='documenti@pec.example.com',
+            referente_azienda='Marta Bianchi',
+            codice_fiscale='BNCMRT80A01H501Z',
+            partita_iva='12345678999',
+            email_contatto='documenti@example.com',
+            telefono='0112233445',
+            condizioni_pagamento_riservate='Pagamento a 30 giorni.',
+            protocollo_sanitario=SimpleUploadedFile(
+                'protocollo.pdf',
+                b'%PDF-1.4 protocollo',
+                content_type='application/pdf',
+            ),
+        )
+
+    def tearDown(self):
+        self.media_override.disable()
+        self.media_dir.cleanup()
+
+    def test_company_documents_page_shows_initial_documents_and_uploads_new_one(self):
+        self.client.force_login(self.azienda_user)
+
+        response = self.client.get(reverse('azienda_documenti'))
+        self.assertContains(response, 'Documenti iniziali')
+        self.assertContains(response, 'Protocollo sanitario')
+
+        upload_response = self.client.post(
+            reverse('azienda_carica_documento'),
+            data={
+                'titolo': 'DUVRI aggiornato',
+                'note': 'Versione condivisa con il centro medico.',
+                'file': SimpleUploadedFile(
+                    'duvri.pdf',
+                    b'%PDF-1.4 duvri',
+                    content_type='application/pdf',
+                ),
+            },
+        )
+
+        self.assertRedirects(upload_response, reverse('azienda_documenti'))
+        self.assertTrue(
+            DocumentoAziendale.objects.filter(
+                azienda=self.azienda,
+                titolo='DUVRI aggiornato',
+                origine=DocumentoAziendale.ORIGINE_AZIENDA,
+            ).exists()
+        )
+
+    def test_admin_company_detail_shows_initial_and_additional_documents(self):
+        DocumentoAziendale.objects.create(
+            azienda=self.azienda,
+            titolo='Visura camerale',
+            file=SimpleUploadedFile(
+                'visura.pdf',
+                b'%PDF-1.4 visura',
+                content_type='application/pdf',
+            ),
+            origine=DocumentoAziendale.ORIGINE_AZIENDA,
+            caricato_da=self.azienda_user,
+        )
+        self.client.force_login(self.admin_user)
+
+        response = self.client.get(reverse('admin_azienda_detail', args=[self.azienda.pk]))
+
+        self.assertContains(response, 'Protocollo sanitario')
+        self.assertContains(response, 'Visura camerale')
 
 
 class LavoratoreAdminFormTests(TestCase):

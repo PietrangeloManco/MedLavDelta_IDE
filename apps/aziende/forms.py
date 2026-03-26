@@ -2,7 +2,7 @@ from django import forms
 
 from apps.accounts.models import CustomUser
 
-from .models import Lavoratore, Sede
+from .models import DocumentoAziendale, Lavoratore, Sede
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
     COMPANY_LOGO_MAX_UPLOAD_SIZE,
@@ -149,3 +149,33 @@ class LavoratoreForm(forms.ModelForm):
                 if CustomUser.objects.filter(email=account_email).exists():
                     self.add_error('account_email', 'Esiste gia un account con questa email.')
         return cleaned
+
+
+class DocumentoAziendaleForm(forms.ModelForm):
+    class Meta:
+        model = DocumentoAziendale
+        fields = ['titolo', 'file', 'note']
+        widgets = {
+            'note': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['titolo'].label = 'Titolo documento'
+        self.fields['file'].label = 'File'
+        self.fields['note'].label = 'Note'
+        self.fields['file'].help_text = (
+            f'Formati ammessi: PDF, DOCX. Max {COMPANY_DOCUMENT_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
+        )
+
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault('style', 'width:auto; height:auto')
+                continue
+            existing = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = f"{existing} form-control".strip()
+            if field_name == 'file':
+                field.widget.attrs.setdefault('accept', '.pdf,.docx')
+
+    def clean_file(self):
+        return validate_company_document_upload(self.cleaned_data.get('file'))

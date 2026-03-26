@@ -1,8 +1,10 @@
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
-from django.shortcuts import render, redirect
-from django.views import View
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+from django.views import View
+
+from .models import CustomUser
 
 
 class LoginView(View):
@@ -30,9 +32,27 @@ class LogoutView(View):
 def dashboard_router(request):
     user = request.user
     if user.is_admin:
-        return redirect('admin_dashboard')
-    elif user.is_azienda:
+        if user.has_admin_permission(CustomUser.ADMIN_PERMISSION_DASHBOARD):
+            return redirect('admin_dashboard')
+        if (
+            user.has_admin_permission(CustomUser.ADMIN_PERMISSION_COMPANIES)
+            or user.has_admin_permission(CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS)
+            or user.has_admin_permission(CustomUser.ADMIN_PERMISSION_PREVENTIVI)
+            or user.has_admin_permission(CustomUser.ADMIN_PERMISSION_FATTURE)
+        ):
+            return redirect('admin_aziende')
+        if (
+            user.has_admin_permission(CustomUser.ADMIN_PERMISSION_WORKERS)
+            or user.has_admin_permission(CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS)
+        ):
+            return redirect('admin_lavoratori')
+        if user.has_admin_permission(CustomUser.ADMIN_PERMISSION_PREVENTIVI):
+            return redirect('admin_preventivi')
+        if user.has_admin_permission(CustomUser.ADMIN_PERMISSION_FATTURE):
+            return redirect('admin_fatture')
+        return redirect('login')
+    if user.is_azienda:
         return redirect('azienda_dashboard')
-    elif user.is_operatore:
+    if user.is_operatore:
         return redirect('operatore_dashboard')
     return redirect('login')

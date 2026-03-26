@@ -1,0 +1,10 @@
+<div class="sidebar-label">Principale</div>
+<a class="nav-link{% if azienda_nav_section == 'dashboard' %} active{% endif %}" href="{% url 'azienda_dashboard' %}">
+    <span class="nav-icon">{% include 'includes/icons/company.html' %}</span> Pannello di controllo
+</a>
+<a class="nav-link{% if azienda_nav_section == 'documenti' %} active{% endif %}" href="{% url 'azienda_documenti' %}">
+    <span class="nav-icon">{% include 'includes/icons/document.html' %}</span> Documenti
+</a>
+<a class="nav-link{% if azienda_nav_section == 'lavoratore_nuovo' %} active{% endif %}" href="{% url 'azienda_lavoratore_nuovo' %}">
+    <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Nuovo lavoratore
+</a>

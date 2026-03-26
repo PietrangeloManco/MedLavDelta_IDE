@@ -16,7 +16,7 @@
 </div>
 
 <div class="form-card">
-    <form method="get" style="display:grid; grid-template-columns:minmax(260px, 360px) auto; gap:12px; align-items:end">
+    <form method="get" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; align-items:end">
         <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Filtra per azienda</label>
             <select name="azienda" class="form-control">
@@ -41,39 +41,39 @@
     <div class="table-card-header">
         <span class="table-card-title">Elenco preventivi</span>
     </div>
-    <table class="delta-table">
-        <thead>
-            <tr>
-                <th>N. Preventivo</th>
-                <th>Data Preventivo</th>
-                <th>Cliente</th>
-                <th>Oggetto</th>
-                <th>Imponibile</th>
-                <th>Totale</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for preventivo in preventivi %}
-            <tr>
-                <td><strong>{{ preventivo.numero_formattato }}</strong></td>
-                <td>{{ preventivo.data_preventivo|date:"d/m/Y" }}</td>
-                <td>{{ preventivo.azienda.ragione_sociale }}</td>
-                <td>{{ preventivo.oggetto }}</td>
-                <td>EUR {{ preventivo.totale_imponibile|floatformat:2 }}</td>
-                <td>EUR {{ preventivo.totale_complessivo|floatformat:2 }}</td>
-                <td>
-                    <a href="{% url 'admin_preventivo_modifica' preventivo.pk %}" class="btn btn-outline btn-sm">Modifica</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" style="text-align:center; color:var(--text-muted); padding:32px">
-                    Nessun preventivo registrato.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-scroll">
+        <table class="delta-table">
+            <thead>
+                <tr>
+                    <th>N. Preventivo</th>
+                    <th>Data Preventivo</th>
+                    <th>Cliente</th>
+                    <th>Oggetto</th>
+                    <th>Imponibile</th>
+                    <th>Totale</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for preventivo in preventivi %}
+                <tr>
+                    <td><strong>{{ preventivo.numero_formattato }}</strong></td>
+                    <td>{{ preventivo.data_preventivo|date:"d/m/Y" }}</td>
+                    <td>{{ preventivo.azienda.ragione_sociale }}</td>
+                    <td>{{ preventivo.oggetto }}</td>
+                    <td>EUR {{ preventivo.totale_imponibile|floatformat:2 }}</td>
+                    <td>EUR {{ preventivo.totale_complessivo|floatformat:2 }}</td>
+                    <td>
+                        <a href="{% url 'admin_preventivo_modifica' preventivo.pk %}" class="btn btn-outline btn-sm">Modifica</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7"><div class="empty-state">Nessun preventivo registrato.</div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

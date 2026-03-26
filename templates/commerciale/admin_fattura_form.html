@@ -192,45 +192,47 @@
         </div>
         {% endif %}
         {{ formset.management_form }}
-        <table class="delta-table lines-table">
-            <thead>
-                <tr>
-                    <th>Descrizione</th>
-                    <th>Quantita</th>
-                    <th>Costo Unitario</th>
-                    <th>Sconto (%)</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody id="lines-body">
-                {% for voce_form in formset.forms %}
-                <tr class="line-row">
-                    <td>
-                        {% for hidden in voce_form.hidden_fields %}{{ hidden }}{% endfor %}
-                        <div style="display:none">{{ voce_form.DELETE }}</div>
-                        {{ voce_form.ordine.as_hidden }}
-                        {{ voce_form.descrizione }}
-                        {% for error in voce_form.descrizione.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
-                    </td>
-                    <td>
-                        {{ voce_form.quantita }}
-                        {% for error in voce_form.quantita.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
-                    </td>
-                    <td>
-                        {{ voce_form.costo_unitario }}
-                        {% for error in voce_form.costo_unitario.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
-                    </td>
-                    <td>
-                        {{ voce_form.sconto_percentuale }}
-                        {% for error in voce_form.sconto_percentuale.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
-                    </td>
-                    <td>
-                        <button type="button" class="btn btn-outline btn-sm" data-remove-line>Rimuovi</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-scroll">
+            <table class="delta-table lines-table">
+                <thead>
+                    <tr>
+                        <th>Descrizione</th>
+                        <th>Quantita</th>
+                        <th>Costo Unitario</th>
+                        <th>Sconto (%)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="lines-body">
+                    {% for voce_form in formset.forms %}
+                    <tr class="line-row">
+                        <td>
+                            {% for hidden in voce_form.hidden_fields %}{{ hidden }}{% endfor %}
+                            <div style="display:none">{{ voce_form.DELETE }}</div>
+                            {{ voce_form.ordine.as_hidden }}
+                            {{ voce_form.descrizione }}
+                            {% for error in voce_form.descrizione.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                        </td>
+                        <td>
+                            {{ voce_form.quantita }}
+                            {% for error in voce_form.quantita.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                        </td>
+                        <td>
+                            {{ voce_form.costo_unitario }}
+                            {% for error in voce_form.costo_unitario.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                        </td>
+                        <td>
+                            {{ voce_form.sconto_percentuale }}
+                            {% for error in voce_form.sconto_percentuale.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-outline btn-sm" data-remove-line>Rimuovi</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {% if fattura %}
@@ -250,7 +252,7 @@
     </div>
     {% endif %}
 
-    <div style="display:flex; gap:12px; justify-content:flex-end">
+    <div class="stack-actions" style="justify-content:flex-end">
         <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Annulla</a>
         <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
     </div>

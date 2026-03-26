@@ -1,48 +1,73 @@
 {% extends 'base.html' %}
-{% block title %}Nuova Azienda{% endblock %}
+{% block title %}Nuova azienda{% endblock %}
+{% block breadcrumb %}<strong>Aziende</strong> Nuova azienda{% endblock %}
 
 {% block sidebar %}
-{% include 'includes/admin_sidebar_links.html' with admin_nav_section='aziende' %}
+{% include 'includes/admin_sidebar_links.html' with admin_nav_section='azienda_nuova' %}
 {% endblock %}
 
 {% block content %}
-<h4 class="mt-2 mb-4 fw-bold">Nuova Azienda</h4>
-<div class="card shadow-sm" style="max-width:720px">
-    <div class="card-body">
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Nuova azienda</h1>
+        <p class="page-subtitle">Crea account, profilo aziendale e documenti iniziali in un unico passaggio.</p>
+    </div>
+    <a href="{% url 'admin_aziende' %}" class="btn btn-outline">Torna alle aziende</a>
+</div>
+
+<div class="split-grid">
+    <div class="form-card">
+        <div class="form-card-title">Anagrafica e allegati</div>
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             {% if form.non_field_errors %}
-                <div class="alert alert-danger" role="alert">
-                    {% for error in form.non_field_errors %}
-                        <div>{{ error }}</div>
-                    {% endfor %}
-                </div>
+            <ul class="messages">
+                {% for error in form.non_field_errors %}
+                <li class="error">{{ error }}</li>
+                {% endfor %}
+            </ul>
             {% endif %}
-            <h6 class="text-muted mb-3">Credenziali accesso</h6>
-            {% for field in form %}
-                {% if field.html_name == 'ragione_sociale' %}
-                    <h6 class="text-muted mb-3 mt-4">Profilazione aziendale</h6>
-                {% endif %}
-                {% if field.html_name == 'protocollo_sanitario' %}
-                    <h6 class="text-muted mb-3 mt-4">Allegati</h6>
-                {% endif %}
-                <div class="mb-3">
-                    <label class="form-label fw-semibold" for="{{ field.id_for_label }}">
+
+            <div class="detail-grid">
+                {% for field in form %}
+                <div class="form-group" style="{% if field.name == 'condizioni_pagamento_riservate' or field.name == 'varie_note' %}grid-column:1/-1{% endif %}">
+                    <label class="form-label" for="{{ field.id_for_label }}">
                         {{ field.label }}{% if field.field.required %} *{% endif %}
                     </label>
                     {{ field }}
-                    {% if field.help_text %}
-                        <div class="form-text">{{ field.help_text }}</div>
-                    {% endif %}
-                    {% for error in field.errors %}
-                        <div class="text-danger small mt-1">{{ error }}</div>
-                    {% endfor %}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
                 </div>
-            {% endfor %}
-            <button type="submit" class="btn btn-primary" style="color:#fff">
-                Crea azienda
-            </button>
+                {% endfor %}
+            </div>
+
+            <div class="stack-actions" style="margin-top:14px">
+                <button type="submit" class="btn btn-primary">Crea azienda</button>
+                <a href="{% url 'admin_aziende' %}" class="btn btn-outline">Annulla</a>
+            </div>
         </form>
     </div>
+
+    <aside class="form-card">
+        <div class="form-card-title">Documenti iniziali richiesti</div>
+        <div style="display:grid; gap:12px">
+            <div class="detail-panel">
+                <div class="form-label">Protocollo sanitario</div>
+                <div class="text-muted small">Documento obbligatorio visibile anche all'azienda nella nuova sezione Documenti.</div>
+            </div>
+            <div class="detail-panel">
+                <div class="form-label">Nomina del medico</div>
+                <div class="text-muted small">Allegato iniziale del profilo aziendale.</div>
+            </div>
+            <div class="detail-panel">
+                <div class="form-label">Verbali sopralluogo</div>
+                <div class="text-muted small">Storico base caricato al momento della creazione.</div>
+            </div>
+            <div class="detail-panel">
+                <div class="form-label">Documento aggiuntivo</div>
+                <div class="text-muted small">Campo facoltativo con note descrittive associate.</div>
+            </div>
+        </div>
+    </aside>
 </div>
 {% endblock %}

@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from apps.accounts.models import CustomUser
-from .models import Azienda, Sede, Lavoratore
+from .models import Azienda, DocumentoAziendale, Lavoratore, Sede
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
     COMPANY_LOGO_MAX_UPLOAD_SIZE,
@@ -263,6 +263,13 @@ class LavoratoreInline(admin.TabularInline):
         return False
 
 
+class DocumentoAziendaleInline(admin.TabularInline):
+    model = DocumentoAziendale
+    extra = 0
+    fields = ['titolo', 'file', 'origine', 'caricato_da', 'data_caricamento', 'note']
+    readonly_fields = ['origine', 'caricato_da', 'data_caricamento']
+
+
 @admin.register(Azienda)
 class AziendaAdmin(admin.ModelAdmin):
     form = AziendaAdminForm
@@ -278,7 +285,7 @@ class AziendaAdmin(admin.ModelAdmin):
     ]
     list_filter = ['contratto_saldato']
     search_fields = ['ragione_sociale', 'partita_iva', 'codice_univoco', 'pec', 'referente_azienda']
-    inlines = [SedeInline, LavoratoreInline]
+    inlines = [SedeInline, LavoratoreInline, DocumentoAziendaleInline]
     fieldsets = (
         ('Profilo azienda', {
             'fields': (
@@ -308,6 +315,13 @@ class AziendaAdmin(admin.ModelAdmin):
             ),
         }),
     )
+
+
+@admin.register(DocumentoAziendale)
+class DocumentoAziendaleAdmin(admin.ModelAdmin):
+    list_display = ['titolo', 'azienda', 'origine', 'caricato_da', 'data_caricamento']
+    list_filter = ['origine', 'azienda']
+    search_fields = ['titolo', 'azienda__ragione_sociale']
 
 
 @admin.register(Sede)
