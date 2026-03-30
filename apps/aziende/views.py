@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 
@@ -55,6 +56,28 @@ def get_azienda_documenti_context(azienda):
         'documenti_iniziali': azienda.get_documenti_iniziali(),
         'documenti_aggiuntivi': azienda.documenti_generici.select_related('caricato_da'),
     }
+
+
+def create_lavoratore_with_optional_account(form, azienda):
+    lavoratore = form.save(commit=False)
+    lavoratore.azienda = azienda
+    account_email = form.cleaned_data.get('account_email')
+    account_password = form.cleaned_data.get('account_password')
+    if account_email and account_password:
+        user = CustomUser.objects.create_user(
+            email=account_email,
+            password=account_password,
+            role=CustomUser.OPERATORE,
+        )
+        lavoratore.user = user
+    lavoratore.save()
+    return lavoratore
+
+
+def can_admin_manage_workers(user):
+    return user.has_admin_permission(CustomUser.ADMIN_PERMISSION_WORKERS) or user.has_admin_permission(
+        CustomUser.ADMIN_PERMISSION_COMPANIES
+    )
 
 
 class AdminDashboardView(AdminPermissionRequiredMixin, View):
@@ -112,6 +135,7 @@ class AdminAziendaDetailView(AdminPermissionRequiredMixin, View):
             'can_upload_documents': request.user.has_admin_permission(
                 CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS
             ),
+            'can_manage_workers': can_admin_manage_workers(request.user),
             **get_azienda_documenti_context(azienda),
         }
         return render(request, 'aziende/admin_azienda_detail.html', context)
@@ -219,6 +243,78 @@ class AdminLavoratoriView(AdminPermissionRequiredMixin, View):
         })
 
 
+class AdminAziendaLavoratoreCreateView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (
+        CustomUser.ADMIN_PERMISSION_WORKERS,
+        CustomUser.ADMIN_PERMISSION_COMPANIES,
+    )
+    admin_permissions_mode = 'any'
+
+    def get(self, request, pk):
+        azienda = get_object_or_404(Azienda, pk=pk)
+        form = LavoratoreForm(azienda=azienda, include_account_fields=True)
+        return render(request, 'aziende/azienda_lavoratore_form.html', {
+            'form': form,
+            'azienda': azienda,
+            'action': 'Nuovo lavoratore',
+            'is_admin_context': True,
+            'back_href': reverse('admin_azienda_detail', args=[azienda.pk]),
+            'back_label': 'Torna alla scheda azienda',
+        })
+
+    def post(self, request, pk):
+        azienda = get_object_or_404(Azienda, pk=pk)
+        form = LavoratoreForm(request.POST, azienda=azienda, include_account_fields=True)
+        if form.is_valid():
+            lavoratore = create_lavoratore_with_optional_account(form, azienda)
+            messages.success(request, f'{lavoratore.nome_completo} aggiunto con successo.')
+            return redirect('admin_azienda_detail', pk=azienda.pk)
+        return render(request, 'aziende/azienda_lavoratore_form.html', {
+            'form': form,
+            'azienda': azienda,
+            'action': 'Nuovo lavoratore',
+            'is_admin_context': True,
+            'back_href': reverse('admin_azienda_detail', args=[azienda.pk]),
+            'back_label': 'Torna alla scheda azienda',
+        })
+
+
+class AdminLavoratoreEditView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (
+        CustomUser.ADMIN_PERMISSION_WORKERS,
+        CustomUser.ADMIN_PERMISSION_COMPANIES,
+    )
+    admin_permissions_mode = 'any'
+
+    def get(self, request, pk):
+        lavoratore = get_object_or_404(Lavoratore, pk=pk)
+        form = LavoratoreForm(instance=lavoratore, azienda=lavoratore.azienda)
+        return render(request, 'aziende/azienda_lavoratore_form.html', {
+            'form': form,
+            'azienda': lavoratore.azienda,
+            'action': 'Modifica lavoratore',
+            'is_admin_context': True,
+            'back_href': reverse('admin_lavoratore_detail', args=[lavoratore.pk]),
+            'back_label': 'Torna alla scheda lavoratore',
+        })
+
+    def post(self, request, pk):
+        lavoratore = get_object_or_404(Lavoratore, pk=pk)
+        form = LavoratoreForm(request.POST, instance=lavoratore, azienda=lavoratore.azienda)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Lavoratore aggiornato.')
+            return redirect('admin_lavoratore_detail', pk=lavoratore.pk)
+        return render(request, 'aziende/azienda_lavoratore_form.html', {
+            'form': form,
+            'azienda': lavoratore.azienda,
+            'action': 'Modifica lavoratore',
+            'is_admin_context': True,
+            'back_href': reverse('admin_lavoratore_detail', args=[lavoratore.pk]),
+            'back_label': 'Torna alla scheda lavoratore',
+        })
+
+
 class AdminLavoratoreDetailView(AdminPermissionRequiredMixin, View):
     admin_permissions_required = (CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,)
 
@@ -234,6 +330,7 @@ class AdminLavoratoreDetailView(AdminPermissionRequiredMixin, View):
             'documenti': documenti,
             'doc_form': DocumentoSanitarioForm(),
             'esito_form': EsitoIdoneitaForm(),
+            'can_edit_worker': can_admin_manage_workers(request.user),
         })
 
 
@@ -352,30 +449,23 @@ class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
             'form': form,
             'azienda': azienda,
             'action': 'Nuovo lavoratore',
+            'back_href': reverse('azienda_dashboard'),
+            'back_label': 'Torna alla lista',
         })
 
     def post(self, request):
         azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         form = LavoratoreForm(request.POST, azienda=azienda, include_account_fields=True)
         if form.is_valid():
-            lavoratore = form.save(commit=False)
-            lavoratore.azienda = azienda
-            account_email = form.cleaned_data.get('account_email')
-            account_password = form.cleaned_data.get('account_password')
-            if account_email and account_password:
-                user = CustomUser.objects.create_user(
-                    email=account_email,
-                    password=account_password,
-                    role=CustomUser.OPERATORE,
-                )
-                lavoratore.user = user
-            lavoratore.save()
+            lavoratore = create_lavoratore_with_optional_account(form, azienda)
             messages.success(request, f'{lavoratore.nome_completo} aggiunto con successo.')
             return redirect('azienda_dashboard')
         return render(request, 'aziende/azienda_lavoratore_form.html', {
             'form': form,
             'azienda': azienda,
             'action': 'Nuovo lavoratore',
+            'back_href': reverse('azienda_dashboard'),
+            'back_label': 'Torna alla lista',
         })
 
 
@@ -388,6 +478,8 @@ class AziendaLavoratoreEditView(AziendaRequiredMixin, View):
             'form': form,
             'azienda': azienda,
             'action': 'Modifica lavoratore',
+            'back_href': reverse('azienda_dashboard'),
+            'back_label': 'Torna alla lista',
         })
 
     def post(self, request, pk):
@@ -402,6 +494,8 @@ class AziendaLavoratoreEditView(AziendaRequiredMixin, View):
             'form': form,
             'azienda': azienda,
             'action': 'Modifica lavoratore',
+            'back_href': reverse('azienda_dashboard'),
+            'back_label': 'Torna alla lista',
         })
 
 

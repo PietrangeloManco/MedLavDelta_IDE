@@ -357,6 +357,190 @@ class LavoratoreAdminFormTests(TestCase):
         self.assertTrue(saved_lavoratore.user.check_password('OperatorePass-789'))
 
 
+class AdminAziendaLavoratoreCreateTests(TestCase):
+    def setUp(self):
+        self.admin_user = CustomUser.objects.create_user(
+            email='admin-workers@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[
+                CustomUser.ADMIN_PERMISSION_COMPANIES,
+                CustomUser.ADMIN_PERMISSION_WORKERS,
+            ],
+        )
+        self.admin_no_workers = CustomUser.objects.create_user(
+            email='admin-no-workers@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[CustomUser.ADMIN_PERMISSION_COMPANIES],
+        )
+        self.admin_medical_only = CustomUser.objects.create_user(
+            email='admin-medical-only@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS],
+        )
+        self.admin_detail_user = CustomUser.objects.create_user(
+            email='admin-detail@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[
+                CustomUser.ADMIN_PERMISSION_COMPANIES,
+                CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,
+            ],
+        )
+        self.azienda_user = CustomUser.objects.create_user(
+            email='azienda-workers@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        self.azienda = Azienda.objects.create(
+            user=self.azienda_user,
+            ragione_sociale='Azienda Lavoratori SRL',
+            codice_univoco='LAVOR01',
+            pec='lavoratori@pec.example.com',
+            referente_azienda='Anna Blu',
+            codice_fiscale='BLUANN80A01H501Z',
+            partita_iva='12312312312',
+            email_contatto='lavoratori@example.com',
+            telefono='0312345678',
+            condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
+        )
+        self.lavoratore = Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Paolo',
+            cognome='Rossi',
+            data_nascita=date(1990, 5, 20),
+            codice_fiscale='RSSPLA90E20H501Q',
+            mansione='Impiegato',
+            note='Scheda iniziale',
+            attivo=True,
+        )
+
+    def test_admin_company_pages_show_add_worker_button(self):
+        self.client.force_login(self.admin_user)
+
+        list_response = self.client.get(reverse('admin_aziende'))
+        detail_response = self.client.get(reverse('admin_azienda_detail', args=[self.azienda.pk]))
+
+        self.assertContains(
+            list_response,
+            reverse('admin_azienda_lavoratore_nuovo', args=[self.azienda.pk]),
+        )
+        self.assertContains(
+            detail_response,
+            reverse('admin_azienda_lavoratore_nuovo', args=[self.azienda.pk]),
+        )
+        self.assertContains(detail_response, 'Aggiungi lavoratore')
+
+    def test_admin_with_company_permission_still_sees_add_worker_button(self):
+        self.client.force_login(self.admin_no_workers)
+
+        list_response = self.client.get(reverse('admin_aziende'))
+        detail_response = self.client.get(reverse('admin_azienda_detail', args=[self.azienda.pk]))
+
+        self.assertContains(
+            list_response,
+            reverse('admin_azienda_lavoratore_nuovo', args=[self.azienda.pk]),
+        )
+        self.assertContains(
+            detail_response,
+            reverse('admin_azienda_lavoratore_nuovo', args=[self.azienda.pk]),
+        )
+
+    def test_admin_can_create_worker_for_company_with_same_form(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.post(
+            reverse('admin_azienda_lavoratore_nuovo', args=[self.azienda.pk]),
+            data={
+                'nome': 'Luca',
+                'cognome': 'Verdi',
+                'data_nascita': '1991-04-15',
+                'codice_fiscale': 'VRDLCU91D15H501K',
+                'mansione': 'Tecnico',
+                'sede': '',
+                'note': 'Inserito da admin',
+                'attivo': 'on',
+                'account_email': 'luca.verdi@example.com',
+                'account_password': 'OperatorePass-789',
+            },
+        )
+
+        lavoratore = Lavoratore.objects.get(codice_fiscale='VRDLCU91D15H501K')
+
+        self.assertRedirects(response, reverse('admin_azienda_detail', args=[self.azienda.pk]))
+        self.assertEqual(lavoratore.azienda, self.azienda)
+        self.assertEqual(lavoratore.user.email, 'luca.verdi@example.com')
+        self.assertTrue(lavoratore.user.check_password('OperatorePass-789'))
+
+    def test_admin_with_company_permission_can_create_worker(self):
+        self.client.force_login(self.admin_no_workers)
+
+        response = self.client.post(
+            reverse('admin_azienda_lavoratore_nuovo', args=[self.azienda.pk]),
+            data={
+                'nome': 'Giulia',
+                'cognome': 'Neri',
+                'data_nascita': '1992-02-10',
+                'codice_fiscale': 'NREGLI92B50H501R',
+                'mansione': 'Analista',
+                'sede': '',
+                'note': 'Inserito da admin con permesso aziende',
+                'attivo': 'on',
+                'account_email': '',
+                'account_password': '',
+            },
+        )
+
+        lavoratore = Lavoratore.objects.get(codice_fiscale='NREGLI92B50H501R')
+
+        self.assertRedirects(response, reverse('admin_azienda_detail', args=[self.azienda.pk]))
+        self.assertEqual(lavoratore.azienda, self.azienda)
+        self.assertEqual(lavoratore.mansione, 'Analista')
+        self.assertIsNone(lavoratore.user)
+
+    def test_admin_worker_create_requires_company_or_worker_permission(self):
+        self.client.force_login(self.admin_medical_only)
+
+        response = self.client.get(reverse('admin_azienda_lavoratore_nuovo', args=[self.azienda.pk]))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_worker_detail_shows_edit_button(self):
+        self.client.force_login(self.admin_detail_user)
+
+        response = self.client.get(reverse('admin_lavoratore_detail', args=[self.lavoratore.pk]))
+
+        self.assertContains(response, 'Modifica')
+        self.assertContains(response, reverse('admin_lavoratore_modifica', args=[self.lavoratore.pk]))
+
+    def test_admin_can_edit_worker_with_shared_form(self):
+        self.client.force_login(self.admin_detail_user)
+
+        form_response = self.client.get(reverse('admin_lavoratore_modifica', args=[self.lavoratore.pk]))
+        response = self.client.post(
+            reverse('admin_lavoratore_modifica', args=[self.lavoratore.pk]),
+            data={
+                'nome': 'Paolo',
+                'cognome': 'Rossi',
+                'data_nascita': '1990-05-20',
+                'codice_fiscale': 'RSSPLA90E20H501Q',
+                'mansione': 'Responsabile ufficio',
+                'sede': '',
+                'note': 'Aggiornato da admin',
+                'attivo': 'on',
+            },
+        )
+
+        self.lavoratore.refresh_from_db()
+
+        self.assertTemplateUsed(form_response, 'aziende/azienda_lavoratore_form.html')
+        self.assertRedirects(response, reverse('admin_lavoratore_detail', args=[self.lavoratore.pk]))
+        self.assertEqual(self.lavoratore.mansione, 'Responsabile ufficio')
+        self.assertEqual(self.lavoratore.note, 'Aggiornato da admin')
+
+
 class AziendaDashboardContactTests(TestCase):
     def setUp(self):
         self.user = CustomUser.objects.create_user(

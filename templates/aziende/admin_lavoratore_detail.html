@@ -14,6 +14,9 @@
         <h1 class="page-title">{{ lavoratore.nome_completo }}</h1>
         <p class="page-subtitle">{{ lavoratore.azienda }}</p>
     </div>
+    {% if can_edit_worker %}
+    <a href="{% url 'admin_lavoratore_modifica' lavoratore.pk %}" class="btn btn-outline">Modifica</a>
+    {% endif %}
 </div>
 
 <div class="form-card">

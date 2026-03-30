@@ -55,6 +55,9 @@
                             {% if request.user.admin_permission_map.workers_manage or request.user.admin_permission_map.medical_records_manage %}
                             <a href="{% url 'admin_lavoratori' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">Lavoratori</a>
                             {% endif %}
+                            {% if request.user.admin_permission_map.workers_manage or request.user.admin_permission_map.company_profiles_manage %}
+                            <a href="{% url 'admin_azienda_lavoratore_nuovo' azienda.pk %}" class="btn btn-outline btn-sm">Aggiungi lavoratore</a>
+                            {% endif %}
                             {% if request.user.admin_permission_map.preventives_manage %}
                             <a href="{% url 'admin_preventivo_nuovo' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">Preventivo</a>
                             {% endif %}

@@ -1,13 +1,23 @@
 {% extends 'base.html' %}
 {% block title %}{{ action }}{% endblock %}
-{% block breadcrumb %}<strong>Lavoratori</strong> {{ action }}{% endblock %}
+{% block breadcrumb %}
+{% if is_admin_context %}
+<strong>Aziende</strong> {{ azienda.ragione_sociale }} / {{ action }}
+{% else %}
+<strong>Lavoratori</strong> {{ action }}
+{% endif %}
+{% endblock %}
 
 {% block sidebar %}
+{% if is_admin_context %}
+{% include 'includes/admin_sidebar_links.html' with admin_nav_section='aziende' %}
+{% else %}
 {% include 'includes/azienda_sidebar_links.html' with azienda_nav_section='lavoratore_nuovo' %}
+{% endif %}
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'azienda_dashboard' %}" class="text-decoration-none text-muted small">&larr; Torna alla lista</a>
+<a href="{{ back_href }}" class="text-decoration-none text-muted small">&larr; {{ back_label|default:"Torna alla lista" }}</a>
 
 <div class="page-header" style="margin-top:8px">
     <div>
@@ -52,7 +62,7 @@
 
         <div class="stack-actions" style="margin-top:14px">
             <button type="submit" class="btn btn-primary">Salva</button>
-            <a href="{% url 'azienda_dashboard' %}" class="btn btn-outline">Annulla</a>
+            <a href="{{ back_href }}" class="btn btn-outline">Annulla</a>
         </div>
     </form>
 </div>

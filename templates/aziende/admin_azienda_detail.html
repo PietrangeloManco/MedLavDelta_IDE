@@ -15,6 +15,9 @@
         <p class="page-subtitle">{{ azienda.codice_univoco }} | {{ azienda.email_contatto }}</p>
     </div>
     <div class="stack-actions">
+        {% if can_manage_workers %}
+        <a href="{% url 'admin_azienda_lavoratore_nuovo' azienda.pk %}" class="btn btn-primary">Aggiungi lavoratore</a>
+        {% endif %}
         {% if request.user.admin_permission_map.preventives_manage %}
         <a href="{% url 'admin_preventivo_nuovo' %}?azienda={{ azienda.pk }}" class="btn btn-outline">Nuovo preventivo</a>
         {% endif %}
@@ -209,6 +212,9 @@
         <div class="table-card">
             <div class="table-card-header">
                 <span class="table-card-title icon-label">{% include 'includes/icons/worker.html' %} Lavoratori collegati</span>
+                {% if can_manage_workers %}
+                <a href="{% url 'admin_azienda_lavoratore_nuovo' azienda.pk %}" class="btn btn-outline btn-sm">Aggiungi lavoratore</a>
+                {% endif %}
             </div>
             <div class="table-scroll">
                 <table class="delta-table">

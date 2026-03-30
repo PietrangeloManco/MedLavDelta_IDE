@@ -6,11 +6,13 @@ urlpatterns = [
     path('dashboard/', views.AdminDashboardView.as_view(), name='admin_dashboard'),
     path('dashboard/aziende/', views.AdminAziendeListView.as_view(), name='admin_aziende'),
     path('dashboard/aziende/<int:pk>/', views.AdminAziendaDetailView.as_view(), name='admin_azienda_detail'),
+    path('dashboard/aziende/<int:pk>/lavoratori/nuovo/', views.AdminAziendaLavoratoreCreateView.as_view(), name='admin_azienda_lavoratore_nuovo'),
     path('dashboard/aziende/<int:pk>/contratto/', views.AdminAggiornaContrattoView.as_view(), name='admin_azienda_contratto'),
     path('dashboard/aziende/<int:pk>/documenti/', views.AdminCaricaDocumentoAziendaleView.as_view(), name='admin_azienda_carica_documento'),
     path('dashboard/aziende/nuova/', views.AdminCreaAziendaView.as_view(), name='admin_crea_azienda'),
     path('dashboard/lavoratori/', views.AdminLavoratoriView.as_view(), name='admin_lavoratori'),
     path('dashboard/lavoratori/<int:pk>/', views.AdminLavoratoreDetailView.as_view(), name='admin_lavoratore_detail'),
+    path('dashboard/lavoratori/<int:pk>/modifica/', views.AdminLavoratoreEditView.as_view(), name='admin_lavoratore_modifica'),
     path('dashboard/lavoratori/<int:pk>/documento/', views.AdminCaricaDocumentoView.as_view(), name='admin_carica_documento'),
     path('dashboard/lavoratori/<int:pk>/esito/', views.AdminRegistraEsitoView.as_view(), name='admin_registra_esito'),
 
