@@ -6,17 +6,53 @@
 {% include 'includes/admin_sidebar_links.html' with admin_nav_section='fatture' %}
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    .invoice-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        align-items: end;
+    }
+
+    .invoice-filter-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .invoice-table {
+        min-width: 1240px;
+    }
+
+    .invoice-number-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    @media (max-width: 960px) {
+        .invoice-filter-actions .btn {
+            width: 100%;
+        }
+
+        .invoice-table {
+            min-width: 1080px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
         <h1 class="page-title">Fatture emesse</h1>
-        <p class="page-subtitle">Con evidenza della data di accettazione del campione</p>
+        <p class="page-subtitle">Con riepilogo operativo, stato invio/incasso e anteprima PDF.</p>
     </div>
     <a href="{% url 'admin_fattura_nuova' %}" class="btn btn-primary">Nuova fattura</a>
 </div>
 
 <div class="form-card">
-    <form method="get" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; align-items:end">
+    <form method="get" class="invoice-filter-grid">
         <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Filtra per azienda</label>
             <select name="azienda" class="form-control">
@@ -28,7 +64,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div style="display:flex; gap:8px">
+        <div class="invoice-filter-actions">
             <button type="submit" class="btn btn-outline">Applica filtro</button>
             {% if azienda_selezionata %}
             <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Reset</a>
@@ -42,38 +78,62 @@
         <span class="table-card-title">Elenco fatture emesse</span>
     </div>
     <div class="table-scroll">
-        <table class="delta-table">
+        <table class="delta-table invoice-table">
             <thead>
                 <tr>
                     <th>N. Fattura</th>
                     <th>Data Fattura</th>
-                    <th>Data Accettazione Campione</th>
+                    <th>Data Scadenza</th>
+                    <th>Categoria Merceologica</th>
                     <th>Intestatario</th>
                     <th>Modalita Pagamento</th>
                     <th>Imponibile</th>
                     <th>Totale Dovuto</th>
                     <th>Inviata</th>
-                    <th></th>
+                    <th>Incassata</th>
+                    <th>Note Interne</th>
+                    <th>Modifica</th>
+                    <th>Stampa</th>
                 </tr>
             </thead>
             <tbody>
                 {% for fattura in fatture %}
                 <tr>
-                    <td><strong>{{ fattura.numero_completo }}</strong></td>
+                    <td><strong><a href="{% url 'admin_fattura_modifica' fattura.pk %}" class="invoice-number-link">{{ fattura.numero_documento }}</a></strong></td>
                     <td>{{ fattura.data_fattura|date:"d/m/Y" }}</td>
-                    <td>{{ fattura.data_accettazione_campione|date:"d/m/Y"|default:"-" }}</td>
+                    <td>{{ fattura.scadenza|date:"d/m/Y"|default:"-" }}</td>
+                    <td>{{ fattura.categoria_merceologica_display|default:"-" }}</td>
                     <td>{{ fattura.azienda.ragione_sociale }}</td>
                     <td>{{ fattura.modalita_pagamento|default:"-" }}</td>
                     <td>EUR {{ fattura.totale_imponibile|floatformat:2 }}</td>
                     <td>EUR {{ fattura.totale_complessivo|floatformat:2 }}</td>
-                    <td>{{ fattura.inviata_il|date:"d/m/Y"|default:"-" }}</td>
+                    <td>
+                        {% if fattura.inviata_il %}
+                        <span style="color:#15803d; font-weight:600">SI</span><br>
+                        <span class="text-muted">{{ fattura.inviata_il|date:"d/m/Y" }}</span>
+                        {% else %}
+                        <span style="color:#dc2626; font-weight:600">NO</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if fattura.data_incasso %}
+                        <span style="color:#15803d; font-weight:600">SI</span><br>
+                        <span class="text-muted">{{ fattura.data_incasso|date:"d/m/Y" }}</span>
+                        {% else %}
+                        <span style="color:#dc2626; font-weight:600">NO</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ fattura.note|default:"-" }}</td>
                     <td>
                         <a href="{% url 'admin_fattura_modifica' fattura.pk %}" class="btn btn-outline btn-sm">Modifica</a>
+                    </td>
+                    <td>
+                        <a href="{% url 'admin_fattura_pdf' fattura.pk %}" class="btn btn-outline btn-sm" target="_blank" rel="noopener">Stampa</a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9"><div class="empty-state">Nessuna fattura registrata.</div></td>
+                    <td colspan="13"><div class="empty-state">Nessuna fattura registrata.</div></td>
                 </tr>
                 {% endfor %}
             </tbody>

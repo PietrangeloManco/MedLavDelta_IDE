@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -138,7 +139,11 @@ class Fattura(models.Model):
         on_delete=models.CASCADE,
         related_name='fatture',
     )
+    categoria_merceologica = models.CharField(max_length=255, blank=True)
     indirizzo_fatturazione = models.CharField(max_length=255, blank=True)
+    cap_fatturazione = models.CharField(max_length=10, blank=True)
+    comune_fatturazione = models.CharField(max_length=100, blank=True)
+    provincia_fatturazione = models.CharField(max_length=2, blank=True)
     condizioni_pagamento_riservate = models.TextField(blank=True)
     modalita_pagamento = models.CharField(max_length=255, blank=True)
     aliquota_iva = models.DecimalField(
@@ -156,8 +161,10 @@ class Fattura(models.Model):
     fine_mese = models.BooleanField(default=False)
     scadenza = models.DateField(blank=True, null=True)
     banca_appoggio = models.CharField(max_length=255, blank=True)
+    causale = models.CharField(max_length=255, blank=True)
     note = models.TextField(blank=True)
     inviata_il = models.DateField(blank=True, null=True)
+    data_incasso = models.DateField(blank=True, null=True)
     data_creazione = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -190,6 +197,34 @@ class Fattura(models.Model):
         if not self.numero_progressivo:
             return 'Bozza'
         return f'{self.prefisso_numero}/{self.numero_progressivo:04d}/{self.anno_fattura}'
+
+    @property
+    def numero_documento(self):
+        if not self.numero_progressivo:
+            return 'Bozza'
+        return f'{self.prefisso_numero} {self.numero_progressivo}'
+
+    @property
+    def prima_voce(self):
+        if not self.pk:
+            return None
+        return self.voci.order_by('ordine', 'id').first()
+
+    @property
+    def categoria_merceologica_display(self):
+        if self.categoria_merceologica:
+            return self.categoria_merceologica
+        prima_voce = self.prima_voce
+        if not prima_voce or not prima_voce.descrizione:
+            return ''
+        match = re.search(
+            r'Categoria\s+Merceologica\s*:\s*(.+?)(?:\s*-\s*Prodotto\s+Dichiarato\s*:|$)',
+            prima_voce.descrizione,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if match:
+            return ' '.join(match.group(1).split())
+        return prima_voce.descrizione.strip()
 
     @property
     def totale_imponibile(self):

@@ -4,7 +4,7 @@ from django.db.models import Max
 from django.forms import BaseInlineFormSet, inlineformset_factory
 from django.utils import timezone
 
-from apps.aziende.models import Azienda
+from apps.aziende.models import Azienda, Sede
 
 from .models import Fattura, FatturaVoce, Preventivo, PreventivoVoce
 
@@ -123,7 +123,11 @@ class FatturaForm(DocumentoCommercialeFormMixin, forms.ModelForm):
             'data_fattura',
             'data_accettazione_campione',
             'azienda',
+            'categoria_merceologica',
             'indirizzo_fatturazione',
+            'cap_fatturazione',
+            'comune_fatturazione',
+            'provincia_fatturazione',
             'condizioni_pagamento_riservate',
             'modalita_pagamento',
             'aliquota_iva',
@@ -133,8 +137,10 @@ class FatturaForm(DocumentoCommercialeFormMixin, forms.ModelForm):
             'fine_mese',
             'scadenza',
             'banca_appoggio',
+            'causale',
             'note',
             'inviata_il',
+            'data_incasso',
         ]
         labels = {
             'anno_fattura': 'Anno Fattura',
@@ -143,7 +149,11 @@ class FatturaForm(DocumentoCommercialeFormMixin, forms.ModelForm):
             'data_fattura': 'Data Fattura',
             'data_accettazione_campione': 'Data Accettazione Campione',
             'azienda': 'Intestatario',
+            'categoria_merceologica': 'Categoria Merceologica',
             'indirizzo_fatturazione': 'Indirizzo',
+            'cap_fatturazione': 'CAP',
+            'comune_fatturazione': 'Comune',
+            'provincia_fatturazione': 'Provincia',
             'condizioni_pagamento_riservate': 'Condizioni Pagamento Riservate',
             'modalita_pagamento': 'Modalita Pagamento',
             'aliquota_iva': 'IVA (%)',
@@ -152,15 +162,20 @@ class FatturaForm(DocumentoCommercialeFormMixin, forms.ModelForm):
             'gdd': 'G.D.D.',
             'fine_mese': 'Fine Mese',
             'banca_appoggio': 'Banca appoggio',
+            'causale': 'Causale documento',
+            'note': 'Note interne',
             'inviata_il': 'Inviata il',
+            'data_incasso': 'Incassata il',
         }
         widgets = {
             'data_fattura': forms.DateInput(attrs={'type': 'date'}),
             'data_accettazione_campione': forms.DateInput(attrs={'type': 'date'}),
             'scadenza': forms.DateInput(attrs={'type': 'date'}),
             'inviata_il': forms.DateInput(attrs={'type': 'date'}),
+            'data_incasso': forms.DateInput(attrs={'type': 'date'}),
             'note': forms.Textarea(attrs={'rows': 3}),
             'condizioni_pagamento_riservate': forms.Textarea(attrs={'rows': 3}),
+            'causale': forms.Textarea(attrs={'rows': 2}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -177,6 +192,22 @@ class FatturaForm(DocumentoCommercialeFormMixin, forms.ModelForm):
                     prefisso_numero=prefisso,
                 ).aggregate(max_numero=Max('numero_progressivo'))['max_numero'] or 0
                 self.fields['numero_progressivo'].initial = prossimo + 1
+            self._apply_company_billing_defaults()
+
+    def _apply_company_billing_defaults(self):
+        azienda = self._selected_azienda()
+        if not azienda:
+            return
+        sede = Sede.objects.filter(azienda=azienda).order_by('id').first()
+        defaults = {
+            'indirizzo_fatturazione': sede.indirizzo if sede else '',
+            'cap_fatturazione': sede.cap if sede else '',
+            'comune_fatturazione': sede.citta if sede else '',
+            'provincia_fatturazione': sede.provincia if sede else '',
+        }
+        for field_name, default_value in defaults.items():
+            if not self.initial.get(field_name):
+                self.fields[field_name].initial = default_value
 
 
 class PreventivoVoceForm(forms.ModelForm):

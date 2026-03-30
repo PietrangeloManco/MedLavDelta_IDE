@@ -59,7 +59,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">{{ action }}</h1>
-        <p class="page-subtitle">Il campo "Condizioni Pagamento Riservate" viene valorizzato dal profilo aziendale.</p>
+        <p class="page-subtitle">Dopo il salvataggio puoi aprire il PDF in una nuova scheda e scaricare l'XML della fattura.</p>
     </div>
     <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Torna all'elenco</a>
 </div>
@@ -111,9 +111,31 @@
         </div>
         <div class="doc-grid">
             <div class="form-group">
+                <label class="form-label" for="{{ form.categoria_merceologica.id_for_label }}">{{ form.categoria_merceologica.label }}</label>
+                {{ form.categoria_merceologica }}
+                {% for error in form.categoria_merceologica.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
                 <label class="form-label" for="{{ form.indirizzo_fatturazione.id_for_label }}">{{ form.indirizzo_fatturazione.label }}</label>
                 {{ form.indirizzo_fatturazione }}
                 {% for error in form.indirizzo_fatturazione.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+        <div class="doc-grid-4">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.cap_fatturazione.id_for_label }}">{{ form.cap_fatturazione.label }}</label>
+                {{ form.cap_fatturazione }}
+                {% for error in form.cap_fatturazione.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.comune_fatturazione.id_for_label }}">{{ form.comune_fatturazione.label }}</label>
+                {{ form.comune_fatturazione }}
+                {% for error in form.comune_fatturazione.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.provincia_fatturazione.id_for_label }}">{{ form.provincia_fatturazione.label }}</label>
+                {{ form.provincia_fatturazione }}
+                {% for error in form.provincia_fatturazione.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
             </div>
             <div class="form-group">
                 <label class="form-label" for="{{ form.modalita_pagamento.id_for_label }}">{{ form.modalita_pagamento.label }}</label>
@@ -170,6 +192,18 @@
                 <label class="form-label" for="{{ form.inviata_il.id_for_label }}">{{ form.inviata_il.label }}</label>
                 {{ form.inviata_il }}
                 {% for error in form.inviata_il.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+        <div class="doc-grid">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.data_incasso.id_for_label }}">{{ form.data_incasso.label }}</label>
+                {{ form.data_incasso }}
+                {% for error in form.data_incasso.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.causale.id_for_label }}">{{ form.causale.label }}</label>
+                {{ form.causale }}
+                {% for error in form.causale.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
             </div>
         </div>
         <div class="form-group" style="margin-bottom:0">
@@ -254,6 +288,10 @@
 
     <div class="stack-actions" style="justify-content:flex-end">
         <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Annulla</a>
+        {% if fattura %}
+        <a href="{% url 'admin_fattura_xml' fattura.pk %}" class="btn btn-outline">XML</a>
+        <a href="{% url 'admin_fattura_pdf' fattura.pk %}" class="btn btn-outline" target="_blank" rel="noopener">Stampa PDF</a>
+        {% endif %}
         <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
     </div>
 </form>
@@ -285,6 +323,12 @@
     const emptyTemplate = document.getElementById('empty-row-template');
     const companySelect = document.getElementById('{{ form.azienda.id_for_label }}');
     const paymentField = document.getElementById('{{ form.condizioni_pagamento_riservate.id_for_label }}');
+    const billingFields = {
+        indirizzo_fatturazione: document.getElementById('{{ form.indirizzo_fatturazione.id_for_label }}'),
+        cap_fatturazione: document.getElementById('{{ form.cap_fatturazione.id_for_label }}'),
+        comune_fatturazione: document.getElementById('{{ form.comune_fatturazione.id_for_label }}'),
+        provincia_fatturazione: document.getElementById('{{ form.provincia_fatturazione.id_for_label }}'),
+    };
     const paymentUrlTemplate = "{% url 'admin_api_azienda_condizioni_pagamento' 999999 %}";
 
     addButton.addEventListener('click', () => {
@@ -326,6 +370,16 @@
             paymentField.value = payload.condizioni_pagamento_riservate || '';
             paymentField.dataset.autofilled = 'true';
         }
+        Object.entries(billingFields).forEach(([key, field]) => {
+            if (!field) {
+                return;
+            }
+            const isAutofilled = field.dataset.autofilled !== 'false';
+            if (!field.value.trim() || isAutofilled) {
+                field.value = payload[key] || '';
+                field.dataset.autofilled = 'true';
+            }
+        });
     }
 
     if (companySelect) {
@@ -333,10 +387,24 @@
             if (paymentField) {
                 paymentField.dataset.autofilled = 'true';
             }
+            Object.values(billingFields).forEach((field) => {
+                if (field) {
+                    field.dataset.autofilled = 'true';
+                }
+            });
             syncReservedTerms();
         });
         syncReservedTerms();
     }
+
+    Object.values(billingFields).forEach((field) => {
+        if (!field) {
+            return;
+        }
+        field.addEventListener('input', () => {
+            field.dataset.autofilled = 'false';
+        });
+    });
 })();
 </script>
 {% endblock %}

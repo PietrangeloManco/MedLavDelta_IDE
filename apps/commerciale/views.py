@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
@@ -7,6 +7,12 @@ from apps.accounts.mixins import AdminPermissionRequiredMixin
 from apps.accounts.models import CustomUser
 from apps.aziende.models import Azienda
 
+from .documents import (
+    build_invoice_pdf_bytes,
+    build_invoice_xml_bytes,
+    invoice_pdf_filename,
+    invoice_xml_filename,
+)
 from .forms import (
     FatturaForm,
     FatturaVoceFormSet,
@@ -177,9 +183,29 @@ class AdminFatturaUpdateView(AdminPermissionRequiredMixin, View):
             'form': form,
             'formset': formset,
             'fattura': fattura,
-            'action': f'Modifica fattura {fattura.numero_completo}',
+            'action': f'Modifica fattura {fattura.numero_documento}',
             'submit_label': 'Aggiorna fattura',
         }
+
+
+class AdminFatturaPdfView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_FATTURE,)
+
+    def get(self, request, pk):
+        fattura = get_object_or_404(Fattura.objects.select_related('azienda').prefetch_related('voci'), pk=pk)
+        response = HttpResponse(build_invoice_pdf_bytes(fattura), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{invoice_pdf_filename(fattura)}"'
+        return response
+
+
+class AdminFatturaXmlView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_FATTURE,)
+
+    def get(self, request, pk):
+        fattura = get_object_or_404(Fattura.objects.select_related('azienda').prefetch_related('voci'), pk=pk)
+        response = HttpResponse(build_invoice_xml_bytes(fattura), content_type='application/xml')
+        response['Content-Disposition'] = f'attachment; filename="{invoice_xml_filename(fattura)}"'
+        return response
 
 
 class AdminAziendaCondizioniPagamentoApiView(AdminPermissionRequiredMixin, View):
@@ -191,6 +217,11 @@ class AdminAziendaCondizioniPagamentoApiView(AdminPermissionRequiredMixin, View)
 
     def get(self, request, pk):
         azienda = get_object_or_404(Azienda, pk=pk)
+        sede = azienda.sedi.order_by('id').first()
         return JsonResponse({
             'condizioni_pagamento_riservate': azienda.condizioni_pagamento_riservate,
+            'indirizzo_fatturazione': sede.indirizzo if sede else '',
+            'cap_fatturazione': sede.cap if sede else '',
+            'comune_fatturazione': sede.citta if sede else '',
+            'provincia_fatturazione': sede.provincia if sede else '',
         })

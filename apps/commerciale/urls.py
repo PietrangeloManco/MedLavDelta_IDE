@@ -10,6 +10,8 @@ urlpatterns = [
     path('dashboard/fatture/', views.AdminFattureListView.as_view(), name='admin_fatture'),
     path('dashboard/fatture/nuova/', views.AdminFatturaCreateView.as_view(), name='admin_fattura_nuova'),
     path('dashboard/fatture/<int:pk>/modifica/', views.AdminFatturaUpdateView.as_view(), name='admin_fattura_modifica'),
+    path('dashboard/fatture/<int:pk>/pdf/', views.AdminFatturaPdfView.as_view(), name='admin_fattura_pdf'),
+    path('dashboard/fatture/<int:pk>/xml/', views.AdminFatturaXmlView.as_view(), name='admin_fattura_xml'),
     path(
         'dashboard/api/aziende/<int:pk>/condizioni-pagamento/',
         views.AdminAziendaCondizioniPagamentoApiView.as_view(),

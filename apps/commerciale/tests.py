@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from apps.accounts.models import CustomUser
-from apps.aziende.models import Azienda
+from apps.aziende.models import Azienda, Sede
 
 from .models import Fattura, Preventivo
 
@@ -29,8 +29,18 @@ class CommercialeAdminFlowTests(TestCase):
             codice_univoco='ABC1234',
             pec='azienda@pec.example.com',
             referente_azienda='Mario Rossi',
+            codice_fiscale='RSSMRA80A01H501Z',
+            partita_iva='12345678901',
             email_contatto='contatti@example.com',
             condizioni_pagamento_riservate='Bonifico 30 giorni data fattura.',
+        )
+        self.sede = Sede.objects.create(
+            azienda=self.azienda,
+            nome='Sede legale',
+            indirizzo='Via Roma 1',
+            citta='Benevento',
+            cap='82100',
+            provincia='BN',
         )
         self.client.force_login(self.admin_user)
 
@@ -67,23 +77,32 @@ class CommercialeAdminFlowTests(TestCase):
             'data_fattura': '2026-03-24',
             'data_accettazione_campione': '2026-03-20',
             'azienda': str(self.azienda.pk),
+            'categoria_merceologica': 'ANALISI CHIMICO FISICHE E MICROBIOLOGICHE',
             'indirizzo_fatturazione': 'Via Roma 1',
+            'cap_fatturazione': '82100',
+            'comune_fatturazione': 'Benevento',
+            'provincia_fatturazione': 'BN',
             'condizioni_pagamento_riservate': '',
-            'modalita_pagamento': 'Bonifico',
+            'modalita_pagamento': 'pagamento completo - bonifico',
             'aliquota_iva': '22.00',
             'esente_iva': '',
             'esigibilita_iva': 'IVA ad esigibilita immediata',
-            'gdd': '30',
+            'gdd': '60gg G.G.D.F',
             'fine_mese': '',
             'scadenza': '2026-04-23',
             'banca_appoggio': 'Banca Test',
-            'note': '',
+            'causale': 'RIF. PREVENTIVO N. 109 DEL 18/05/2021',
+            'note': 'Nota interna di test',
             'inviata_il': '2026-03-24',
+            'data_incasso': '2026-03-28',
             'voci-TOTAL_FORMS': '1',
             'voci-INITIAL_FORMS': '0',
             'voci-MIN_NUM_FORMS': '0',
             'voci-MAX_NUM_FORMS': '1000',
-            'voci-0-descrizione': 'Analisi laboratorio',
+            'voci-0-descrizione': (
+                'N. Campione: 08164_2025 - Categoria Merceologica: '
+                'ANALISI CHIMICO FISICHE E MICROBIOLOGICHE - Prodotto Dichiarato: MATERIALI'
+            ),
             'voci-0-quantita': '1',
             'voci-0-costo_unitario': '100.00',
             'voci-0-sconto_percentuale': '0',
@@ -106,7 +125,7 @@ class CommercialeAdminFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Condizioni Pagamento Riservate')
 
-    def test_fattura_list_shows_sample_acceptance_date(self):
+    def test_fattura_list_shows_operational_columns_and_actions(self):
         response = self.client.post(reverse('admin_fattura_nuova'), data=self._fattura_payload())
 
         self.assertRedirects(response, reverse('admin_fatture'))
@@ -115,11 +134,75 @@ class CommercialeAdminFlowTests(TestCase):
         self.assertEqual(fattura.condizioni_pagamento_riservate, self.azienda.condizioni_pagamento_riservate)
 
         list_response = self.client.get(reverse('admin_fatture'))
-        self.assertContains(list_response, '20/03/2026')
+        self.assertContains(list_response, 'FPR 1')
         self.assertContains(list_response, '24/03/2026')
+        self.assertContains(list_response, '28/03/2026')
+        self.assertContains(list_response, 'ANALISI CHIMICO FISICHE E MICROBIOLOGICHE')
+        self.assertContains(
+            list_response,
+            f'<a href="{reverse("admin_fattura_modifica", args=[fattura.pk])}" class="invoice-number-link">FPR 1</a>',
+            html=True,
+        )
+        self.assertContains(list_response, reverse('admin_fattura_pdf', args=[fattura.pk]))
+        self.assertContains(list_response, 'Nota interna di test')
 
     def test_fattura_create_page_renders(self):
         response = self.client.get(reverse('admin_fattura_nuova'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Data Accettazione Campione')
+        self.assertContains(response, 'Categoria Merceologica')
+
+    def test_company_payment_api_includes_billing_defaults(self):
+        response = self.client.get(
+            reverse('admin_api_azienda_condizioni_pagamento', args=[self.azienda.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            {
+                'condizioni_pagamento_riservate': 'Bonifico 30 giorni data fattura.',
+                'indirizzo_fatturazione': 'Via Roma 1',
+                'cap_fatturazione': '82100',
+                'comune_fatturazione': 'Benevento',
+                'provincia_fatturazione': 'BN',
+            },
+        )
+
+    def test_fattura_pdf_view_returns_inline_pdf(self):
+        self.client.post(reverse('admin_fattura_nuova'), data=self._fattura_payload())
+        fattura = Fattura.objects.get()
+
+        response = self.client.get(reverse('admin_fattura_pdf', args=[fattura.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn('inline;', response['Content-Disposition'])
+        self.assertTrue(response.content.startswith(b'%PDF'))
+
+    def test_fattura_xml_download_uses_centro_delta_issuer(self):
+        self.client.post(reverse('admin_fattura_nuova'), data=self._fattura_payload())
+        fattura = Fattura.objects.get()
+
+        response = self.client.get(reverse('admin_fattura_xml', args=[fattura.pk]))
+        content = response.content.decode('utf-8')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/xml')
+        self.assertIn('attachment;', response['Content-Disposition'])
+        self.assertIn('CENTRO MEDICO DELTA IDAB', content)
+        self.assertIn('00269500625', content)
+        self.assertNotIn('TECNO BIOS', content)
+        self.assertIn('Azienda Test SRL', content)
+        self.assertIn('Via Roma 1', content)
+        self.assertIn('FPR 1', content)
+
+    def test_fattura_edit_page_shows_xml_and_pdf_actions(self):
+        self.client.post(reverse('admin_fattura_nuova'), data=self._fattura_payload())
+        fattura = Fattura.objects.get()
+
+        response = self.client.get(reverse('admin_fattura_modifica', args=[fattura.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('admin_fattura_xml', args=[fattura.pk]))
+        self.assertContains(response, reverse('admin_fattura_pdf', args=[fattura.pk]))
