@@ -23,3 +23,8 @@ Before closing a UI task, quickly verify:
 - forms collapse cleanly;
 - tables remain navigable;
 - no new element forces the viewport wider than the screen, except intentionally scrollable tables.
+
+## Dependency Hygiene
+
+- Whenever a Python package is installed, upgraded, or added for project code or tests, update `requirements.txt` in the same change.
+- Do not leave environment-only installs undocumented if the repository depends on them to run or test successfully.
