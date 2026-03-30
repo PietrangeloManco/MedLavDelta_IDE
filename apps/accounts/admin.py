@@ -4,6 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 
 from .models import CustomUser
+from .services import generate_temporary_password, send_account_credentials_email
 
 
 class CustomUserCreationForm(forms.ModelForm):
@@ -19,18 +20,15 @@ class CustomUserCreationForm(forms.ModelForm):
             'Se selezioni "Super amministratore", questi permessi vengono ignorati.'
         ),
     )
-    password1 = forms.CharField(
-        label='Password',
-        widget=forms.TextInput(attrs={'autocomplete': 'new-password'}),
-    )
-    password2 = forms.CharField(
-        label='Conferma password',
-        widget=forms.TextInput(attrs={'autocomplete': 'new-password'}),
-    )
-
     class Meta:
         model = CustomUser
         fields = ('email', 'role', 'is_active', 'is_superuser', 'admin_permissions')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['email'].help_text = (
+            'La password verra generata automaticamente e inviata a questo indirizzo email.'
+        )
 
     def clean(self):
         cleaned = super().clean()
@@ -55,16 +53,10 @@ class CustomUserCreationForm(forms.ModelForm):
 
         return cleaned
 
-    def clean_password2(self):
-        password1 = self.cleaned_data.get('password1')
-        password2 = self.cleaned_data.get('password2')
-        if password1 and password2 and password1 != password2:
-            raise forms.ValidationError('Le password non coincidono.')
-        return password2
-
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data['password1'])
+        self.generated_password = generate_temporary_password()
+        user.set_password(self.generated_password)
         user.admin_permissions = self.cleaned_data.get('admin_permissions') or []
         role = self.cleaned_data.get('role')
         is_superuser = self.cleaned_data.get('is_superuser', False)
@@ -187,8 +179,6 @@ class CustomUserAdmin(UserAdmin):
             'classes': ('wide',),
             'fields': (
                 'email',
-                'password1',
-                'password2',
                 'role',
                 'is_active',
                 'is_superuser',
@@ -208,6 +198,11 @@ class CustomUserAdmin(UserAdmin):
         if not obj.admin_permissions:
             return 'Admin senza permessi'
         return f'Admin limitato ({len(obj.admin_permissions)})'
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if not change and getattr(form, 'generated_password', None):
+            send_account_credentials_email(obj, form.generated_password, request=request)
 
 
 try:

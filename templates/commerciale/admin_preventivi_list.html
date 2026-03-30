@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load querystring %}
 {% block title %}Preventivi{% endblock %}
 {% block breadcrumb %}<strong>Preventivi</strong> Area admin{% endblock %}
 
@@ -16,7 +17,18 @@
 </div>
 
 <div class="form-card">
-    <form method="get" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; align-items:end">
+    <form method="get" class="list-toolbar">
+        <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" for="preventivi-search">Cerca</label>
+            <input
+                id="preventivi-search"
+                type="search"
+                name="q"
+                value="{{ current_search }}"
+                class="form-control"
+                placeholder="Numero, cliente, oggetto..."
+            >
+        </div>
         <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Filtra per azienda</label>
             <select name="azienda" class="form-control">
@@ -28,9 +40,11 @@
                 {% endfor %}
             </select>
         </div>
-        <div style="display:flex; gap:8px">
+        <input type="hidden" name="sort" value="{{ current_sort }}">
+        <input type="hidden" name="dir" value="{{ current_dir }}">
+        <div class="list-toolbar-actions">
             <button type="submit" class="btn btn-outline">Applica filtro</button>
-            {% if azienda_selezionata %}
+            {% if azienda_selezionata or current_search %}
             <a href="{% url 'admin_preventivi' %}" class="btn btn-outline">Reset</a>
             {% endif %}
         </div>
@@ -45,12 +59,12 @@
         <table class="delta-table">
             <thead>
                 <tr>
-                    <th>N. Preventivo</th>
-                    <th>Data Preventivo</th>
-                    <th>Cliente</th>
-                    <th>Oggetto</th>
-                    <th>Imponibile</th>
-                    <th>Totale</th>
+                    <th><a href="{% sort_query 'numero' %}" class="sort-link">N. Preventivo <span class="sort-indicator">{% sort_indicator 'numero' %}</span></a></th>
+                    <th><a href="{% sort_query 'data' %}" class="sort-link">Data Preventivo <span class="sort-indicator">{% sort_indicator 'data' %}</span></a></th>
+                    <th><a href="{% sort_query 'cliente' %}" class="sort-link">Cliente <span class="sort-indicator">{% sort_indicator 'cliente' %}</span></a></th>
+                    <th><a href="{% sort_query 'oggetto' %}" class="sort-link">Oggetto <span class="sort-indicator">{% sort_indicator 'oggetto' %}</span></a></th>
+                    <th><a href="{% sort_query 'imponibile' %}" class="sort-link">Imponibile <span class="sort-indicator">{% sort_indicator 'imponibile' %}</span></a></th>
+                    <th><a href="{% sort_query 'totale' %}" class="sort-link">Totale <span class="sort-indicator">{% sort_indicator 'totale' %}</span></a></th>
                     <th></th>
                 </tr>
             </thead>

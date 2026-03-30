@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load querystring %}
 {% block title %}Pannello di controllo {{ azienda.ragione_sociale }}{% endblock %}
 {% block breadcrumb %}<strong>Pannello di controllo</strong> {{ azienda.ragione_sociale }}{% endblock %}
 
@@ -126,15 +127,38 @@
         <div class="table-card-header">
             <span class="table-card-title icon-label">{% include 'includes/icons/workers-group.html' %} I tuoi lavoratori</span>
         </div>
+        <div class="card-body" style="border-bottom:1px solid var(--border)">
+            <form method="get" class="list-toolbar">
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label" for="azienda-workers-search">Cerca lavoratore</label>
+                    <input
+                        id="azienda-workers-search"
+                        type="search"
+                        name="q"
+                        value="{{ current_search }}"
+                        class="form-control"
+                        placeholder="Nome, cognome, sede, mansione..."
+                    >
+                </div>
+                <input type="hidden" name="sort" value="{{ current_sort }}">
+                <input type="hidden" name="dir" value="{{ current_dir }}">
+                <div class="list-toolbar-actions">
+                    <button type="submit" class="btn btn-outline">Cerca</button>
+                    {% if current_search %}
+                    <a href="{% url 'azienda_dashboard' %}" class="btn btn-outline">Reset</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
         <div class="table-scroll">
             <table class="delta-table">
                 <thead>
                     <tr>
-                        <th>Nominativo</th>
-                        <th>Mansione</th>
-                        <th>Sede</th>
-                        <th>Ultimo esito</th>
-                        <th>Scadenza</th>
+                        <th><a href="{% sort_query 'nominativo' %}" class="sort-link">Nominativo <span class="sort-indicator">{% sort_indicator 'nominativo' %}</span></a></th>
+                        <th><a href="{% sort_query 'mansione' %}" class="sort-link">Mansione <span class="sort-indicator">{% sort_indicator 'mansione' %}</span></a></th>
+                        <th><a href="{% sort_query 'sede' %}" class="sort-link">Sede <span class="sort-indicator">{% sort_indicator 'sede' %}</span></a></th>
+                        <th><a href="{% sort_query 'esito' %}" class="sort-link">Ultimo esito <span class="sort-indicator">{% sort_indicator 'esito' %}</span></a></th>
+                        <th><a href="{% sort_query 'scadenza' %}" class="sort-link">Scadenza <span class="sort-indicator">{% sort_indicator 'scadenza' %}</span></a></th>
                         <th></th>
                     </tr>
                 </thead>
@@ -145,26 +169,22 @@
                         <td>{{ lavoratore.mansione }}</td>
                         <td class="text-muted">{{ lavoratore.sede|default:"-" }}</td>
                         <td>
-                            {% with lavoratore.idoneita.first as esito %}
-                                {% if esito %}
-                                <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
-                                    {{ esito.get_esito_display }}
-                                </span>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            {% endwith %}
+                            {% if lavoratore.ultimo_esito %}
+                            <span class="badge badge-{% if lavoratore.ultimo_esito == 'idoneo' %}success{% elif lavoratore.ultimo_esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                                {% if lavoratore.ultimo_esito == 'idoneo' %}Idoneo{% elif lavoratore.ultimo_esito == 'idoneo_limitazioni' %}Idoneo con limitazioni{% elif lavoratore.ultimo_esito == 'non_idoneo' %}Non idoneo{% else %}Non idoneo temporaneo{% endif %}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
                         </td>
                         <td>
-                            {% with lavoratore.idoneita.first as esito %}
-                                {% if esito %}
-                                <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
-                                    {{ esito.data_scadenza }}
-                                </span>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            {% endwith %}
+                            {% if lavoratore.ultima_scadenza %}
+                            <span class="{% if lavoratore.ultima_scadenza < today %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
+                                {{ lavoratore.ultima_scadenza }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
                         </td>
                         <td><a href="{% url 'azienda_lavoratore' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda</a></td>
                     </tr>

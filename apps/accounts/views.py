@@ -1,10 +1,28 @@
 from django.contrib.auth import login, logout
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm, SetPasswordForm
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.views import View
 
 from .models import CustomUser
+
+
+def _apply_form_control_class(form):
+    for field in form.fields.values():
+        existing = field.widget.attrs.get('class', '')
+        field.widget.attrs['class'] = f'{existing} form-control'.strip()
+
+
+class StyledPasswordResetForm(PasswordResetForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_form_control_class(self)
+
+
+class StyledSetPasswordForm(SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_form_control_class(self)
 
 
 class LoginView(View):

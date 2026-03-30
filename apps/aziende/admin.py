@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from apps.accounts.models import CustomUser
+from apps.accounts.services import generate_temporary_password, send_account_credentials_email
 from .models import Azienda, DocumentoAziendale, Lavoratore, Sede
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
@@ -22,16 +23,6 @@ class AziendaAdminForm(forms.ModelForm):
         required=False,
         label='Email account azienda',
     )
-    account_password = forms.CharField(
-        required=False,
-        label='Nuova password account',
-        widget=forms.TextInput(attrs={'autocomplete': 'new-password'}),
-        help_text=(
-            'La password attuale non e visibile in chiaro. '
-            'Inseriscine una nuova per reimpostarla e verificarla prima del salvataggio.'
-        ),
-    )
-
     class Meta:
         model = Azienda
         fields = '__all__'
@@ -54,7 +45,8 @@ class AziendaAdminForm(forms.ModelForm):
         else:
             user_queryset = user_queryset.filter(azienda__isnull=True)
             self.fields['account_email'].help_text = (
-                "Inseriscila se vuoi creare un nuovo account azienda da questa scheda."
+                "Inseriscila se vuoi creare un nuovo account azienda da questa scheda. "
+                "La password verra generata automaticamente e inviata via email."
             )
         self.fields['user'].queryset = user_queryset.order_by('email')
 
@@ -90,21 +82,11 @@ class AziendaAdminForm(forms.ModelForm):
         user = cleaned.get('user')
         current_user = user or getattr(self.instance, 'user', None)
         account_email = (cleaned.get('account_email') or '').strip()
-        account_password = cleaned.get('account_password')
 
         if not self.instance.pk and not user and not account_email:
             raise ValidationError(
-                'Per una nuova azienda devi selezionare un account esistente o inserire email e password.'
+                'Per una nuova azienda devi selezionare un account esistente o inserire una email account.'
             )
-
-        if account_password and not current_user and not account_email:
-            self.add_error(
-                'account_email',
-                "Inserisci un'email o seleziona un account prima di impostare la password.",
-            )
-
-        if account_email and not current_user and not account_password:
-            self.add_error('account_password', 'Inserisci una password per il nuovo account.')
 
         if account_email:
             conflict_qs = CustomUser.objects.exclude(
@@ -120,12 +102,12 @@ class AziendaAdminForm(forms.ModelForm):
         instance = super().save(commit=False)
         user = self.cleaned_data.get('user') or getattr(instance, 'user', None)
         account_email = self.cleaned_data.get('account_email')
-        account_password = self.cleaned_data.get('account_password')
 
-        if not self.instance.pk and not user and account_email and account_password:
+        if not self.instance.pk and not user and account_email:
+            self.generated_password = generate_temporary_password()
             user = CustomUser.objects.create_user(
                 email=account_email,
-                password=account_password,
+                password=self.generated_password,
                 role=CustomUser.AZIENDA,
             )
         elif user:
@@ -133,9 +115,6 @@ class AziendaAdminForm(forms.ModelForm):
             if account_email and account_email != user.email:
                 user.email = account_email
                 update_fields.append('email')
-            if account_password:
-                user.set_password(account_password)
-                update_fields.append('password')
             if update_fields:
                 user.save(update_fields=update_fields)
 
@@ -159,16 +138,6 @@ class LavoratoreAdminForm(forms.ModelForm):
         required=False,
         label='Email account operatore',
     )
-    account_password = forms.CharField(
-        required=False,
-        label='Nuova password account',
-        widget=forms.TextInput(attrs={'autocomplete': 'new-password'}),
-        help_text=(
-            'La password attuale non e visibile in chiaro. '
-            "Inseriscine una nuova per creare o reimpostare l'accesso."
-        ),
-    )
-
     class Meta:
         model = Lavoratore
         fields = '__all__'
@@ -187,7 +156,8 @@ class LavoratoreAdminForm(forms.ModelForm):
         else:
             user_queryset = user_queryset.filter(lavoratore__isnull=True)
             self.fields['account_email'].help_text = (
-                "Inseriscila se vuoi creare un nuovo account operatore da questa scheda."
+                "Inseriscila se vuoi creare un nuovo account operatore da questa scheda. "
+                "La password verra generata automaticamente e inviata via email."
             )
         self.fields['user'].queryset = user_queryset.order_by('email')
 
@@ -196,16 +166,6 @@ class LavoratoreAdminForm(forms.ModelForm):
         user = cleaned.get('user')
         current_user = user or getattr(self.instance, 'user', None)
         account_email = (cleaned.get('account_email') or '').strip()
-        account_password = cleaned.get('account_password')
-
-        if account_password and not current_user and not account_email:
-            self.add_error(
-                'account_email',
-                "Inserisci un'email o seleziona un account prima di impostare la password.",
-            )
-
-        if account_email and not current_user and not account_password:
-            self.add_error('account_password', 'Inserisci una password per il nuovo account.')
 
         if account_email:
             conflict_qs = CustomUser.objects.exclude(
@@ -221,12 +181,12 @@ class LavoratoreAdminForm(forms.ModelForm):
         instance = super().save(commit=False)
         user = self.cleaned_data.get('user') or getattr(instance, 'user', None)
         account_email = self.cleaned_data.get('account_email')
-        account_password = self.cleaned_data.get('account_password')
 
-        if not user and account_email and account_password:
+        if not user and account_email:
+            self.generated_password = generate_temporary_password()
             user = CustomUser.objects.create_user(
                 email=account_email,
-                password=account_password,
+                password=self.generated_password,
                 role=CustomUser.OPERATORE,
             )
         elif user:
@@ -234,9 +194,6 @@ class LavoratoreAdminForm(forms.ModelForm):
             if account_email and account_email != user.email:
                 user.email = account_email
                 update_fields.append('email')
-            if account_password:
-                user.set_password(account_password)
-                update_fields.append('password')
             if update_fields:
                 user.save(update_fields=update_fields)
 
@@ -302,7 +259,7 @@ class AziendaAdmin(admin.ModelAdmin):
             ),
         }),
         ('Account azienda', {
-            'fields': ('user', 'account_email', 'account_password'),
+            'fields': ('user', 'account_email'),
         }),
         ('Documenti', {
             'fields': (
@@ -315,6 +272,11 @@ class AziendaAdmin(admin.ModelAdmin):
             ),
         }),
     )
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if getattr(form, 'generated_password', None) and obj.user:
+            send_account_credentials_email(obj.user, form.generated_password, request=request)
 
 
 @admin.register(DocumentoAziendale)
@@ -351,9 +313,14 @@ class LavoratoreAdmin(admin.ModelAdmin):
             ),
         }),
         ('Account operatore', {
-            'fields': ('user', 'account_email', 'account_password'),
+            'fields': ('user', 'account_email'),
         }),
     )
 
     def has_add_permission(self, request):
         return False
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if getattr(form, 'generated_password', None) and obj.user:
+            send_account_credentials_email(obj.user, form.generated_password, request=request)

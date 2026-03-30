@@ -125,6 +125,23 @@ class CommercialeAdminFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Condizioni Pagamento Riservate')
 
+    def test_preventivi_list_supports_search_and_sort(self):
+        self.client.post(reverse('admin_preventivo_nuovo'), data=self._preventivo_payload())
+        second_payload = self._preventivo_payload()
+        second_payload.update({
+            'numero_preventivo': '2',
+            'oggetto': 'Formazione sicurezza',
+        })
+        self.client.post(reverse('admin_preventivo_nuovo'), data=second_payload)
+
+        search_response = self.client.get(reverse('admin_preventivi'), {'q': 'Formazione'})
+        sort_response = self.client.get(reverse('admin_preventivi'), {'sort': 'numero', 'dir': 'desc'})
+        sort_html = sort_response.content.decode()
+
+        self.assertContains(search_response, 'Formazione sicurezza')
+        self.assertNotContains(search_response, 'Sorveglianza sanitaria annuale')
+        self.assertLess(sort_html.find('00000002'), sort_html.find('00000001'))
+
     def test_fattura_list_shows_operational_columns_and_actions(self):
         response = self.client.post(reverse('admin_fattura_nuova'), data=self._fattura_payload())
 
@@ -151,6 +168,25 @@ class CommercialeAdminFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Categoria Merceologica')
+
+    def test_fatture_list_supports_search_and_sort(self):
+        self.client.post(reverse('admin_fattura_nuova'), data=self._fattura_payload())
+        second_payload = self._fattura_payload()
+        second_payload.update({
+            'numero_progressivo': '2',
+            'categoria_merceologica': 'HACCP',
+            'note': 'Seconda fattura',
+            'voci-0-descrizione': 'Categoria Merceologica: HACCP - Prodotto Dichiarato: TEST',
+        })
+        self.client.post(reverse('admin_fattura_nuova'), data=second_payload)
+
+        search_response = self.client.get(reverse('admin_fatture'), {'q': 'Seconda fattura'})
+        sort_response = self.client.get(reverse('admin_fatture'), {'sort': 'numero', 'dir': 'desc'})
+        sort_html = sort_response.content.decode()
+
+        self.assertContains(search_response, 'Seconda fattura')
+        self.assertNotContains(search_response, 'Nota interna di test')
+        self.assertLess(sort_html.find('FPR 2'), sort_html.find('FPR 1'))
 
     def test_company_payment_api_includes_billing_defaults(self):
         response = self.client.get(

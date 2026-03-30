@@ -1,6 +1,8 @@
 from datetime import date
+import re
 from tempfile import TemporaryDirectory
 
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -37,7 +39,6 @@ class CreaAziendaFlowTests(TestCase):
     def build_valid_data(self):
         return {
             'email': 'azienda@example.com',
-            'password': 'azienda-pass-123',
             'ragione_sociale': 'Azienda Test SRL',
             'codice_univoco': 'ab12cd7',
             'pec': 'azienda@pec.example.com',
@@ -49,6 +50,11 @@ class CreaAziendaFlowTests(TestCase):
             'condizioni_pagamento_riservate': 'Pagamento completo entro 30 giorni data fattura.',
             'varie_note': 'Note azienda',
         }
+
+    def extract_password_from_last_email(self):
+        match = re.search(r'Password temporanea: (.+)', mail.outbox[-1].body)
+        self.assertIsNotNone(match)
+        return match.group(1).strip()
 
     def build_valid_files(self):
         return {
@@ -175,8 +181,11 @@ class CreaAziendaFlowTests(TestCase):
         self.assertTrue(azienda.protocollo_sanitario.name.endswith('protocollo.pdf'))
         self.assertEqual(azienda.user.email, 'azienda@example.com')
         self.assertEqual(azienda.user.role, CustomUser.AZIENDA)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['azienda@example.com'])
+        self.assertTrue(azienda.user.check_password(self.extract_password_from_last_email()))
 
-    def test_azienda_admin_form_can_reset_linked_account_password(self):
+    def test_azienda_admin_form_can_update_linked_account_email(self):
         azienda = self.create_existing_company()
 
         form = AziendaAdminForm(
@@ -192,20 +201,18 @@ class CreaAziendaFlowTests(TestCase):
                 'condizioni_pagamento_riservate': azienda.condizioni_pagamento_riservate,
                 'contratto_saldato': 'on',
                 'user': str(azienda.user.pk),
-                'account_email': azienda.user.email,
-                'account_password': 'NuovaPassAzienda-456',
+                'account_email': 'nuova.azienda@example.com',
                 'varie_note': azienda.varie_note,
             },
             instance=azienda,
         )
 
-        self.assertEqual(form.fields['account_password'].widget.input_type, 'text')
         self.assertTrue(form.is_valid(), form.errors)
 
         form.save()
         azienda.user.refresh_from_db()
 
-        self.assertTrue(azienda.user.check_password('NuovaPassAzienda-456'))
+        self.assertEqual(azienda.user.email, 'nuova.azienda@example.com')
 
 
 class DocumentoAziendaFlowTests(TestCase):
@@ -342,19 +349,17 @@ class LavoratoreAdminFormTests(TestCase):
                 'attivo': 'on',
                 'user': '',
                 'account_email': 'marco.rossi@example.com',
-                'account_password': 'OperatorePass-789',
             },
             instance=lavoratore,
         )
 
-        self.assertEqual(form.fields['account_password'].widget.input_type, 'text')
         self.assertTrue(form.is_valid(), form.errors)
 
         saved_lavoratore = form.save()
 
         self.assertIsNotNone(saved_lavoratore.user)
         self.assertEqual(saved_lavoratore.user.email, 'marco.rossi@example.com')
-        self.assertTrue(saved_lavoratore.user.check_password('OperatorePass-789'))
+        self.assertTrue(saved_lavoratore.user.check_password(form.generated_password))
 
 
 class AdminAziendaLavoratoreCreateTests(TestCase):
@@ -463,16 +468,17 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
                 'note': 'Inserito da admin',
                 'attivo': 'on',
                 'account_email': 'luca.verdi@example.com',
-                'account_password': 'OperatorePass-789',
             },
         )
 
         lavoratore = Lavoratore.objects.get(codice_fiscale='VRDLCU91D15H501K')
+        match = re.search(r'Password temporanea: (.+)', mail.outbox[-1].body)
 
         self.assertRedirects(response, reverse('admin_azienda_detail', args=[self.azienda.pk]))
         self.assertEqual(lavoratore.azienda, self.azienda)
         self.assertEqual(lavoratore.user.email, 'luca.verdi@example.com')
-        self.assertTrue(lavoratore.user.check_password('OperatorePass-789'))
+        self.assertIsNotNone(match)
+        self.assertTrue(lavoratore.user.check_password(match.group(1).strip()))
 
     def test_admin_with_company_permission_can_create_worker(self):
         self.client.force_login(self.admin_no_workers)
@@ -489,7 +495,6 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
                 'note': 'Inserito da admin con permesso aziende',
                 'attivo': 'on',
                 'account_email': '',
-                'account_password': '',
             },
         )
 
@@ -514,6 +519,75 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
 
         self.assertContains(response, 'Modifica')
         self.assertContains(response, reverse('admin_lavoratore_modifica', args=[self.lavoratore.pk]))
+
+    def test_admin_aziende_list_supports_search_and_sort(self):
+        altra_user = CustomUser.objects.create_user(
+            email='altra-azienda@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        altra_azienda = Azienda.objects.create(
+            user=altra_user,
+            ragione_sociale='Beta Servizi SRL',
+            codice_univoco='BETA001',
+            pec='beta@pec.example.com',
+            referente_azienda='Beta Referente',
+            codice_fiscale='BTAREF80A01H501Z',
+            partita_iva='99999999999',
+            email_contatto='beta@example.com',
+            telefono='0211111111',
+            condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
+        )
+        Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Luca',
+            cognome='Blu',
+            data_nascita=date(1994, 6, 1),
+            codice_fiscale='BLULCU94H01H501S',
+            mansione='Tecnico',
+            note='',
+            attivo=True,
+        )
+        Lavoratore.objects.create(
+            azienda=altra_azienda,
+            nome='Beta',
+            cognome='Operatore',
+            data_nascita=date(1993, 2, 1),
+            codice_fiscale='PRTBTA93B01H501T',
+            mansione='Operatore',
+            note='',
+            attivo=True,
+        )
+        self.client.force_login(self.admin_user)
+
+        search_response = self.client.get(reverse('admin_aziende'), {'q': 'Beta'})
+        sort_response = self.client.get(reverse('admin_aziende'), {'sort': 'lavoratori', 'dir': 'desc'})
+        sort_html = sort_response.content.decode()
+
+        self.assertContains(search_response, 'Beta Servizi SRL')
+        self.assertNotContains(search_response, 'Azienda Lavoratori SRL')
+        self.assertLess(sort_html.find('Azienda Lavoratori SRL'), sort_html.find('Beta Servizi SRL'))
+
+    def test_admin_lavoratori_list_supports_search_and_sort(self):
+        Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Andrea',
+            cognome='Bianchi',
+            data_nascita=date(1991, 8, 9),
+            codice_fiscale='BNCNDR91M09H501U',
+            mansione='Analista',
+            note='',
+            attivo=True,
+        )
+        self.client.force_login(self.admin_user)
+
+        search_response = self.client.get(reverse('admin_lavoratori'), {'q': 'Andrea'})
+        sort_response = self.client.get(reverse('admin_lavoratori'), {'sort': 'nominativo', 'dir': 'asc'})
+        sort_html = sort_response.content.decode()
+
+        self.assertContains(search_response, 'Andrea Bianchi')
+        self.assertNotContains(search_response, 'Paolo Rossi')
+        self.assertLess(sort_html.find('Andrea Bianchi'), sort_html.find('Paolo Rossi'))
 
     def test_admin_can_edit_worker_with_shared_form(self):
         self.client.force_login(self.admin_detail_user)
@@ -569,3 +643,34 @@ class AziendaDashboardContactTests(TestCase):
         self.assertContains(response, 'Rosanna Cocozza')
         self.assertContains(response, 'rosanna.cocozza@tecnobios.com')
         self.assertContains(response, '351 6572647')
+
+    def test_dashboard_worker_list_supports_search_and_sort(self):
+        Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Anna',
+            cognome='Bianchi',
+            data_nascita=date(1991, 4, 1),
+            codice_fiscale='BNCNNA91D41H501V',
+            mansione='Analista',
+            note='',
+            attivo=True,
+        )
+        Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Paolo',
+            cognome='Rossi',
+            data_nascita=date(1990, 6, 1),
+            codice_fiscale='RSSPLA90H01H501W',
+            mansione='Tecnico',
+            note='',
+            attivo=True,
+        )
+        self.client.force_login(self.user)
+
+        search_response = self.client.get(reverse('azienda_dashboard'), {'q': 'Analista'})
+        sort_response = self.client.get(reverse('azienda_dashboard'), {'sort': 'nominativo', 'dir': 'asc'})
+        sort_html = sort_response.content.decode()
+
+        self.assertContains(search_response, 'Anna Bianchi')
+        self.assertNotContains(search_response, 'Paolo Rossi')
+        self.assertLess(sort_html.find('Anna Bianchi'), sort_html.find('Paolo Rossi'))

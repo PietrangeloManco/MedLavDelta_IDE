@@ -1,3 +1,4 @@
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
@@ -6,24 +7,22 @@ from .models import CustomUser
 
 
 class CustomUserAdminFormTests(TestCase):
-    def test_creation_form_uses_visible_password_fields_and_hashes_value(self):
+    def test_creation_form_generates_password_and_hashes_value(self):
         form = CustomUserCreationForm(
             data={
                 'email': 'nuovo@example.com',
                 'role': CustomUser.AZIENDA,
                 'is_active': 'on',
-                'password1': 'Pass-chiara-123',
-                'password2': 'Pass-chiara-123',
             }
         )
 
-        self.assertEqual(form.fields['password1'].widget.input_type, 'text')
-        self.assertEqual(form.fields['password2'].widget.input_type, 'text')
+        self.assertNotIn('password1', form.fields)
+        self.assertNotIn('password2', form.fields)
         self.assertTrue(form.is_valid(), form.errors)
 
         user = form.save()
 
-        self.assertTrue(user.check_password('Pass-chiara-123'))
+        self.assertTrue(user.check_password(form.generated_password))
         self.assertEqual(user.admin_permissions, [])
 
     def test_creation_form_can_create_limited_admin_with_permissions(self):
@@ -36,8 +35,6 @@ class CustomUserAdminFormTests(TestCase):
                     CustomUser.ADMIN_PERMISSION_COMPANIES,
                     CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS,
                 ],
-                'password1': 'AdminLimitato-123',
-                'password2': 'AdminLimitato-123',
             }
         )
 
@@ -99,3 +96,29 @@ class DashboardRouterTests(TestCase):
         response = self.client.get(reverse('dashboard'))
 
         self.assertRedirects(response, reverse('admin_aziende'))
+
+
+class PasswordResetFlowTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            email='azienda-reset@example.com',
+            password='password-iniziale-123',
+            role=CustomUser.AZIENDA,
+        )
+
+    def test_login_page_shows_password_reset_link(self):
+        response = self.client.get(reverse('login'))
+
+        self.assertContains(response, reverse('password_reset'))
+        self.assertContains(response, 'Password dimenticata?')
+
+    def test_password_reset_request_sends_email(self):
+        response = self.client.post(
+            reverse('password_reset'),
+            data={'email': self.user.email},
+        )
+
+        self.assertRedirects(response, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Reset password MedLavDelta', mail.outbox[0].subject)
+        self.assertIn('/accounts/reset/', mail.outbox[0].body)

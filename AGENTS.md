@@ -24,6 +24,20 @@ Before closing a UI task, quickly verify:
 - tables remain navigable;
 - no new element forces the viewport wider than the screen, except intentionally scrollable tables.
 
+## Lists And Tables
+
+- Every new user-facing list or table must include a search bar when the content is large enough to browse.
+- Every new user-facing list or table must support sortable columns with the classic ascending and descending toggle on the most relevant fields.
+- Search and sorting must preserve existing filters when possible.
+- Search bars, filters, and sorting controls must remain mobile friendly and must not introduce horizontal overflow outside intentionally scrollable tables.
+- When extending an existing list, keep search and sort behavior consistent with the other dashboard lists already present in the project.
+
+## Copy Review
+
+- Double-check every new user-facing text before closing the task.
+- Verify spelling, accents, punctuation, and placeholders in emails, buttons, alerts, labels, and page copy.
+- Use the correct project naming consistently: `MedLavDelta` is the platform name, while `Centro Delta` is the company name unless a page or document explicitly needs the legal entity wording.
+
 ## Dependency Hygiene
 
 - Whenever a Python package is installed, upgraded, or added for project code or tests, update `requirements.txt` in the same change.

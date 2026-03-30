@@ -1,8 +1,11 @@
 from django.contrib import messages
+from django.db.models import CharField, DecimalField, ExpressionWrapper, F, Sum, Value
+from django.db.models.functions import Cast, Coalesce, Concat
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
+from apps.accounts.listing import apply_sorting, apply_text_search, get_list_search_term
 from apps.accounts.mixins import AdminPermissionRequiredMixin
 from apps.accounts.models import CustomUser
 from apps.aziende.models import Azienda
@@ -22,20 +25,80 @@ from .forms import (
 from .models import Fattura, Preventivo
 
 
+DOCUMENT_TOTAL_ZERO = Value(0, output_field=DecimalField(max_digits=12, decimal_places=2))
+
+
+def with_document_total_annotations(queryset):
+    line_total = ExpressionWrapper(
+        F('voci__quantita') * F('voci__costo_unitario') * (
+            Value(1, output_field=DecimalField(max_digits=12, decimal_places=2))
+            - F('voci__sconto_percentuale') / Value(100, output_field=DecimalField(max_digits=12, decimal_places=2))
+        ),
+        output_field=DecimalField(max_digits=12, decimal_places=2),
+    )
+    return queryset.annotate(
+        totale_imponibile_ordinamento=Coalesce(
+            Sum(line_total),
+            DOCUMENT_TOTAL_ZERO,
+        )
+    ).annotate(
+        totale_complessivo_ordinamento=ExpressionWrapper(
+            F('totale_imponibile_ordinamento') * (
+                Value(1, output_field=DecimalField(max_digits=12, decimal_places=2))
+                + F('aliquota_iva') / Value(100, output_field=DecimalField(max_digits=12, decimal_places=2))
+            ),
+            output_field=DecimalField(max_digits=12, decimal_places=2),
+        )
+    )
+
+
 class AdminPreventiviListView(AdminPermissionRequiredMixin, View):
     admin_permissions_required = (CustomUser.ADMIN_PERMISSION_PREVENTIVI,)
 
     def get(self, request):
-        preventivi = Preventivo.objects.select_related('azienda').prefetch_related('voci')
+        preventivi = with_document_total_annotations(
+            Preventivo.objects.select_related('azienda').prefetch_related('voci').annotate(
+                numero_preventivo_text=Cast('numero_preventivo', CharField()),
+            )
+        )
         azienda_pk = request.GET.get('azienda')
         azienda_selezionata = None
         if azienda_pk:
             azienda_selezionata = get_object_or_404(Azienda, pk=azienda_pk)
             preventivi = preventivi.filter(azienda=azienda_selezionata)
+        current_search = get_list_search_term(request)
+        preventivi = apply_text_search(
+            preventivi,
+            current_search,
+            (
+                'numero_preventivo_text',
+                'azienda__ragione_sociale',
+                'oggetto',
+                'descrizione_oggetto',
+            ),
+        )
+        preventivi, current_sort, current_dir = apply_sorting(
+            preventivi,
+            sort_key=request.GET.get('sort'),
+            direction=request.GET.get('dir'),
+            sort_map={
+                'numero': ('numero_preventivo',),
+                'data': ('data_preventivo', 'numero_preventivo'),
+                'cliente': ('azienda__ragione_sociale', 'numero_preventivo'),
+                'oggetto': ('oggetto', 'numero_preventivo'),
+                'imponibile': ('totale_imponibile_ordinamento', 'numero_preventivo'),
+                'totale': ('totale_complessivo_ordinamento', 'numero_preventivo'),
+            },
+            default_sort='data',
+            default_dir='desc',
+        )
         context = {
             'preventivi': preventivi,
             'aziende': Azienda.objects.order_by('ragione_sociale'),
             'azienda_selezionata': azienda_selezionata,
+            'current_search': current_search,
+            'current_sort': current_sort,
+            'current_dir': current_dir,
         }
         return render(request, 'commerciale/admin_preventivi_list.html', context)
 
@@ -109,16 +172,70 @@ class AdminFattureListView(AdminPermissionRequiredMixin, View):
     admin_permissions_required = (CustomUser.ADMIN_PERMISSION_FATTURE,)
 
     def get(self, request):
-        fatture = Fattura.objects.select_related('azienda').prefetch_related('voci')
+        fatture = with_document_total_annotations(
+            Fattura.objects.select_related('azienda').prefetch_related('voci').annotate(
+                numero_progressivo_text=Cast('numero_progressivo', CharField()),
+                anno_fattura_text=Cast('anno_fattura', CharField()),
+                numero_documento_search=Concat(
+                    'prefisso_numero',
+                    Value(' '),
+                    Cast('numero_progressivo', CharField()),
+                    output_field=CharField(),
+                ),
+                numero_completo_search=Concat(
+                    'prefisso_numero',
+                    Value('/'),
+                    Cast('numero_progressivo', CharField()),
+                    Value('/'),
+                    Cast('anno_fattura', CharField()),
+                    output_field=CharField(),
+                ),
+            )
+        )
         azienda_pk = request.GET.get('azienda')
         azienda_selezionata = None
         if azienda_pk:
             azienda_selezionata = get_object_or_404(Azienda, pk=azienda_pk)
             fatture = fatture.filter(azienda=azienda_selezionata)
+        current_search = get_list_search_term(request)
+        fatture = apply_text_search(
+            fatture,
+            current_search,
+            (
+                'numero_documento_search',
+                'numero_completo_search',
+                'azienda__ragione_sociale',
+                'categoria_merceologica',
+                'modalita_pagamento',
+                'note',
+            ),
+        )
+        fatture, current_sort, current_dir = apply_sorting(
+            fatture,
+            sort_key=request.GET.get('sort'),
+            direction=request.GET.get('dir'),
+            sort_map={
+                'numero': ('anno_fattura', 'numero_progressivo'),
+                'data': ('data_fattura', 'numero_progressivo'),
+                'scadenza': ('scadenza', 'numero_progressivo'),
+                'categoria': ('categoria_merceologica', 'numero_progressivo'),
+                'intestatario': ('azienda__ragione_sociale', 'numero_progressivo'),
+                'pagamento': ('modalita_pagamento', 'numero_progressivo'),
+                'imponibile': ('totale_imponibile_ordinamento', 'numero_progressivo'),
+                'totale': ('totale_complessivo_ordinamento', 'numero_progressivo'),
+                'inviata': ('inviata_il', 'numero_progressivo'),
+                'incassata': ('data_incasso', 'numero_progressivo'),
+            },
+            default_sort='data',
+            default_dir='desc',
+        )
         context = {
             'fatture': fatture,
             'aziende': Azienda.objects.order_by('ragione_sociale'),
             'azienda_selezionata': azienda_selezionata,
+            'current_search': current_search,
+            'current_sort': current_sort,
+            'current_dir': current_dir,
         }
         return render(request, 'commerciale/admin_fatture_list.html', context)
 

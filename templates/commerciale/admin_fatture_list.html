@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load querystring %}
 {% block title %}Fatture{% endblock %}
 {% block breadcrumb %}<strong>Fatture</strong> Area admin{% endblock %}
 
@@ -9,16 +10,7 @@
 {% block extra_css %}
 <style>
     .invoice-filter-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 12px;
-        align-items: end;
-    }
-
-    .invoice-filter-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
+        display: block;
     }
 
     .invoice-table {
@@ -31,10 +23,6 @@
     }
 
     @media (max-width: 960px) {
-        .invoice-filter-actions .btn {
-            width: 100%;
-        }
-
         .invoice-table {
             min-width: 1080px;
         }
@@ -52,7 +40,18 @@
 </div>
 
 <div class="form-card">
-    <form method="get" class="invoice-filter-grid">
+    <form method="get" class="list-toolbar invoice-filter-grid">
+        <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" for="fatture-search">Cerca</label>
+            <input
+                id="fatture-search"
+                type="search"
+                name="q"
+                value="{{ current_search }}"
+                class="form-control"
+                placeholder="Numero, cliente, categoria, pagamento..."
+            >
+        </div>
         <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Filtra per azienda</label>
             <select name="azienda" class="form-control">
@@ -64,9 +63,11 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="invoice-filter-actions">
+        <input type="hidden" name="sort" value="{{ current_sort }}">
+        <input type="hidden" name="dir" value="{{ current_dir }}">
+        <div class="list-toolbar-actions">
             <button type="submit" class="btn btn-outline">Applica filtro</button>
-            {% if azienda_selezionata %}
+            {% if azienda_selezionata or current_search %}
             <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Reset</a>
             {% endif %}
         </div>
@@ -81,16 +82,16 @@
         <table class="delta-table invoice-table">
             <thead>
                 <tr>
-                    <th>N. Fattura</th>
-                    <th>Data Fattura</th>
-                    <th>Data Scadenza</th>
-                    <th>Categoria Merceologica</th>
-                    <th>Intestatario</th>
-                    <th>Modalita Pagamento</th>
-                    <th>Imponibile</th>
-                    <th>Totale Dovuto</th>
-                    <th>Inviata</th>
-                    <th>Incassata</th>
+                    <th><a href="{% sort_query 'numero' %}" class="sort-link">N. Fattura <span class="sort-indicator">{% sort_indicator 'numero' %}</span></a></th>
+                    <th><a href="{% sort_query 'data' %}" class="sort-link">Data Fattura <span class="sort-indicator">{% sort_indicator 'data' %}</span></a></th>
+                    <th><a href="{% sort_query 'scadenza' %}" class="sort-link">Data Scadenza <span class="sort-indicator">{% sort_indicator 'scadenza' %}</span></a></th>
+                    <th><a href="{% sort_query 'categoria' %}" class="sort-link">Categoria Merceologica <span class="sort-indicator">{% sort_indicator 'categoria' %}</span></a></th>
+                    <th><a href="{% sort_query 'intestatario' %}" class="sort-link">Intestatario <span class="sort-indicator">{% sort_indicator 'intestatario' %}</span></a></th>
+                    <th><a href="{% sort_query 'pagamento' %}" class="sort-link">Modalita Pagamento <span class="sort-indicator">{% sort_indicator 'pagamento' %}</span></a></th>
+                    <th><a href="{% sort_query 'imponibile' %}" class="sort-link">Imponibile <span class="sort-indicator">{% sort_indicator 'imponibile' %}</span></a></th>
+                    <th><a href="{% sort_query 'totale' %}" class="sort-link">Totale Dovuto <span class="sort-indicator">{% sort_indicator 'totale' %}</span></a></th>
+                    <th><a href="{% sort_query 'inviata' %}" class="sort-link">Inviata <span class="sort-indicator">{% sort_indicator 'inviata' %}</span></a></th>
+                    <th><a href="{% sort_query 'incassata' %}" class="sort-link">Incassata <span class="sort-indicator">{% sort_indicator 'incassata' %}</span></a></th>
                     <th>Note Interne</th>
                     <th>Modifica</th>
                     <th>Stampa</th>

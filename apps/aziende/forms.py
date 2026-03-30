@@ -14,7 +14,6 @@ from .validators import (
 class CreaAziendaForm(forms.Form):
     # Dati account
     email = forms.EmailField(label='Email account azienda')
-    password = forms.CharField(widget=forms.PasswordInput, label='Password')
 
     # Dati azienda
     ragione_sociale = forms.CharField(max_length=255)
@@ -53,6 +52,9 @@ class CreaAziendaForm(forms.Form):
         super().__init__(*args, **kwargs)
         document_help_text = (
             f'Formati ammessi: PDF, DOCX. Max {COMPANY_DOCUMENT_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
+        )
+        self.fields['email'].help_text = (
+            'La password verra generata automaticamente e inviata a questo indirizzo email.'
         )
 
         for field_name, field in self.fields.items():
@@ -121,12 +123,7 @@ class LavoratoreForm(forms.ModelForm):
             self.fields['account_email'] = forms.EmailField(
                 required=False,
                 label='Email account lavoratore',
-                help_text='Opzionale: crea subito l\'account per accesso al portale.',
-            )
-            self.fields['account_password'] = forms.CharField(
-                required=False,
-                label='Password temporanea',
-                widget=forms.PasswordInput(render_value=False),
+                help_text='Opzionale: crea subito l\'account e invia via email una password generata automaticamente.',
             )
 
         for field in self.fields.values():
@@ -140,14 +137,8 @@ class LavoratoreForm(forms.ModelForm):
         cleaned = super().clean()
         if 'account_email' in self.fields:
             account_email = cleaned.get('account_email')
-            account_password = cleaned.get('account_password')
-            if account_email or account_password:
-                if not account_email or not account_password:
-                    raise forms.ValidationError(
-                        'Per creare un account lavoratore devi inserire sia email sia password.'
-                    )
-                if CustomUser.objects.filter(email=account_email).exists():
-                    self.add_error('account_email', 'Esiste gia un account con questa email.')
+            if account_email and CustomUser.objects.filter(email=account_email).exists():
+                self.add_error('account_email', 'Esiste gia un account con questa email.')
         return cleaned
 
 

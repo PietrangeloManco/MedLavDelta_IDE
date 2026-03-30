@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load querystring %}
 {% block title %}Lavoratori{% endblock %}
 {% block breadcrumb %}<strong>Lavoratori</strong>{% endblock %}
 
@@ -20,17 +21,52 @@
     </div>
 </div>
 
+<div class="form-card">
+    <form method="get" class="list-toolbar">
+        <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" for="lavoratori-search">Cerca lavoratore</label>
+            <input
+                id="lavoratori-search"
+                type="search"
+                name="q"
+                value="{{ current_search }}"
+                class="form-control"
+                placeholder="Nome, cognome, azienda, sede, mansione..."
+            >
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" for="lavoratori-azienda">Filtra per azienda</label>
+            <select id="lavoratori-azienda" name="azienda" class="form-control">
+                <option value="">Tutte le aziende</option>
+                {% for azienda in aziende %}
+                <option value="{{ azienda.pk }}"{% if azienda_selezionata and azienda_selezionata.pk == azienda.pk %} selected{% endif %}>
+                    {{ azienda.ragione_sociale }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <input type="hidden" name="sort" value="{{ current_sort }}">
+        <input type="hidden" name="dir" value="{{ current_dir }}">
+        <div class="list-toolbar-actions">
+            <button type="submit" class="btn btn-outline">Applica</button>
+            {% if current_search or azienda_selezionata %}
+            <a href="{% url 'admin_lavoratori' %}" class="btn btn-outline">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
 <div class="table-card">
     <div class="table-scroll">
         <table class="delta-table">
             <thead>
                 <tr>
-                    <th>Nominativo</th>
-                    <th>Azienda</th>
-                    <th>Sede</th>
-                    <th>Mansione</th>
-                    <th>Ultimo esito</th>
-                    <th>Scadenza</th>
+                    <th><a href="{% sort_query 'nominativo' %}" class="sort-link">Nominativo <span class="sort-indicator">{% sort_indicator 'nominativo' %}</span></a></th>
+                    <th><a href="{% sort_query 'azienda' %}" class="sort-link">Azienda <span class="sort-indicator">{% sort_indicator 'azienda' %}</span></a></th>
+                    <th><a href="{% sort_query 'sede' %}" class="sort-link">Sede <span class="sort-indicator">{% sort_indicator 'sede' %}</span></a></th>
+                    <th><a href="{% sort_query 'mansione' %}" class="sort-link">Mansione <span class="sort-indicator">{% sort_indicator 'mansione' %}</span></a></th>
+                    <th><a href="{% sort_query 'esito' %}" class="sort-link">Ultimo esito <span class="sort-indicator">{% sort_indicator 'esito' %}</span></a></th>
+                    <th><a href="{% sort_query 'scadenza' %}" class="sort-link">Scadenza <span class="sort-indicator">{% sort_indicator 'scadenza' %}</span></a></th>
                     <th></th>
                 </tr>
             </thead>
@@ -42,26 +78,22 @@
                     <td class="text-muted">{{ lavoratore.sede|default:"-" }}</td>
                     <td>{{ lavoratore.mansione }}</td>
                     <td>
-                        {% with lavoratore.idoneita.first as esito %}
-                            {% if esito %}
-                            <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
-                                {{ esito.get_esito_display }}
-                            </span>
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
-                        {% endwith %}
+                        {% if lavoratore.ultimo_esito %}
+                        <span class="badge badge-{% if lavoratore.ultimo_esito == 'idoneo' %}success{% elif lavoratore.ultimo_esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                            {% if lavoratore.ultimo_esito == 'idoneo' %}Idoneo{% elif lavoratore.ultimo_esito == 'idoneo_limitazioni' %}Idoneo con limitazioni{% elif lavoratore.ultimo_esito == 'non_idoneo' %}Non idoneo{% else %}Non idoneo temporaneo{% endif %}
+                        </span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
                     </td>
                     <td>
-                        {% with lavoratore.idoneita.first as esito %}
-                            {% if esito %}
-                            <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
-                                {{ esito.data_scadenza }}
-                            </span>
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
-                        {% endwith %}
+                        {% if lavoratore.ultima_scadenza %}
+                        <span class="{% if lavoratore.ultima_scadenza < today %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
+                            {{ lavoratore.ultima_scadenza }}
+                        </span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
                     </td>
                     <td>
                         {% if request.user.admin_permission_map.medical_records_manage %}
