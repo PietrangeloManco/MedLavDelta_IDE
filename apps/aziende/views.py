@@ -420,15 +420,15 @@ class AdminCaricaDocumentoView(AdminPermissionRequiredMixin, View):
             doc.save()
             messages.success(request, 'Documento caricato con successo.')
             if doc.tipo == DocumentoSanitario.REFERTO and getattr(lavoratore, 'user', None):
-                subject = 'I suoi referti sono disponibili - Centro Medico Delta'
+                subject = 'I tuoi referti sono disponibili su MedLavDelta'
                 corpo = (
                     "Gentile,\n"
-                    "Le comunichiamo che Centro Medico Delta ha caricato sulla piattaforma "
+                    "Le comunichiamo che Centro Delta ha caricato sulla piattaforma MedLavDelta "
                     "i referti relativi alla sua visita medica.\n"
-                    "Puo consultarli in qualsiasi momento accedendo alla sua area personale.\n"
+                    "Può consultarli in qualsiasi momento accedendo alla sua area personale.\n"
                     "Per qualsiasi informazione, rimaniamo a sua disposizione.\n"
                     "Cordiali saluti,\n"
-                    "Centro Medico Delta"
+                    "Centro Delta"
                 )
                 send_notification_email(subject, corpo, [lavoratore.user.email])
         else:
@@ -452,19 +452,19 @@ class AdminRegistraEsitoView(AdminPermissionRequiredMixin, View):
                 if getattr(azienda, 'user', None)
                 else azienda.email_contatto
             )
-            subject = 'Idoneita alla mansione disponibile'
+            subject = 'Giudizio di idoneità disponibile su MedLavDelta'
             corpo = (
                 "Gentile,\n"
-                "Le comunichiamo che Centro Medico Delta ha caricato sulla piattaforma "
-                f"il giudizio di idoneita alla mansione relativo al lavoratore {lavoratore.nome_completo}.\n"
-                "Il documento e ora consultabile accedendo alla sua area riservata.\n"
+                "Le comunichiamo che Centro Delta ha caricato sulla piattaforma MedLavDelta "
+                f"il giudizio di idoneità alla mansione relativo al lavoratore {lavoratore.nome_completo}.\n"
+                "Il documento è ora consultabile accedendo alla sua area riservata.\n"
                 "[ ACCEDI ALLA PIATTAFORMA ]\n"
                 "Per qualsiasi informazione, rimaniamo a sua disposizione.\n"
                 "Cordiali saluti,\n"
-                "Centro Medico Delta"
+                "Centro Delta"
             )
             send_notification_email(subject, corpo, [destinatario])
-            messages.success(request, 'Esito idoneita registrato.')
+            messages.success(request, 'Esito idoneità registrato.')
         else:
             messages.error(request, "Errore nella registrazione dell'esito.")
         return redirect('admin_lavoratore_detail', pk=pk)

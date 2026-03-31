@@ -1,10 +1,10 @@
 {% extends "admin/base.html" %}
 {% load static %}
 
-{% block title %}{{ title }} — Centro Delta Admin{% endblock %}
+{% block title %}{{ title }} | MedLavDelta Admin{% endblock %}
 
 {% block branding %}
-<a href="{% url 'admin:index' %}" id="site-name">Centro Delta</a>
+<a href="{% url 'admin:index' %}" id="site-name">MedLavDelta</a>
 {% endblock %}
 
 {% block extrastyle %}
@@ -315,13 +315,17 @@
         color: white !important;
         border: none !important;
         border-radius: 8px !important;
-        padding: 8px 16px !important;
+        min-height: 42px !important;
+        padding: 10px 16px !important;
         font-family: var(--font-sans) !important;
-        font-size: 13px !important;
-        font-weight: 500 !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
         text-align: center !important;
         cursor: pointer !important;
         transition: background 0.15s !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        text-transform: none !important;
     }
     .actions .action-run-btn {
         display: inline-flex !important;
@@ -335,11 +339,14 @@
         background: #ef4444 !important;
         color: white !important;
         border-radius: 8px !important;
-        padding: 8px 16px !important;
-        font-size: 13px !important;
+        min-height: 42px !important;
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
         line-height: 1.2 !important;
         display: inline-flex !important;
         align-items: center !important;
+        justify-content: center !important;
         text-decoration: none !important;
     }
 
@@ -370,6 +377,30 @@
         border: 1px solid #e2e8f0 !important;
         border-radius: 0 0 10px 10px !important;
         padding: 14px 16px !important;
+        display: flex !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+    }
+    .submit-row input,
+    .submit-row a {
+        margin: 0 !important;
+    }
+    .submit-row input.default {
+        text-transform: none !important;
+        letter-spacing: 0 !important;
+    }
+    .submit-row a.deletelink {
+        margin-left: auto !important;
+    }
+    @media (max-width: 1024px) {
+        .submit-row input,
+        .submit-row a {
+            width: 100% !important;
+        }
+        .submit-row a.deletelink {
+            margin-left: 0 !important;
+        }
     }
 
     /* Filter */
@@ -419,21 +450,21 @@
 
 <div id="delta-sidebar">
     <div class="ds-brand">
-        <a href="{% url 'dashboard' %}" class="ds-brand-link" title="Vai al pannello di controllo">
+        <a href="{% url 'dashboard' %}" class="ds-brand-link" title="Vai a MedLavDelta">
             <img src="{% static 'Logo_oriz.svg' %}" alt="Centro Delta Logo" class="ds-brand-logo">
         </a>
     </div>
     <div class="ds-nav">
-        <div class="ds-product-title">Medicina del Lavoro</div>
+        <div class="ds-product-title">MedLavDelta</div>
         <span class="ds-label">Principale</span>
         <a class="ds-link" href="{% url 'admin_dashboard' %}">
-            <span class="icon">⊞</span> Pannello di controllo
+            <span class="icon">&#8962;</span> Pannello di controllo
         </a>
         <a class="ds-link" href="{% url 'admin_lavoratori' %}">
             <span class="icon">{% include 'includes/icons/workers-group.html' %}</span> Lavoratori
         </a>
         <a class="ds-link" href="{% url 'admin_crea_azienda' %}">
-            <span class="icon">＋</span> Nuova azienda
+            <span class="icon">+</span> Nuova azienda
         </a>
         <span class="ds-label" style="margin-top:16px">Admin Django</span>
         <a class="ds-link" href="{% url 'admin:index' %}">
@@ -457,7 +488,7 @@
             <div class="ds-avatar">{{ request.user.email|first }}</div>
             <div class="ds-user-info">
                 <div class="ds-user-email">{{ request.user.email }}</div>
-                <div class="ds-user-role">Amministratore</div>
+                <div class="ds-user-role">Amministrazione</div>
             </div>
             <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
@@ -468,9 +499,9 @@
 </div>
 
 <div id="delta-topbar">
-    <span>Pannello <strong>Amministrazione dati</strong></span>
+    <span>Pannello <strong>MedLavDelta Admin</strong></span>
     <a href="{% url 'admin_dashboard' %}" style="color:#3b82f6; font-size:13px; text-decoration:none">
-        ← Torna al pannello di controllo
+        &larr; Torna al pannello
     </a>
 </div>
 

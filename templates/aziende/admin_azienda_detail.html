@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'admin_aziende' %}" class="text-decoration-none text-muted small">&larr; Torna all'elenco aziende</a>
+<a href="{% url 'admin_aziende' %}" class="page-back-link">&larr; Torna all'elenco aziende</a>
 
 <div class="page-header" style="margin-top:8px">
     <div>
@@ -48,14 +48,14 @@
         <div style="font-size:18px; font-weight:700; color:var(--text)">
             {% if azienda.contratto_saldato %}Saldato{% else %}Non saldato{% endif %}
         </div>
-        <div class="text-muted small">Stato operativo azienda</div>
+        <div class="text-muted small">Stato operativo</div>
     </div>
 </div>
 
 <div class="split-grid">
     <div>
         <div class="form-card">
-            <div class="form-card-title">Profilo azienda</div>
+            <div class="form-card-title">Profilo aziendale</div>
             <div class="detail-grid">
                 <div class="detail-panel">
                     <div class="form-label">Contatti</div>
@@ -103,7 +103,7 @@
                             {% csrf_token %}
                             <input type="hidden" name="next" value="{{ request.path }}">
                             <input type="hidden" name="contratto_saldato" value="{% if azienda.contratto_saldato %}0{% else %}1{% endif %}">
-                            <button type="submit" class="btn btn-outline" style="width:100%">
+                            <button type="submit" class="btn btn-outline btn-block">
                                 {% if azienda.contratto_saldato %}Segna non saldato{% else %}Segna saldato{% endif %}
                             </button>
                         </form>
@@ -204,7 +204,7 @@
                     {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
                 </div>
                 {% endfor %}
-                <button type="submit" class="btn btn-primary" style="width:100%">Carica documento</button>
+                <button type="submit" class="btn btn-primary btn-block">Carica documento</button>
             </form>
         </div>
         {% endif %}
@@ -232,7 +232,7 @@
                             <td>{{ lavoratore.mansione }}</td>
                             <td>
                                 {% if request.user.admin_permission_map.medical_records_manage %}
-                                <a href="{% url 'admin_lavoratore_detail' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda</a>
+                                <a href="{% url 'admin_lavoratore_detail' lavoratore.pk %}" class="btn btn-outline btn-sm">Apri scheda</a>
                                 {% else %}
                                 <span class="text-muted small">Solo elenco</span>
                                 {% endif %}

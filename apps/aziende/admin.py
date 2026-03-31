@@ -17,7 +17,7 @@ class AziendaAdminForm(forms.ModelForm):
         queryset=CustomUser.objects.none(),
         required=False,
         label='Account azienda esistente',
-        help_text='Seleziona un account gia disponibile oppure creane uno nuovo qui sotto.',
+        help_text='Seleziona un account già disponibile oppure creane uno nuovo qui sotto.',
     )
     account_email = forms.EmailField(
         required=False,
@@ -46,7 +46,7 @@ class AziendaAdminForm(forms.ModelForm):
             user_queryset = user_queryset.filter(azienda__isnull=True)
             self.fields['account_email'].help_text = (
                 "Inseriscila se vuoi creare un nuovo account azienda da questa scheda. "
-                "La password verra generata automaticamente e inviata via email."
+                "La password verrà generata automaticamente e inviata via email."
             )
         self.fields['user'].queryset = user_queryset.order_by('email')
 
@@ -62,7 +62,7 @@ class AziendaAdminForm(forms.ModelForm):
             ('codice_univoco', 'Codice univoco'),
             ('pec', 'PEC'),
             ('referente_azienda', 'Referente azienda'),
-            ('condizioni_pagamento_riservate', 'Condizioni Pagamento Riservate'),
+            ('condizioni_pagamento_riservate', 'Condizioni di pagamento riservate'),
         ):
             if field_name in self.fields:
                 self.fields[field_name].label = label
@@ -93,7 +93,7 @@ class AziendaAdminForm(forms.ModelForm):
                 pk=current_user.pk if current_user else None
             ).filter(email=account_email)
             if conflict_qs.exists():
-                self.add_error('account_email', 'Esiste gia un utente con questa email.')
+                self.add_error('account_email', 'Esiste già un utente con questa email.')
 
         cleaned['account_email'] = account_email
         return cleaned
@@ -132,7 +132,7 @@ class LavoratoreAdminForm(forms.ModelForm):
         queryset=CustomUser.objects.none(),
         required=False,
         label='Account operatore esistente',
-        help_text='Collega un account gia disponibile oppure creane uno nuovo qui sotto.',
+        help_text='Collega un account già disponibile oppure creane uno nuovo qui sotto.',
     )
     account_email = forms.EmailField(
         required=False,
@@ -157,7 +157,7 @@ class LavoratoreAdminForm(forms.ModelForm):
             user_queryset = user_queryset.filter(lavoratore__isnull=True)
             self.fields['account_email'].help_text = (
                 "Inseriscila se vuoi creare un nuovo account operatore da questa scheda. "
-                "La password verra generata automaticamente e inviata via email."
+                "La password verrà generata automaticamente e inviata via email."
             )
         self.fields['user'].queryset = user_queryset.order_by('email')
 
@@ -172,7 +172,7 @@ class LavoratoreAdminForm(forms.ModelForm):
                 pk=current_user.pk if current_user else None
             ).filter(email=account_email)
             if conflict_qs.exists():
-                self.add_error('account_email', 'Esiste gia un utente con questa email.')
+                self.add_error('account_email', 'Esiste già un utente con questa email.')
 
         cleaned['account_email'] = account_email
         return cleaned

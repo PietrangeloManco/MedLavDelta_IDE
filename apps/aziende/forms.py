@@ -25,7 +25,7 @@ class CreaAziendaForm(forms.Form):
     email_contatto = forms.EmailField(label='Email di contatto')
     telefono = forms.CharField(max_length=20, required=False)
     condizioni_pagamento_riservate = forms.CharField(
-        label='Condizioni Pagamento Riservate',
+        label='Condizioni di pagamento riservate',
         widget=forms.Textarea(attrs={'rows': 3}),
     )
     logo_azienda = forms.FileField(
@@ -54,7 +54,7 @@ class CreaAziendaForm(forms.Form):
             f'Formati ammessi: PDF, DOCX. Max {COMPANY_DOCUMENT_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
         )
         self.fields['email'].help_text = (
-            'La password verra generata automaticamente e inviata a questo indirizzo email.'
+            'La password verrà generata automaticamente e inviata a questo indirizzo email.'
         )
 
         for field_name, field in self.fields.items():
@@ -138,7 +138,7 @@ class LavoratoreForm(forms.ModelForm):
         if 'account_email' in self.fields:
             account_email = cleaned.get('account_email')
             if account_email and CustomUser.objects.filter(email=account_email).exists():
-                self.add_error('account_email', 'Esiste gia un account con questa email.')
+                self.add_error('account_email', 'Esiste già un account con questa email.')
         return cleaned
 
 

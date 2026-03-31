@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Centro Delta{% endblock %} - Medicina del Lavoro</title>
+    <title>{% block title %}MedLavDelta{% endblock %} | Medicina del Lavoro</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -16,6 +16,7 @@
             --accent: #3b82f6;
             --accent-dim: #1e40af;
             --danger: #ef4444;
+            --danger-dark: #b91c1c;
             --success: #10b981;
             --warning: #f59e0b;
             --bg: #f0f4f8;
@@ -542,16 +543,19 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-            padding: 8px 16px;
+            min-height: 42px;
+            padding: 10px 16px;
             border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
+            font-size: 14px;
+            font-weight: 600;
             font-family: var(--font-sans);
             cursor: pointer;
             text-decoration: none;
             border: none;
             transition: all 0.15s;
-            white-space: nowrap;
+            white-space: normal;
+            text-align: center;
+            line-height: 1.2;
         }
 
         .btn-primary {
@@ -574,17 +578,33 @@
             background: var(--bg);
         }
 
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger-dark);
+            color: white;
+        }
+
         .btn-link {
             color: var(--accent-dim);
             text-decoration: none;
             background: transparent;
             border: none;
             padding: 0;
+            min-height: auto;
         }
 
         .btn-sm {
-            padding: 5px 12px;
-            font-size: 12px;
+            min-height: 36px;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+
+        .btn-block {
+            width: 100%;
         }
 
         .form-card {
@@ -704,6 +724,51 @@
             flex-wrap: wrap;
         }
 
+        .stack-actions-end {
+            justify-content: flex-end;
+        }
+
+        .stack-actions form {
+            display: flex;
+        }
+
+        .stack-actions form .btn {
+            width: 100%;
+        }
+
+        .page-back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .page-back-link:hover {
+            color: var(--navy-mid);
+        }
+
+        .field-span-full {
+            grid-column: 1 / -1;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-top: 8px;
+        }
+
+        .checkbox-row .form-label {
+            margin: 0;
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 14px;
+            color: var(--text);
+        }
+
         .split-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -813,6 +878,11 @@
                 width: 100%;
             }
 
+            .stack-actions form button,
+            .stack-actions form .btn {
+                width: 100%;
+            }
+
             .list-toolbar-actions .btn {
                 width: 100%;
             }
@@ -824,13 +894,13 @@
 
 <aside class="sidebar" id="app-sidebar">
     <div class="sidebar-brand">
-        <a class="brand-link" href="{% url 'dashboard' %}" title="Vai al pannello di controllo">
+        <a class="brand-link" href="{% url 'dashboard' %}" title="Vai a MedLavDelta">
             <img src="{% static 'Logo_oriz.svg' %}" alt="Centro Delta Logo" class="brand-logo">
         </a>
     </div>
 
     <div class="sidebar-section">
-        <div class="sidebar-product-title">Medicina del Lavoro</div>
+        <div class="sidebar-product-title">MedLavDelta</div>
         {% block sidebar %}{% endblock %}
     </div>
 
@@ -858,7 +928,7 @@
     <header class="topbar">
         <div class="topbar-left">
             <button class="mobile-nav-toggle" id="mobile-nav-toggle" type="button" aria-label="Apri menu">
-                <span aria-hidden="true">☰</span>
+                <span aria-hidden="true">&#9776;</span>
             </button>
             <div class="topbar-title">
                 {% block breadcrumb %}<strong>Pannello di controllo</strong>{% endblock %}

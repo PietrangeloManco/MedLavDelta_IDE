@@ -27,7 +27,7 @@ class CustomUserCreationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['email'].help_text = (
-            'La password verra generata automaticamente e inviata a questo indirizzo email.'
+            'La password verrà generata automaticamente e inviata a questo indirizzo email.'
         )
 
     def clean(self):
@@ -37,7 +37,7 @@ class CustomUserCreationForm(forms.ModelForm):
         admin_permissions = cleaned.get('admin_permissions') or []
 
         if is_superuser and role != CustomUser.ADMIN:
-            self.add_error('role', 'Solo un utente con ruolo amministratore puo essere super amministratore.')
+            self.add_error('role', 'Solo un utente con ruolo amministratore può essere super amministratore.')
 
         if role == CustomUser.ADMIN and not is_superuser and not admin_permissions:
             self.add_error(
@@ -79,7 +79,7 @@ class CustomUserChangeForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         help_text=(
             'Elenco provvisorio dei permessi per gli account admin non superuser. '
-            'Se l\'utente e super amministratore, questi permessi vengono ignorati.'
+            'Se l\'utente è super amministratore, questi permessi vengono ignorati.'
         ),
     )
     password = forms.CharField(
@@ -87,7 +87,7 @@ class CustomUserChangeForm(forms.ModelForm):
         label='Password salvata',
         widget=forms.TextInput(attrs={'readonly': 'readonly'}),
         help_text=(
-            'La password attuale non e visibile in chiaro. '
+            'La password attuale non è visibile in chiaro. '
             'Per sostituirla, inserisci una nuova password qui sotto.'
         ),
     )
@@ -104,7 +104,7 @@ class CustomUserChangeForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.initial['password'] = 'Password gia impostata'
+        self.initial['password'] = 'Password già impostata'
         self.initial['admin_permissions'] = self.instance.admin_permissions or []
         self.fields['email'].label = 'Email'
         self.fields['role'].label = 'Ruolo'
@@ -121,7 +121,7 @@ class CustomUserChangeForm(forms.ModelForm):
         admin_permissions = cleaned.get('admin_permissions') or []
 
         if is_superuser and role != CustomUser.ADMIN:
-            self.add_error('role', 'Solo un utente con ruolo amministratore puo essere super amministratore.')
+            self.add_error('role', 'Solo un utente con ruolo amministratore può essere super amministratore.')
 
         if role == CustomUser.ADMIN and not is_superuser and not admin_permissions:
             self.add_error(

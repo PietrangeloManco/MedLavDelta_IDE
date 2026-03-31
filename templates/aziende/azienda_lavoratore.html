@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'azienda_dashboard' %}" class="text-decoration-none text-muted small">&larr; Torna alla lista</a>
+<a href="{% url 'azienda_dashboard' %}" class="page-back-link">&larr; Torna alla lista</a>
 
 <div class="page-header" style="margin-top:8px">
     <div>
@@ -60,7 +60,7 @@
 {% if ultimo_esito and ultimo_esito.is_scaduto %}
 <div class="alert-banner warning">
     <div class="alert-icon">!</div>
-    <div><strong>Idoneita scaduta.</strong> Pianifica il rinnovo della visita medica.</div>
+    <div><strong>Idoneità scaduta.</strong> Pianifica il rinnovo della visita medica.</div>
 </div>
 {% endif %}
 {% endwith %}
@@ -122,7 +122,7 @@
 
 <div class="table-card">
     <div class="table-card-header">
-        <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneita</span>
+        <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneità</span>
         {% with esiti|first as ultimo_esito %}
         <div class="text-muted small">
             Totale: {{ esiti|length }}{% if ultimo_esito %} | Ultimo aggiornamento: {{ ultimo_esito.data_visita }}{% endif %}

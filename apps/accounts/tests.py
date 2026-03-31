@@ -72,7 +72,7 @@ class CustomUserAdminFormTests(TestCase):
             instance=user,
         )
 
-        self.assertEqual(form.initial['password'], 'Password gia impostata')
+        self.assertEqual(form.initial['password'], 'Password già impostata')
         self.assertEqual(form.fields['new_password'].widget.input_type, 'text')
         self.assertEqual(form.fields['is_active'].label, 'Attivo')
         self.assertTrue(form.is_valid(), form.errors)
@@ -120,5 +120,5 @@ class PasswordResetFlowTests(TestCase):
 
         self.assertRedirects(response, reverse('password_reset_done'))
         self.assertEqual(len(mail.outbox), 1)
-        self.assertIn('Reset password MedLavDelta', mail.outbox[0].subject)
+        self.assertIn('Reimposta la password di MedLavDelta', mail.outbox[0].subject)
         self.assertIn('/accounts/reset/', mail.outbox[0].body)

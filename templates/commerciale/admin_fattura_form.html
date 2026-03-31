@@ -231,8 +231,8 @@
                 <thead>
                     <tr>
                         <th>Descrizione</th>
-                        <th>Quantita</th>
-                        <th>Costo Unitario</th>
+                        <th>Quantità</th>
+                        <th>Costo unitario</th>
                         <th>Sconto (%)</th>
                         <th></th>
                     </tr>
@@ -286,7 +286,7 @@
     </div>
     {% endif %}
 
-    <div class="stack-actions" style="justify-content:flex-end">
+    <div class="stack-actions stack-actions-end">
         <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Annulla</a>
         {% if fattura %}
         <a href="{% url 'admin_fattura_xml' fattura.pk %}" class="btn btn-outline">XML</a>

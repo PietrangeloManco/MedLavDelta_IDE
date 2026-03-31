@@ -14,7 +14,7 @@ def validate_document_upload(upload):
     if ext not in ALLOWED_DOC_EXTENSIONS:
         raise forms.ValidationError('Sono accettati solo file PDF o DOCX.')
     if upload.size > MAX_UPLOAD_SIZE:
-        raise forms.ValidationError('Il file non puo superare 10MB.')
+        raise forms.ValidationError('Il file non può superare 10 MB.')
     return upload
 
 

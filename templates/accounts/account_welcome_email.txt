@@ -6,7 +6,7 @@ Email: {{ user.email }}
 Password temporanea: {{ temporary_password }}
 Accesso: {{ login_url }}
 
-Dopo il primo accesso puoi richiedere in qualsiasi momento il reset password dalla pagina di login o dal link "Cambia password" presente in MedLavDelta.
+Dopo il primo accesso puoi richiedere in qualsiasi momento la reimpostazione della password dalla pagina di login o dal link "Cambia password" presente in MedLavDelta.
 
 Cordiali saluti,
-Centro Delta - MedLavDelta
+Centro Delta | MedLavDelta

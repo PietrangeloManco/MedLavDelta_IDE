@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'admin_lavoratori' %}" class="text-decoration-none text-muted small">&larr; Torna ai lavoratori</a>
+<a href="{% url 'admin_lavoratori' %}" class="page-back-link">&larr; Torna ai lavoratori</a>
 
 <div class="page-header" style="margin-top:8px">
     <div>
@@ -78,7 +78,7 @@
     <div>
         <div class="table-card">
             <div class="table-card-header">
-                <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneita</span>
+                <span class="table-card-title icon-label">{% include 'includes/icons/check.html' %} Esiti idoneità</span>
             </div>
             <div class="table-scroll">
                 <table class="delta-table">
@@ -157,9 +157,11 @@
                 <div class="form-group">
                     <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field.as_widget }}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
                 </div>
                 {% endfor %}
-                <button type="submit" class="btn btn-primary" style="width:100%">Carica documento</button>
+                <button type="submit" class="btn btn-primary btn-block">Carica documento</button>
             </form>
         </div>
     </div>
@@ -176,16 +178,18 @@
         </div>
 
         <div class="form-card">
-            <div class="form-card-title">Registra esito idoneita</div>
+            <div class="form-card-title">Registra esito idoneità</div>
             <form method="post" action="{% url 'admin_registra_esito' lavoratore.pk %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 {% for field in esito_form %}
                 <div class="form-group">
                     <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field.as_widget }}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
                 </div>
                 {% endfor %}
-                <button type="submit" class="btn btn-primary" style="width:100%">Registra esito</button>
+                <button type="submit" class="btn btn-primary btn-block">Registra esito</button>
             </form>
         </div>
     </div>

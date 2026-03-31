@@ -36,7 +36,7 @@
         <div class="list-toolbar-actions">
             <button type="submit" class="btn btn-outline">Cerca</button>
             {% if current_search %}
-            <a href="{% url 'admin_aziende' %}" class="btn btn-outline">Reset</a>
+            <a href="{% url 'admin_aziende' %}" class="btn btn-outline">Azzera filtri</a>
             {% endif %}
         </div>
     </form>
@@ -75,7 +75,7 @@
                     <td>
                         <div class="stack-actions">
                             {% if request.user.admin_permission_map.company_profiles_manage or request.user.admin_permission_map.company_documents_manage %}
-                            <a href="{% url 'admin_azienda_detail' azienda.pk %}" class="btn btn-outline btn-sm">Scheda azienda</a>
+                            <a href="{% url 'admin_azienda_detail' azienda.pk %}" class="btn btn-outline btn-sm">Apri scheda</a>
                             {% endif %}
                             {% if request.user.admin_permission_map.workers_manage or request.user.admin_permission_map.medical_records_manage %}
                             <a href="{% url 'admin_lavoratori' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">Lavoratori</a>
@@ -84,10 +84,10 @@
                             <a href="{% url 'admin_azienda_lavoratore_nuovo' azienda.pk %}" class="btn btn-outline btn-sm">Aggiungi lavoratore</a>
                             {% endif %}
                             {% if request.user.admin_permission_map.preventives_manage %}
-                            <a href="{% url 'admin_preventivo_nuovo' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">Preventivo</a>
+                            <a href="{% url 'admin_preventivo_nuovo' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">Nuovo preventivo</a>
                             {% endif %}
                             {% if request.user.admin_permission_map.invoices_manage %}
-                            <a href="{% url 'admin_fattura_nuova' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">Fattura</a>
+                            <a href="{% url 'admin_fattura_nuova' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">Nuova fattura</a>
                             {% endif %}
                             {% if request.user.admin_permission_map.company_profiles_manage %}
                             <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}">

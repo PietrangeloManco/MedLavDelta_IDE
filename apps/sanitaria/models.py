@@ -23,7 +23,7 @@ class CartellaClinica(models.Model):
         verbose_name_plural = 'Cartelle Cliniche'
 
     def __str__(self):
-        return f'Cartella — {self.lavoratore}'
+        return f'Cartella - {self.lavoratore}'
 
 
 class DocumentoSanitario(models.Model):
@@ -55,7 +55,7 @@ class DocumentoSanitario(models.Model):
         ordering = ['-data']
 
     def __str__(self):
-        return f'{self.get_tipo_display()} — {self.cartella.lavoratore} ({self.data})'
+        return f'{self.get_tipo_display()} - {self.cartella.lavoratore} ({self.data})'
 
 
 class EsitoIdoneita(models.Model):
@@ -86,12 +86,12 @@ class EsitoIdoneita(models.Model):
     data_comunicazione = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        verbose_name = 'Esito Idoneità'
-        verbose_name_plural = 'Esiti Idoneità'
+        verbose_name = 'Esito idoneità'
+        verbose_name_plural = 'Esiti idoneità'
         ordering = ['-data_visita']
 
     def __str__(self):
-        return f'{self.lavoratore} — {self.get_esito_display()} ({self.data_visita})'
+        return f'{self.lavoratore} - {self.get_esito_display()} ({self.data_visita})'
 
     @property
     def is_scaduto(self):

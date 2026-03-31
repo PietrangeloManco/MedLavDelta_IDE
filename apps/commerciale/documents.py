@@ -47,7 +47,7 @@ class InvoiceIssuer:
 
 
 ISSUER = InvoiceIssuer(
-    display_name='Centro Delta idab Srl',
+    display_name='Centro Delta IDAB S.r.l.',
     legal_name='CENTRO MEDICO DELTA IDAB - ISTITUTO DI DIAGNOSTICA AVANZATA E DI BIOTECNOLOGIE S.R.L.',
     vat_code='00269500625',
     fiscal_code='00269500625',
@@ -389,13 +389,13 @@ def build_invoice_pdf_bytes(fattura) -> bytes:
                     styles['InvoiceCell'],
                 ),
                 Paragraph(
-                    f'<b>Condizioni di Pagamento</b> {escape(fattura.modalita_pagamento or "-")}',
+                    f'<b>Modalità di pagamento</b> {escape(fattura.modalita_pagamento or "-")}',
                     styles['InvoiceCell'],
                 ),
             ],
             [
                 Paragraph(
-                    f'<b>Modalita Pagamento</b><br/>{escape(fattura.gdd or "-")}',
+                    f'<b>G.D.D.</b><br/>{escape(fattura.gdd or "-")}',
                     styles['InvoiceCell'],
                 ),
                 Paragraph(
@@ -405,7 +405,7 @@ def build_invoice_pdf_bytes(fattura) -> bytes:
             ],
             [
                 Paragraph(
-                    f'<b>Scadenza Pagamento:</b> {_date_string(fattura.scadenza)}',
+                    f'<b>Scadenza pagamento</b><br/>{_date_string(fattura.scadenza)}',
                     styles['InvoiceCell'],
                 ),
                 Paragraph(
@@ -431,7 +431,7 @@ def build_invoice_pdf_bytes(fattura) -> bytes:
     line_rows = [
         [
             Paragraph('<b>Descrizione Prestazioni Effettuate</b>', styles['InvoiceCell']),
-            Paragraph('<b>Qta</b>', styles['InvoiceRight']),
+            Paragraph('<b>Q.tà</b>', styles['InvoiceRight']),
             Paragraph('<b>Costo</b>', styles['InvoiceRight']),
             Paragraph('<b>Sconto (%)</b>', styles['InvoiceRight']),
             Paragraph('<b>Importo</b>', styles['InvoiceRight']),
@@ -505,9 +505,9 @@ def build_invoice_pdf_bytes(fattura) -> bytes:
         detail_table,
     ]
 
-    footer_lines = [f'Esigibilita IVA: {fattura.esigibilita_iva or "-"}']
+    footer_lines = [f'Esigibilità IVA: {fattura.esigibilita_iva or "-"}']
     if fattura.categoria_merceologica_display:
-        footer_lines.append(f'Categoria Merceologica: {fattura.categoria_merceologica_display}')
+        footer_lines.append(f'Categoria merceologica: {fattura.categoria_merceologica_display}')
     if fattura.causale:
         footer_lines.append(f'Causale: {fattura.causale}')
 

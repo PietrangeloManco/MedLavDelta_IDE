@@ -29,7 +29,7 @@ def validate_company_document_upload(upload):
         allowed_extensions=ALLOWED_COMPANY_DOCUMENT_EXTENSIONS,
         max_size=COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
         invalid_extension_message='Sono accettati solo file PDF o DOCX.',
-        size_message='Il file non puo superare 15 MB.',
+        size_message='Il file non può superare 15 MB.',
     )
 
 
@@ -39,5 +39,5 @@ def validate_company_logo_upload(upload):
         allowed_extensions=ALLOWED_COMPANY_LOGO_EXTENSIONS,
         max_size=COMPANY_LOGO_MAX_UPLOAD_SIZE,
         invalid_extension_message='Il logo deve essere in formato PNG, JPG, JPEG, SVG o WEBP.',
-        size_message='Il logo non puo superare 2 MB.',
+        size_message='Il logo non può superare 2 MB.',
     )

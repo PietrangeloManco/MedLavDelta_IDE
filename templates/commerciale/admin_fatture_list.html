@@ -68,7 +68,7 @@
         <div class="list-toolbar-actions">
             <button type="submit" class="btn btn-outline">Applica filtro</button>
             {% if azienda_selezionata or current_search %}
-            <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Reset</a>
+            <a href="{% url 'admin_fatture' %}" class="btn btn-outline">Azzera filtri</a>
             {% endif %}
         </div>
     </form>
@@ -82,17 +82,17 @@
         <table class="delta-table invoice-table">
             <thead>
                 <tr>
-                    <th><a href="{% sort_query 'numero' %}" class="sort-link">N. Fattura <span class="sort-indicator">{% sort_indicator 'numero' %}</span></a></th>
-                    <th><a href="{% sort_query 'data' %}" class="sort-link">Data Fattura <span class="sort-indicator">{% sort_indicator 'data' %}</span></a></th>
-                    <th><a href="{% sort_query 'scadenza' %}" class="sort-link">Data Scadenza <span class="sort-indicator">{% sort_indicator 'scadenza' %}</span></a></th>
-                    <th><a href="{% sort_query 'categoria' %}" class="sort-link">Categoria Merceologica <span class="sort-indicator">{% sort_indicator 'categoria' %}</span></a></th>
+                    <th><a href="{% sort_query 'numero' %}" class="sort-link">N. fattura <span class="sort-indicator">{% sort_indicator 'numero' %}</span></a></th>
+                    <th><a href="{% sort_query 'data' %}" class="sort-link">Data fattura <span class="sort-indicator">{% sort_indicator 'data' %}</span></a></th>
+                    <th><a href="{% sort_query 'scadenza' %}" class="sort-link">Data scadenza <span class="sort-indicator">{% sort_indicator 'scadenza' %}</span></a></th>
+                    <th><a href="{% sort_query 'categoria' %}" class="sort-link">Categoria merceologica <span class="sort-indicator">{% sort_indicator 'categoria' %}</span></a></th>
                     <th><a href="{% sort_query 'intestatario' %}" class="sort-link">Intestatario <span class="sort-indicator">{% sort_indicator 'intestatario' %}</span></a></th>
-                    <th><a href="{% sort_query 'pagamento' %}" class="sort-link">Modalita Pagamento <span class="sort-indicator">{% sort_indicator 'pagamento' %}</span></a></th>
+                    <th><a href="{% sort_query 'pagamento' %}" class="sort-link">Modalità di pagamento <span class="sort-indicator">{% sort_indicator 'pagamento' %}</span></a></th>
                     <th><a href="{% sort_query 'imponibile' %}" class="sort-link">Imponibile <span class="sort-indicator">{% sort_indicator 'imponibile' %}</span></a></th>
-                    <th><a href="{% sort_query 'totale' %}" class="sort-link">Totale Dovuto <span class="sort-indicator">{% sort_indicator 'totale' %}</span></a></th>
+                    <th><a href="{% sort_query 'totale' %}" class="sort-link">Totale dovuto <span class="sort-indicator">{% sort_indicator 'totale' %}</span></a></th>
                     <th><a href="{% sort_query 'inviata' %}" class="sort-link">Inviata <span class="sort-indicator">{% sort_indicator 'inviata' %}</span></a></th>
                     <th><a href="{% sort_query 'incassata' %}" class="sort-link">Incassata <span class="sort-indicator">{% sort_indicator 'incassata' %}</span></a></th>
-                    <th>Note Interne</th>
+                    <th>Note interne</th>
                     <th>Modifica</th>
                     <th>Stampa</th>
                 </tr>
@@ -110,18 +110,18 @@
                     <td>EUR {{ fattura.totale_complessivo|floatformat:2 }}</td>
                     <td>
                         {% if fattura.inviata_il %}
-                        <span style="color:#15803d; font-weight:600">SI</span><br>
+                        <span class="badge badge-success">Sì</span><br>
                         <span class="text-muted">{{ fattura.inviata_il|date:"d/m/Y" }}</span>
                         {% else %}
-                        <span style="color:#dc2626; font-weight:600">NO</span>
+                        <span class="badge badge-danger">No</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if fattura.data_incasso %}
-                        <span style="color:#15803d; font-weight:600">SI</span><br>
+                        <span class="badge badge-success">Sì</span><br>
                         <span class="text-muted">{{ fattura.data_incasso|date:"d/m/Y" }}</span>
                         {% else %}
-                        <span style="color:#dc2626; font-weight:600">NO</span>
+                        <span class="badge badge-danger">No</span>
                         {% endif %}
                     </td>
                     <td>{{ fattura.note|default:"-" }}</td>

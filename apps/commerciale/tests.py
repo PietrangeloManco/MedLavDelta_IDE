@@ -123,7 +123,7 @@ class CommercialeAdminFlowTests(TestCase):
         response = self.client.get(reverse('admin_preventivo_nuovo'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Condizioni Pagamento Riservate')
+        self.assertContains(response, 'Condizioni di pagamento riservate')
 
     def test_preventivi_list_supports_search_and_sort(self):
         self.client.post(reverse('admin_preventivo_nuovo'), data=self._preventivo_payload())
@@ -167,7 +167,7 @@ class CommercialeAdminFlowTests(TestCase):
         response = self.client.get(reverse('admin_fattura_nuova'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Categoria Merceologica')
+        self.assertContains(response, 'Categoria merceologica')
 
     def test_fatture_list_supports_search_and_sort(self):
         self.client.post(reverse('admin_fattura_nuova'), data=self._fattura_payload())

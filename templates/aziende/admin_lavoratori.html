@@ -48,9 +48,9 @@
         <input type="hidden" name="sort" value="{{ current_sort }}">
         <input type="hidden" name="dir" value="{{ current_dir }}">
         <div class="list-toolbar-actions">
-            <button type="submit" class="btn btn-outline">Applica</button>
+            <button type="submit" class="btn btn-outline">Applica filtri</button>
             {% if current_search or azienda_selezionata %}
-            <a href="{% url 'admin_lavoratori' %}" class="btn btn-outline">Reset</a>
+            <a href="{% url 'admin_lavoratori' %}" class="btn btn-outline">Azzera filtri</a>
             {% endif %}
         </div>
     </form>
@@ -97,7 +97,7 @@
                     </td>
                     <td>
                         {% if request.user.admin_permission_map.medical_records_manage %}
-                        <a href="{% url 'admin_lavoratore_detail' lavoratore.pk %}" class="btn btn-outline btn-sm">Scheda</a>
+                        <a href="{% url 'admin_lavoratore_detail' lavoratore.pk %}" class="btn btn-outline btn-sm">Apri scheda</a>
                         {% else %}
                         <span class="text-muted small">Solo elenco</span>
                         {% endif %}

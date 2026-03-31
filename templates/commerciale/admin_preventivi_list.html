@@ -11,7 +11,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Preventivi</h1>
-        <p class="page-subtitle">Documenti associati alle aziende</p>
+        <p class="page-subtitle">Documenti associati alle aziende.</p>
     </div>
     <a href="{% url 'admin_preventivo_nuovo' %}" class="btn btn-primary">Nuovo preventivo</a>
 </div>
@@ -45,7 +45,7 @@
         <div class="list-toolbar-actions">
             <button type="submit" class="btn btn-outline">Applica filtro</button>
             {% if azienda_selezionata or current_search %}
-            <a href="{% url 'admin_preventivi' %}" class="btn btn-outline">Reset</a>
+            <a href="{% url 'admin_preventivi' %}" class="btn btn-outline">Azzera filtri</a>
             {% endif %}
         </div>
     </form>
@@ -59,8 +59,8 @@
         <table class="delta-table">
             <thead>
                 <tr>
-                    <th><a href="{% sort_query 'numero' %}" class="sort-link">N. Preventivo <span class="sort-indicator">{% sort_indicator 'numero' %}</span></a></th>
-                    <th><a href="{% sort_query 'data' %}" class="sort-link">Data Preventivo <span class="sort-indicator">{% sort_indicator 'data' %}</span></a></th>
+                    <th><a href="{% sort_query 'numero' %}" class="sort-link">N. preventivo <span class="sort-indicator">{% sort_indicator 'numero' %}</span></a></th>
+                    <th><a href="{% sort_query 'data' %}" class="sort-link">Data preventivo <span class="sort-indicator">{% sort_indicator 'data' %}</span></a></th>
                     <th><a href="{% sort_query 'cliente' %}" class="sort-link">Cliente <span class="sort-indicator">{% sort_indicator 'cliente' %}</span></a></th>
                     <th><a href="{% sort_query 'oggetto' %}" class="sort-link">Oggetto <span class="sort-indicator">{% sort_indicator 'oggetto' %}</span></a></th>
                     <th><a href="{% sort_query 'imponibile' %}" class="sort-link">Imponibile <span class="sort-indicator">{% sort_indicator 'imponibile' %}</span></a></th>

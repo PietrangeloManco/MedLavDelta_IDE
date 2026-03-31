@@ -16,7 +16,7 @@ class Command(BaseCommand):
         oggi = timezone.now().date()
         soglia = oggi + timedelta(days=30)
 
-        # Trova tutti gli esiti che scadono entro 30 giorni e non sono gia scaduti
+        # Trova tutti gli esiti che scadono entro 30 giorni e non sono già scaduti.
         esiti = EsitoIdoneita.objects.filter(
             data_scadenza__gte=oggi,
             data_scadenza__lte=soglia,
@@ -41,7 +41,7 @@ class Command(BaseCommand):
         for (azienda, data_scadenza), esiti_azienda in gruppi.items():
             nomi = []
             for esito in esiti_azienda:
-                nomi.append(f"• {esito.lavoratore.nome_completo}")
+                nomi.append(f"- {esito.lavoratore.nome_completo}")
 
             corpo = (
                 "Gentile,\n"
@@ -50,11 +50,11 @@ class Command(BaseCommand):
                 f"{chr(10).join(nomi)}\n"
                 "Siamo a disposizione per pianificare insieme le visite di rinnovo nel momento più comodo per la sua organizzazione.\n"
                 "\n"
-                "Accedi alla Piattaforma: https://medlavdelta.it/\n"
+                "Accedi a MedLavDelta: https://medlavdelta.it/\n"
                 "\n"
                 "Per qualsiasi informazione, rimaniamo a sua disposizione.\n"
                 "Cordiali saluti,\n"
-                "Centro Medico Delta"
+                "Centro Delta"
             )
 
             destinatari = []
@@ -76,7 +76,7 @@ class Command(BaseCommand):
 
             try:
                 send_mail(
-                    subject='PROMEMORIA — Scadenze idoneità',
+                    subject='Promemoria | Scadenze idoneità su MedLavDelta',
                     message=corpo,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=destinatari,

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Pannello di controllo Admin{% endblock %}
+{% block title %}Pannello di controllo admin{% endblock %}
 {% block breadcrumb %}<strong>Pannello di controllo</strong> Amministratore{% endblock %}
 
 {% block sidebar %}
@@ -10,7 +10,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Panoramica operativa</h1>
-        <p class="page-subtitle">Riepilogo rapido delle attivita di Centro Delta.</p>
+        <p class="page-subtitle">Riepilogo rapido delle attività di Centro Delta.</p>
     </div>
     <div class="stack-actions">
         {% if request.user.admin_permission_map.company_profiles_manage or request.user.admin_permission_map.company_documents_manage or request.user.admin_permission_map.preventives_manage or request.user.admin_permission_map.invoices_manage %}
@@ -44,7 +44,7 @@
 <div class="alert-banner warning">
     <span class="alert-icon">!</span>
     <div>
-        <strong>{{ totale_scadenze }} visita/e in scadenza nei prossimi 30 giorni.</strong>
+        <strong>{{ totale_scadenze }} visite in scadenza nei prossimi 30 giorni.</strong>
         Contatta le aziende interessate per pianificare i rinnovi.
     </div>
 </div>
@@ -73,7 +73,7 @@
                     <td><span class="badge badge-warning">{{ esito.data_scadenza }}</span></td>
                     <td>
                         {% if request.user.admin_permission_map.medical_records_manage %}
-                        <a href="{% url 'admin_lavoratore_detail' esito.lavoratore.pk %}" class="btn btn-outline btn-sm">Vai alla scheda</a>
+                        <a href="{% url 'admin_lavoratore_detail' esito.lavoratore.pk %}" class="btn btn-outline btn-sm">Apri scheda</a>
                         {% else %}
                         <span class="text-muted small">Solo consultazione</span>
                         {% endif %}

@@ -75,7 +75,7 @@ class Azienda(models.Model):
     varie_note = models.TextField(blank=True)
     contratto_saldato = models.BooleanField(
         default=True,
-        help_text='Se non saldato, l\'azienda vedra un avviso e le funzionalita saranno limitate.',
+        help_text='Se non saldato, l\'azienda vedrà un avviso e le funzionalità saranno limitate.',
     )
     data_registrazione = models.DateTimeField(auto_now_add=True)
 
@@ -167,7 +167,7 @@ class Sede(models.Model):
         verbose_name_plural = 'Sedi'
 
     def __str__(self):
-        return f'{self.azienda} — {self.nome} ({self.citta})'
+        return f'{self.azienda} - {self.nome} ({self.citta})'
 
 
 class Lavoratore(models.Model):
@@ -197,7 +197,7 @@ class Lavoratore(models.Model):
         ordering = ['cognome', 'nome']
 
     def __str__(self):
-        return f'{self.cognome} {self.nome} — {self.azienda}'
+        return f'{self.cognome} {self.nome} - {self.azienda}'
 
     @property
     def nome_completo(self):

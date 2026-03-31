@@ -23,7 +23,7 @@ def build_login_url(request=None):
 
 
 def send_account_credentials_email(user, temporary_password, request=None):
-    subject = 'Credenziali di accesso - Centro Delta'
+    subject = 'Credenziali di accesso a MedLavDelta'
     body = render_to_string('accounts/account_welcome_email.txt', {
         'user': user,
         'temporary_password': temporary_password,

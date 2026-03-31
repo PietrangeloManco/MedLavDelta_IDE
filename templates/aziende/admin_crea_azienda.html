@@ -30,7 +30,7 @@
 
             <div class="detail-grid">
                 {% for field in form %}
-                <div class="form-group" style="{% if field.name == 'condizioni_pagamento_riservate' or field.name == 'varie_note' %}grid-column:1/-1{% endif %}">
+                <div class="form-group{% if field.name == 'condizioni_pagamento_riservate' or field.name == 'varie_note' %} field-span-full{% endif %}">
                     <label class="form-label" for="{{ field.id_for_label }}">
                         {{ field.label }}{% if field.field.required %} *{% endif %}
                     </label>
@@ -41,7 +41,7 @@
                 {% endfor %}
             </div>
 
-            <div class="stack-actions" style="margin-top:14px">
+            <div class="stack-actions mt-4">
                 <button type="submit" class="btn btn-primary">Crea azienda</button>
                 <a href="{% url 'admin_aziende' %}" class="btn btn-outline">Annulla</a>
             </div>
