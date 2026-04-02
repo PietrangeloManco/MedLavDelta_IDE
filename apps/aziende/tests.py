@@ -362,6 +362,57 @@ class LavoratoreAdminFormTests(TestCase):
         self.assertTrue(saved_lavoratore.user.check_password(form.generated_password))
 
 
+class LavoratoreDeletionTests(TestCase):
+    def setUp(self):
+        self.azienda_user = CustomUser.objects.create_user(
+            email='azienda-delete@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        self.azienda = Azienda.objects.create(
+            user=self.azienda_user,
+            ragione_sociale='Azienda Delete SRL',
+            codice_univoco='AZDEL01',
+            pec='delete@pec.example.com',
+            referente_azienda='Marta Neri',
+            codice_fiscale='NREMRT80A01H501Z',
+            partita_iva='12345000001',
+            email_contatto='delete@example.com',
+            telefono='0211111111',
+            condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
+        )
+
+    def test_queryset_delete_removes_linked_operator_account_and_frees_email(self):
+        worker_user = CustomUser.objects.create_user(
+            email='worker.delete@example.com',
+            password='worker-pass-123',
+            role=CustomUser.OPERATORE,
+        )
+        lavoratore = Lavoratore.objects.create(
+            azienda=self.azienda,
+            user=worker_user,
+            nome='Luca',
+            cognome='Rossi',
+            data_nascita=date(1990, 1, 1),
+            codice_fiscale='RSSLCU90A01H501X',
+            mansione='Tecnico',
+            note='',
+            attivo=True,
+        )
+
+        Lavoratore.objects.filter(pk=lavoratore.pk).delete()
+
+        self.assertFalse(CustomUser.objects.filter(pk=worker_user.pk).exists())
+
+        replacement_user = CustomUser.objects.create_user(
+            email='worker.delete@example.com',
+            password='replacement-pass-123',
+            role=CustomUser.OPERATORE,
+        )
+
+        self.assertEqual(replacement_user.email, 'worker.delete@example.com')
+
+
 class AdminAziendaLavoratoreCreateTests(TestCase):
     def setUp(self):
         self.admin_user = CustomUser.objects.create_user(
