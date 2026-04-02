@@ -3,7 +3,17 @@ from django.dispatch import receiver
 
 from apps.accounts.models import CustomUser
 
-from .models import Lavoratore
+from .models import Azienda, Lavoratore
+
+
+@receiver(post_delete, sender=Azienda)
+def delete_linked_company_account(sender, instance, **kwargs):
+    if not instance.user_id:
+        return
+    CustomUser.objects.filter(
+        pk=instance.user_id,
+        role=CustomUser.AZIENDA,
+    ).delete()
 
 
 @receiver(post_delete, sender=Lavoratore)

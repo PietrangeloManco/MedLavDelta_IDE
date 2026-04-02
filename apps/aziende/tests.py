@@ -413,6 +413,62 @@ class LavoratoreDeletionTests(TestCase):
         self.assertEqual(replacement_user.email, 'worker.delete@example.com')
 
 
+class AziendaDeletionTests(TestCase):
+    def test_queryset_delete_removes_linked_accounts_and_frees_emails(self):
+        azienda_user = CustomUser.objects.create_user(
+            email='company.delete@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        azienda = Azienda.objects.create(
+            user=azienda_user,
+            ragione_sociale='Azienda Cascade SRL',
+            codice_univoco='AZCAS01',
+            pec='cascade@pec.example.com',
+            referente_azienda='Giulia Bianchi',
+            codice_fiscale='BNCGLI80A01H501Z',
+            partita_iva='12345000002',
+            email_contatto='cascade@example.com',
+            telefono='0212222222',
+            condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
+        )
+        worker_user = CustomUser.objects.create_user(
+            email='worker.cascade@example.com',
+            password='worker-pass-123',
+            role=CustomUser.OPERATORE,
+        )
+        Lavoratore.objects.create(
+            azienda=azienda,
+            user=worker_user,
+            nome='Paolo',
+            cognome='Verdi',
+            data_nascita=date(1991, 1, 1),
+            codice_fiscale='VRDPLA91A01H501Y',
+            mansione='Tecnico',
+            note='',
+            attivo=True,
+        )
+
+        Azienda.objects.filter(pk=azienda.pk).delete()
+
+        self.assertFalse(CustomUser.objects.filter(pk=azienda_user.pk).exists())
+        self.assertFalse(CustomUser.objects.filter(pk=worker_user.pk).exists())
+
+        replacement_company_user = CustomUser.objects.create_user(
+            email='company.delete@example.com',
+            password='new-company-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        replacement_worker_user = CustomUser.objects.create_user(
+            email='worker.cascade@example.com',
+            password='new-worker-pass-123',
+            role=CustomUser.OPERATORE,
+        )
+
+        self.assertEqual(replacement_company_user.email, 'company.delete@example.com')
+        self.assertEqual(replacement_worker_user.email, 'worker.cascade@example.com')
+
+
 class AdminAziendaLavoratoreCreateTests(TestCase):
     def setUp(self):
         self.admin_user = CustomUser.objects.create_user(
