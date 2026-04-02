@@ -34,6 +34,10 @@
                     <div><strong>{{ lavoratore.codice_fiscale }}</strong></div>
                 </div>
                 <div>
+                    <div class="text-muted small">Numero di telefono</div>
+                    <div><strong>{{ lavoratore.telefono|default:"-" }}</strong></div>
+                </div>
+                <div>
                     <div class="text-muted small">Mansione</div>
                     <div><strong>{{ lavoratore.mansione }}</strong></div>
                 </div>

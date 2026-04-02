@@ -144,6 +144,12 @@ class LavoratoreAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['telefono'].help_text = 'Campo obbligatorio.'
+        self.fields['telefono'].widget.attrs.update({
+            'inputmode': 'tel',
+            'autocomplete': 'tel',
+            'placeholder': 'Es. 333 1234567',
+        })
         current_user = getattr(self.instance, 'user', None)
         user_queryset = CustomUser.objects.filter(role=CustomUser.OPERATORE)
         if current_user:
@@ -156,7 +162,7 @@ class LavoratoreAdminForm(forms.ModelForm):
         else:
             user_queryset = user_queryset.filter(lavoratore__isnull=True)
             self.fields['account_email'].help_text = (
-                "Inseriscila se vuoi creare un nuovo account operatore da questa scheda. "
+                "Inseriscila per creare il nuovo account operatore da questa scheda. "
                 "La password verrà generata automaticamente e inviata via email."
             )
         self.fields['user'].queryset = user_queryset.order_by('email')
@@ -166,6 +172,11 @@ class LavoratoreAdminForm(forms.ModelForm):
         user = cleaned.get('user')
         current_user = user or getattr(self.instance, 'user', None)
         account_email = (cleaned.get('account_email') or '').strip()
+
+        if not current_user and not account_email:
+            raise ValidationError(
+                'Per un lavoratore senza account devi selezionare un account esistente o inserire una email account.'
+            )
 
         if account_email:
             conflict_qs = CustomUser.objects.exclude(
@@ -295,9 +306,9 @@ class SedeAdmin(admin.ModelAdmin):
 @admin.register(Lavoratore)
 class LavoratoreAdmin(admin.ModelAdmin):
     form = LavoratoreAdminForm
-    list_display = ['cognome', 'nome', 'azienda', 'sede', 'mansione', 'attivo', 'user']
+    list_display = ['cognome', 'nome', 'azienda', 'sede', 'telefono', 'mansione', 'attivo', 'user']
     list_filter = ['azienda', 'attivo']
-    search_fields = ['cognome', 'nome', 'codice_fiscale']
+    search_fields = ['cognome', 'nome', 'codice_fiscale', 'telefono']
     fieldsets = (
         ('Anagrafica', {
             'fields': (
@@ -307,6 +318,7 @@ class LavoratoreAdmin(admin.ModelAdmin):
                 'cognome',
                 'data_nascita',
                 'codice_fiscale',
+                'telefono',
                 'mansione',
                 'attivo',
                 'note',

@@ -331,6 +331,7 @@ class LavoratoreAdminFormTests(TestCase):
             cognome='Rossi',
             data_nascita=date(1990, 1, 1),
             codice_fiscale='RSSMRC90A01H501Y',
+            telefono='3331234567',
             mansione='Magazziniere',
             note='',
             attivo=True,
@@ -344,6 +345,7 @@ class LavoratoreAdminFormTests(TestCase):
                 'cognome': lavoratore.cognome,
                 'data_nascita': lavoratore.data_nascita.isoformat(),
                 'codice_fiscale': lavoratore.codice_fiscale,
+                'telefono': lavoratore.telefono,
                 'mansione': lavoratore.mansione,
                 'note': lavoratore.note,
                 'attivo': 'on',
@@ -360,6 +362,81 @@ class LavoratoreAdminFormTests(TestCase):
         self.assertIsNotNone(saved_lavoratore.user)
         self.assertEqual(saved_lavoratore.user.email, 'marco.rossi@example.com')
         self.assertTrue(saved_lavoratore.user.check_password(form.generated_password))
+
+    def test_lavoratore_admin_form_requires_phone_and_account_email_without_linked_user(self):
+        lavoratore = Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Sara',
+            cognome='Neri',
+            data_nascita=date(1991, 2, 2),
+            codice_fiscale='NRESRA91B42H501Z',
+            telefono='',
+            mansione='Analista',
+            note='',
+            attivo=True,
+        )
+
+        form = LavoratoreAdminForm(
+            data={
+                'azienda': str(self.azienda.pk),
+                'sede': '',
+                'nome': lavoratore.nome,
+                'cognome': lavoratore.cognome,
+                'data_nascita': lavoratore.data_nascita.isoformat(),
+                'codice_fiscale': lavoratore.codice_fiscale,
+                'telefono': '',
+                'mansione': lavoratore.mansione,
+                'note': lavoratore.note,
+                'attivo': 'on',
+                'user': '',
+                'account_email': '',
+            },
+            instance=lavoratore,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('telefono', form.errors)
+        self.assertIn(
+            'Per un lavoratore senza account devi selezionare un account esistente o inserire una email account.',
+            form.non_field_errors(),
+        )
+
+    def test_lavoratore_admin_form_requires_account_email_when_phone_is_present(self):
+        lavoratore = Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Anna',
+            cognome='Blu',
+            data_nascita=date(1992, 3, 3),
+            codice_fiscale='BLUNNA92C43H501X',
+            telefono='3339876543',
+            mansione='Tecnica',
+            note='',
+            attivo=True,
+        )
+
+        form = LavoratoreAdminForm(
+            data={
+                'azienda': str(self.azienda.pk),
+                'sede': '',
+                'nome': lavoratore.nome,
+                'cognome': lavoratore.cognome,
+                'data_nascita': lavoratore.data_nascita.isoformat(),
+                'codice_fiscale': lavoratore.codice_fiscale,
+                'telefono': lavoratore.telefono,
+                'mansione': lavoratore.mansione,
+                'note': lavoratore.note,
+                'attivo': 'on',
+                'user': '',
+                'account_email': '',
+            },
+            instance=lavoratore,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            'Per un lavoratore senza account devi selezionare un account esistente o inserire una email account.',
+            form.non_field_errors(),
+        )
 
 
 class LavoratoreDeletionTests(TestCase):
@@ -524,6 +601,7 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
             cognome='Rossi',
             data_nascita=date(1990, 5, 20),
             codice_fiscale='RSSPLA90E20H501Q',
+            telefono='3330001111',
             mansione='Impiegato',
             note='Scheda iniziale',
             attivo=True,
@@ -570,6 +648,7 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
                 'cognome': 'Verdi',
                 'data_nascita': '1991-04-15',
                 'codice_fiscale': 'VRDLCU91D15H501K',
+                'telefono': '3337654321',
                 'mansione': 'Tecnico',
                 'sede': '',
                 'note': 'Inserito da admin',
@@ -597,11 +676,12 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
                 'cognome': 'Neri',
                 'data_nascita': '1992-02-10',
                 'codice_fiscale': 'NREGLI92B50H501R',
+                'telefono': '3331112222',
                 'mansione': 'Analista',
                 'sede': '',
                 'note': 'Inserito da admin con permesso aziende',
                 'attivo': 'on',
-                'account_email': '',
+                'account_email': 'giulia.neri@example.com',
             },
         )
 
@@ -610,7 +690,53 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
         self.assertRedirects(response, reverse('admin_azienda_detail', args=[self.azienda.pk]))
         self.assertEqual(lavoratore.azienda, self.azienda)
         self.assertEqual(lavoratore.mansione, 'Analista')
-        self.assertIsNone(lavoratore.user)
+        self.assertEqual(lavoratore.user.email, 'giulia.neri@example.com')
+
+    def test_admin_worker_create_requires_phone(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.post(
+            reverse('admin_azienda_lavoratore_nuovo', args=[self.azienda.pk]),
+            data={
+                'nome': 'Elena',
+                'cognome': 'Bianchi',
+                'data_nascita': '1993-03-12',
+                'codice_fiscale': 'BNCLNE93C52H501A',
+                'telefono': '',
+                'mansione': 'Coordinatrice',
+                'sede': '',
+                'note': 'Tentativo senza telefono',
+                'attivo': 'on',
+                'account_email': '',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('telefono', response.context['form'].errors)
+        self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BNCLNE93C52H501A').exists())
+
+    def test_admin_worker_create_requires_account_email(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.post(
+            reverse('admin_azienda_lavoratore_nuovo', args=[self.azienda.pk]),
+            data={
+                'nome': 'Elena',
+                'cognome': 'Bianchi',
+                'data_nascita': '1993-03-12',
+                'codice_fiscale': 'BNCLNE93C52H501A',
+                'telefono': '3332221110',
+                'mansione': 'Coordinatrice',
+                'sede': '',
+                'note': 'Tentativo senza email',
+                'attivo': 'on',
+                'account_email': '',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('account_email', response.context['form'].errors)
+        self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BNCLNE93C52H501A').exists())
 
     def test_admin_worker_create_requires_company_or_worker_permission(self):
         self.client.force_login(self.admin_medical_only)
@@ -707,6 +833,7 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
                 'cognome': 'Rossi',
                 'data_nascita': '1990-05-20',
                 'codice_fiscale': 'RSSPLA90E20H501Q',
+                'telefono': '3339998888',
                 'mansione': 'Responsabile ufficio',
                 'sede': '',
                 'note': 'Aggiornato da admin',
@@ -720,6 +847,141 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
         self.assertRedirects(response, reverse('admin_lavoratore_detail', args=[self.lavoratore.pk]))
         self.assertEqual(self.lavoratore.mansione, 'Responsabile ufficio')
         self.assertEqual(self.lavoratore.note, 'Aggiornato da admin')
+
+
+class AdminDashboardGuideTests(TestCase):
+    def setUp(self):
+        self.admin_dashboard_user = CustomUser.objects.create_user(
+            email='admin-dashboard@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[CustomUser.ADMIN_PERMISSION_DASHBOARD],
+        )
+        self.admin_without_dashboard = CustomUser.objects.create_user(
+            email='admin-no-dashboard@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[CustomUser.ADMIN_PERMISSION_COMPANIES],
+        )
+
+    def test_admin_dashboard_shows_staff_guide_button(self):
+        self.client.force_login(self.admin_dashboard_user)
+
+        response = self.client.get(reverse('admin_dashboard'))
+
+        self.assertContains(response, 'Apri guida staff')
+        self.assertContains(response, reverse('admin_staff_guide'))
+
+    def test_staff_guide_view_streams_pdf_for_dashboard_admins(self):
+        self.client.force_login(self.admin_dashboard_user)
+
+        response = self.client.get(reverse('admin_staff_guide'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn(
+            'inline; filename="Guida_Interna_Staff_CentroDelta_rev020426.pdf"',
+            response['Content-Disposition'],
+        )
+
+    def test_staff_guide_view_requires_dashboard_permission(self):
+        self.client.force_login(self.admin_without_dashboard)
+
+        response = self.client.get(reverse('admin_staff_guide'))
+
+        self.assertEqual(response.status_code, 403)
+
+
+class AziendaLavoratoreCreateTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            email='azienda-lavoratori@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        self.azienda = Azienda.objects.create(
+            user=self.user,
+            ragione_sociale='Azienda Operativa SRL',
+            codice_univoco='OPERA01',
+            pec='operativa@pec.example.com',
+            referente_azienda='Marta Verdi',
+            codice_fiscale='VRDMRT80A01H501Z',
+            partita_iva='12345679999',
+            email_contatto='operativa@example.com',
+            telefono='0678901234',
+            condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
+        )
+
+    def test_company_can_create_worker_with_required_phone_and_email(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse('azienda_lavoratore_nuovo'),
+            data={
+                'nome': 'Lidia',
+                'cognome': 'Blu',
+                'data_nascita': '1994-07-18',
+                'codice_fiscale': 'BLULDI94L58H501T',
+                'telefono': '3334445556',
+                'mansione': 'Impiegata',
+                'sede': '',
+                'note': 'Inserita da account azienda',
+                'attivo': 'on',
+                'account_email': 'lidia.blu@example.com',
+            },
+        )
+
+        lavoratore = Lavoratore.objects.get(codice_fiscale='BLULDI94L58H501T')
+
+        self.assertRedirects(response, reverse('azienda_dashboard'))
+        self.assertEqual(lavoratore.telefono, '3334445556')
+        self.assertEqual(lavoratore.user.email, 'lidia.blu@example.com')
+
+    def test_company_worker_create_requires_phone(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse('azienda_lavoratore_nuovo'),
+            data={
+                'nome': 'Lidia',
+                'cognome': 'Blu',
+                'data_nascita': '1994-07-18',
+                'codice_fiscale': 'BLULDI94L58H501T',
+                'telefono': '',
+                'mansione': 'Impiegata',
+                'sede': '',
+                'note': 'Tentativo senza telefono',
+                'attivo': 'on',
+                'account_email': '',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('telefono', response.context['form'].errors)
+        self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BLULDI94L58H501T').exists())
+
+    def test_company_worker_create_requires_account_email(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse('azienda_lavoratore_nuovo'),
+            data={
+                'nome': 'Lidia',
+                'cognome': 'Blu',
+                'data_nascita': '1994-07-18',
+                'codice_fiscale': 'BLULDI94L58H501T',
+                'telefono': '3334445556',
+                'mansione': 'Impiegata',
+                'sede': '',
+                'note': 'Tentativo senza email',
+                'attivo': 'on',
+                'account_email': '',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('account_email', response.context['form'].errors)
+        self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BLULDI94L58H501T').exists())
 
 
 class AziendaDashboardContactTests(TestCase):

@@ -13,6 +13,7 @@
         <p class="page-subtitle">Riepilogo rapido delle attività di Centro Delta.</p>
     </div>
     <div class="stack-actions">
+        <a href="{% url 'admin_staff_guide' %}" class="btn btn-outline" target="_blank" rel="noopener">Apri guida staff</a>
         {% if request.user.admin_permission_map.company_profiles_manage or request.user.admin_permission_map.company_documents_manage or request.user.admin_permission_map.preventives_manage or request.user.admin_permission_map.invoices_manage %}
         <a href="{% url 'admin_aziende' %}" class="btn btn-outline">Apri elenco aziende</a>
         {% endif %}

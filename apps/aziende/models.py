@@ -186,6 +186,7 @@ class Lavoratore(models.Model):
     cognome = models.CharField(max_length=100)
     data_nascita = models.DateField()
     codice_fiscale = models.CharField(max_length=16, unique=True)
+    telefono = models.CharField('Numero di telefono', max_length=20, default='')
     mansione = models.CharField(max_length=255)
     note = models.TextField(blank=True)
     attivo = models.BooleanField(default=True)

@@ -107,6 +107,7 @@ class LavoratoreForm(forms.ModelForm):
         model = Lavoratore
         fields = [
             'nome', 'cognome', 'data_nascita', 'codice_fiscale',
+            'telefono',
             'mansione', 'sede', 'note', 'attivo'
         ]
         widgets = {
@@ -119,11 +120,18 @@ class LavoratoreForm(forms.ModelForm):
         if azienda:
             self.fields['sede'].queryset = Sede.objects.filter(azienda=azienda)
 
+        self.fields['telefono'].help_text = 'Campo obbligatorio.'
+        self.fields['telefono'].widget.attrs.update({
+            'inputmode': 'tel',
+            'autocomplete': 'tel',
+            'placeholder': 'Es. 333 1234567',
+        })
+
         if include_account_fields and not getattr(self.instance, 'user', None):
             self.fields['account_email'] = forms.EmailField(
-                required=False,
+                required=True,
                 label='Email account lavoratore',
-                help_text='Opzionale: crea subito l\'account e invia via email una password generata automaticamente.',
+                help_text='Obbligatoria: crea l\'account lavoratore e invia via email una password generata automaticamente.',
             )
 
         for field in self.fields.values():

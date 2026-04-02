@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.db.models import Count, OuterRef, Subquery
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -30,6 +31,8 @@ CENTRO_DELTA_CONTACT = {
     'telefono': '351 6572647',
     'ruolo': 'Referente Centro Delta',
 }
+ADMIN_STAFF_GUIDE_FILENAME = 'Guida_Interna_Staff_CentroDelta_rev020426.pdf'
+ADMIN_STAFF_GUIDE_PATH = settings.BASE_DIR / 'static' / 'guides' / ADMIN_STAFF_GUIDE_FILENAME
 
 
 def send_notification_email(subject, message, recipients):
@@ -109,6 +112,21 @@ class AdminDashboardView(AdminPermissionRequiredMixin, View):
             'totale_scadenze': scadenze_imminenti.count(),
         }
         return render(request, 'aziende/admin_dashboard.html', context)
+
+
+class AdminStaffGuideView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_DASHBOARD,)
+
+    def get(self, request):
+        if not ADMIN_STAFF_GUIDE_PATH.exists():
+            raise Http404('Guida staff non disponibile.')
+
+        response = FileResponse(
+            ADMIN_STAFF_GUIDE_PATH.open('rb'),
+            content_type='application/pdf',
+        )
+        response['Content-Disposition'] = f'inline; filename="{ADMIN_STAFF_GUIDE_FILENAME}"'
+        return response
 
 
 class AdminAziendeListView(AdminPermissionRequiredMixin, View):
