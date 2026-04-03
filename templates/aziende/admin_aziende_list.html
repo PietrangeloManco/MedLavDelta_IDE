@@ -61,9 +61,9 @@
             <tbody>
                 {% for azienda in aziende %}
                 <tr>
-                    <td><strong>{{ azienda.ragione_sociale }}</strong></td>
+                    <td><strong>{{ azienda.display_name }}</strong></td>
                     <td class="text-muted">{{ azienda.partita_iva|default:"-" }}</td>
-                    <td class="text-muted">{{ azienda.email_contatto }}</td>
+                    <td class="text-muted">{{ azienda.email_contatto|default:"-" }}</td>
                     <td><span class="badge badge-info">{{ azienda.lavoratori_totali }}</span></td>
                     <td>
                         {% if azienda.contratto_saldato %}

@@ -114,24 +114,21 @@ class CreaAziendaFlowTests(TestCase):
             ),
         )
 
-    def test_form_requires_new_company_profile_fields(self):
+    def test_form_requires_company_name_and_email(self):
         data = self.build_valid_data()
-        files = self.build_valid_files()
+        data.pop('ragione_sociale')
+        data.pop('email')
 
-        data.pop('codice_univoco')
-        data.pop('pec')
-        data.pop('referente_azienda')
-        data.pop('condizioni_pagamento_riservate')
-        files.pop('logo_azienda')
-
-        form = CreaAziendaForm(data=data, files=files)
+        form = CreaAziendaForm(data=data)
 
         self.assertFalse(form.is_valid())
-        self.assertIn('codice_univoco', form.errors)
-        self.assertIn('pec', form.errors)
-        self.assertIn('referente_azienda', form.errors)
-        self.assertIn('condizioni_pagamento_riservate', form.errors)
-        self.assertIn('logo_azienda', form.errors)
+        self.assertIn('ragione_sociale', form.errors)
+        self.assertIn('email', form.errors)
+        self.assertNotIn('codice_univoco', form.errors)
+        self.assertNotIn('pec', form.errors)
+        self.assertNotIn('referente_azienda', form.errors)
+        self.assertNotIn('condizioni_pagamento_riservate', form.errors)
+        self.assertNotIn('logo_azienda', form.errors)
 
     def test_form_rejects_oversized_logo_and_documents(self):
         data = self.build_valid_data()
@@ -185,6 +182,19 @@ class CreaAziendaFlowTests(TestCase):
         self.assertEqual(mail.outbox[0].to, ['azienda@example.com'])
         self.assertTrue(azienda.user.check_password(self.extract_password_from_last_email()))
 
+    def test_admin_create_view_requires_account_email(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.post(
+            reverse('admin_crea_azienda'),
+            data={'ragione_sociale': 'Azienda Essenziale SRL', 'email': ''},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('email', response.context['form'].errors)
+        self.assertFalse(Azienda.objects.filter(ragione_sociale='Azienda Essenziale SRL').exists())
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_azienda_admin_form_can_update_linked_account_email(self):
         azienda = self.create_existing_company()
 
@@ -213,6 +223,32 @@ class CreaAziendaFlowTests(TestCase):
         azienda.user.refresh_from_db()
 
         self.assertEqual(azienda.user.email, 'nuova.azienda@example.com')
+
+    def test_azienda_admin_form_can_create_company_without_account(self):
+        form = AziendaAdminForm(
+            data={
+                'ragione_sociale': 'Azienda Senza Account SRL',
+                'codice_univoco': '',
+                'pec': '',
+                'referente_azienda': '',
+                'codice_fiscale': '',
+                'partita_iva': '',
+                'email_contatto': '',
+                'telefono': '',
+                'condizioni_pagamento_riservate': '',
+                'contratto_saldato': 'on',
+                'user': '',
+                'account_email': '',
+                'varie_note': '',
+            },
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+        azienda = form.save()
+
+        self.assertIsNone(azienda.user)
+        self.assertEqual(azienda.ragione_sociale, 'Azienda Senza Account SRL')
 
 
 class DocumentoAziendaFlowTests(TestCase):

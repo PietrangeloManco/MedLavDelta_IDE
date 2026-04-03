@@ -58,7 +58,7 @@
                 <option value="">Tutte le aziende</option>
                 {% for azienda in aziende %}
                 <option value="{{ azienda.pk }}"{% if azienda_selezionata and azienda_selezionata.pk == azienda.pk %} selected{% endif %}>
-                    {{ azienda.ragione_sociale }}
+                    {{ azienda.display_name }}
                 </option>
                 {% endfor %}
             </select>
@@ -104,7 +104,7 @@
                     <td>{{ fattura.data_fattura|date:"d/m/Y" }}</td>
                     <td>{{ fattura.scadenza|date:"d/m/Y"|default:"-" }}</td>
                     <td>{{ fattura.categoria_merceologica_display|default:"-" }}</td>
-                    <td>{{ fattura.azienda.ragione_sociale }}</td>
+                    <td>{{ fattura.azienda.display_name }}</td>
                     <td>{{ fattura.modalita_pagamento|default:"-" }}</td>
                     <td>EUR {{ fattura.totale_imponibile|floatformat:2 }}</td>
                     <td>EUR {{ fattura.totale_complessivo|floatformat:2 }}</td>

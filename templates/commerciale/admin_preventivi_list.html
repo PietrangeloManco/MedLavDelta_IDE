@@ -35,7 +35,7 @@
                 <option value="">Tutte le aziende</option>
                 {% for azienda in aziende %}
                 <option value="{{ azienda.pk }}"{% if azienda_selezionata and azienda_selezionata.pk == azienda.pk %} selected{% endif %}>
-                    {{ azienda.ragione_sociale }}
+                    {{ azienda.display_name }}
                 </option>
                 {% endfor %}
             </select>
@@ -73,7 +73,7 @@
                 <tr>
                     <td><strong>{{ preventivo.numero_formattato }}</strong></td>
                     <td>{{ preventivo.data_preventivo|date:"d/m/Y" }}</td>
-                    <td>{{ preventivo.azienda.ragione_sociale }}</td>
+                    <td>{{ preventivo.azienda.display_name }}</td>
                     <td>{{ preventivo.oggetto }}</td>
                     <td>EUR {{ preventivo.totale_imponibile|floatformat:2 }}</td>
                     <td>EUR {{ preventivo.totale_complessivo|floatformat:2 }}</td>

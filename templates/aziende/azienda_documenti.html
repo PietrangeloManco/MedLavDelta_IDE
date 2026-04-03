@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Documenti {{ azienda.ragione_sociale }}{% endblock %}
-{% block breadcrumb %}<strong>Documenti</strong> {{ azienda.ragione_sociale }}{% endblock %}
+{% block title %}Documenti {{ azienda.display_name }}{% endblock %}
+{% block breadcrumb %}<strong>Documenti</strong> {{ azienda.display_name }}{% endblock %}
 
 {% block sidebar %}
 {% include 'includes/azienda_sidebar_links.html' with azienda_nav_section='documenti' %}

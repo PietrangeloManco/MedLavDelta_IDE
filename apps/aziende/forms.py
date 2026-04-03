@@ -17,29 +17,31 @@ class CreaAziendaForm(forms.Form):
 
     # Dati azienda
     ragione_sociale = forms.CharField(max_length=255)
-    codice_univoco = forms.CharField(max_length=20, label='Codice univoco')
-    pec = forms.EmailField(label='PEC')
-    referente_azienda = forms.CharField(max_length=255, label='Referente azienda')
+    codice_univoco = forms.CharField(max_length=20, label='Codice univoco', required=False)
+    pec = forms.EmailField(label='PEC', required=False)
+    referente_azienda = forms.CharField(max_length=255, label='Referente azienda', required=False)
     codice_fiscale = forms.CharField(max_length=16, required=False)
     partita_iva = forms.CharField(max_length=11, required=False)
-    email_contatto = forms.EmailField(label='Email di contatto')
+    email_contatto = forms.EmailField(label='Email di contatto', required=False)
     telefono = forms.CharField(max_length=20, required=False)
     condizioni_pagamento_riservate = forms.CharField(
         label='Condizioni di pagamento riservate',
         widget=forms.Textarea(attrs={'rows': 3}),
+        required=False,
     )
     logo_azienda = forms.FileField(
         label='Logo azienda',
-        required=True,
+        required=False,
         help_text=(
             'Formati ammessi: PNG, JPG, JPEG, SVG, WEBP. '
             f'Max {COMPANY_LOGO_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
         ),
     )
-    protocollo_sanitario = forms.FileField(label='Protocollo sanitario', required=True)
-    nomina_medico = forms.FileField(label='Nomina del medico', required=True)
+    protocollo_sanitario = forms.FileField(label='Protocollo sanitario', required=False)
+    nomina_medico = forms.FileField(label='Nomina del medico', required=False)
     verbali_sopralluogo = forms.FileField(
-        label='Verbali sopralluogo ambiente di lavoro', required=True
+        label='Verbali sopralluogo ambiente di lavoro',
+        required=False,
     )
     varie_documento = forms.FileField(label='Varie (documento)', required=False)
     varie_note = forms.CharField(
@@ -54,7 +56,7 @@ class CreaAziendaForm(forms.Form):
             f'Formati ammessi: PDF, DOCX. Max {COMPANY_DOCUMENT_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
         )
         self.fields['email'].help_text = (
-            'La password verrà generata automaticamente e inviata a questo indirizzo email.'
+            'La password verra generata automaticamente e inviata a questo indirizzo email.'
         )
 
         for field_name, field in self.fields.items():
@@ -78,13 +80,13 @@ class CreaAziendaForm(forms.Form):
             self.fields[field_name].help_text = document_help_text
 
     def clean_email(self):
-        email = self.cleaned_data['email']
+        email = (self.cleaned_data.get('email') or '').strip()
         if CustomUser.objects.filter(email=email).exists():
-            raise forms.ValidationError('Esiste già un account con questa email.')
+            raise forms.ValidationError('Esiste gia un account con questa email.')
         return email
 
     def clean_codice_univoco(self):
-        return self.cleaned_data['codice_univoco'].strip().upper()
+        return (self.cleaned_data.get('codice_univoco') or '').strip().upper()
 
     def clean_logo_azienda(self):
         return validate_company_logo_upload(self.cleaned_data.get('logo_azienda'))
@@ -106,9 +108,15 @@ class LavoratoreForm(forms.ModelForm):
     class Meta:
         model = Lavoratore
         fields = [
-            'nome', 'cognome', 'data_nascita', 'codice_fiscale',
+            'nome',
+            'cognome',
+            'data_nascita',
+            'codice_fiscale',
             'telefono',
-            'mansione', 'sede', 'note', 'attivo'
+            'mansione',
+            'sede',
+            'note',
+            'attivo',
         ]
         widgets = {
             'data_nascita': forms.DateInput(attrs={'type': 'date'}),
@@ -131,7 +139,10 @@ class LavoratoreForm(forms.ModelForm):
             self.fields['account_email'] = forms.EmailField(
                 required=True,
                 label='Email account lavoratore',
-                help_text='Obbligatoria: crea l\'account lavoratore e invia via email una password generata automaticamente.',
+                help_text=(
+                    "Obbligatoria: crea l'account lavoratore e invia via email una password "
+                    'generata automaticamente.'
+                ),
             )
 
         for field in self.fields.values():
@@ -146,7 +157,7 @@ class LavoratoreForm(forms.ModelForm):
         if 'account_email' in self.fields:
             account_email = cleaned.get('account_email')
             if account_email and CustomUser.objects.filter(email=account_email).exists():
-                self.add_error('account_email', 'Esiste già un account con questa email.')
+                self.add_error('account_email', 'Esiste gia un account con questa email.')
         return cleaned
 
 

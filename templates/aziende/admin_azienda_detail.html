@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}{{ azienda.ragione_sociale }}{% endblock %}
-{% block breadcrumb %}<strong>Azienda</strong> {{ azienda.ragione_sociale }}{% endblock %}
+{% block title %}{{ azienda.display_name }}{% endblock %}
+{% block breadcrumb %}<strong>Azienda</strong> {{ azienda.display_name }}{% endblock %}
 
 {% block sidebar %}
 {% include 'includes/admin_sidebar_links.html' with admin_nav_section='aziende' %}
@@ -11,8 +11,8 @@
 
 <div class="page-header" style="margin-top:8px">
     <div>
-        <h1 class="page-title">{{ azienda.ragione_sociale }}</h1>
-        <p class="page-subtitle">{{ azienda.codice_univoco }} | {{ azienda.email_contatto }}</p>
+        <h1 class="page-title">{{ azienda.display_name }}</h1>
+        <p class="page-subtitle">{{ azienda.codice_univoco|default:"Codice univoco non inserito" }} | {{ azienda.email_contatto|default:"Email di contatto non inserita" }}</p>
     </div>
     <div class="stack-actions">
         {% if can_manage_workers %}
@@ -62,7 +62,7 @@
                     <div style="display:grid; gap:8px">
                         <div>
                             <div class="text-muted small">Email contatto</div>
-                            <div><strong>{{ azienda.email_contatto }}</strong></div>
+                            <div><strong>{{ azienda.email_contatto|default:"-" }}</strong></div>
                         </div>
                         <div>
                             <div class="text-muted small">PEC</div>

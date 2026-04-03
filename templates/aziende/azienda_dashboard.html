@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load querystring %}
-{% block title %}Pannello di controllo {{ azienda.ragione_sociale }}{% endblock %}
-{% block breadcrumb %}<strong>Pannello di controllo</strong> {{ azienda.ragione_sociale }}{% endblock %}
+{% block title %}Pannello di controllo {{ azienda.display_name }}{% endblock %}
+{% block breadcrumb %}<strong>Pannello di controllo</strong> {{ azienda.display_name }}{% endblock %}
 
 {% block sidebar %}
 {% include 'includes/azienda_sidebar_links.html' with azienda_nav_section='dashboard' %}
@@ -100,7 +100,7 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">{{ azienda.ragione_sociale }}</h1>
+        <h1 class="page-title">{{ azienda.display_name }}</h1>
         <p class="page-subtitle">Gestione lavoratori e archivio documenti aziendali.</p>
     </div>
     <div class="stack-actions">

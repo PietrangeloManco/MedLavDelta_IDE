@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def upload_documento_azienda(instance, filename):
-    if hasattr(instance, 'user_id'):
+    if hasattr(instance, 'user_id') and instance.user_id:
         user_id = instance.user_id
     elif hasattr(instance, 'azienda') and getattr(instance.azienda, 'user_id', None):
         user_id = instance.azienda.user_id
@@ -32,20 +32,23 @@ class Azienda(models.Model):
 
     user = models.OneToOneField(
         CustomUser, on_delete=models.CASCADE,
-        limit_choices_to={'role': 'azienda'}
+        limit_choices_to={'role': 'azienda'},
+        null=True,
+        blank=True,
     )
     ragione_sociale = models.CharField(max_length=255)
-    codice_univoco = models.CharField(max_length=20, null=True)
+    codice_univoco = models.CharField(max_length=20, null=True, blank=True)
     logo_azienda = models.FileField(
         upload_to=upload_logo_azienda,
+        blank=True,
         null=True,
         validators=[validate_company_logo_upload],
     )
-    pec = models.EmailField(null=True)
-    referente_azienda = models.CharField(max_length=255, null=True)
+    pec = models.EmailField(null=True, blank=True)
+    referente_azienda = models.CharField(max_length=255, null=True, blank=True)
     codice_fiscale = models.CharField(max_length=16, blank=True)
     partita_iva = models.CharField(max_length=11, blank=True)
-    email_contatto = models.EmailField()
+    email_contatto = models.EmailField(blank=True)
     telefono = models.CharField(max_length=20, blank=True)
     condizioni_pagamento_riservate = models.TextField(blank=True)
     protocollo_sanitario = models.FileField(
@@ -84,7 +87,15 @@ class Azienda(models.Model):
         verbose_name_plural = 'Aziende'
 
     def __str__(self):
-        return self.ragione_sociale
+        return self.display_name
+
+    @property
+    def display_name(self):
+        if self.ragione_sociale:
+            return self.ragione_sociale
+        if self.pk:
+            return f'Azienda #{self.pk}'
+        return 'Azienda senza nome'
 
     def get_documenti_iniziali(self):
         documenti = []

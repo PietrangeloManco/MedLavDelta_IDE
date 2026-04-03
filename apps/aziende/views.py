@@ -212,7 +212,7 @@ class AdminAggiornaContrattoView(AdminPermissionRequiredMixin, View):
         else:
             azienda.contratto_saldato = not azienda.contratto_saldato
         azienda.save(update_fields=['contratto_saldato'])
-        messages.success(request, f'Contratto aggiornato per {azienda.ragione_sociale}.')
+        messages.success(request, f'Contratto aggiornato per {azienda.display_name}.')
         next_url = request.POST.get('next')
         if next_url:
             return redirect(next_url)
@@ -255,7 +255,7 @@ class AdminCreaAziendaView(AdminPermissionRequiredMixin, View):
             )
             messages.success(
                 request,
-                f'Azienda {form.cleaned_data["ragione_sociale"]} creata con successo.',
+                f'{azienda.display_name} creata con successo.',
             )
             return redirect('admin_azienda_detail', pk=azienda.pk)
         return render(request, 'aziende/admin_crea_azienda.html', {'form': form})

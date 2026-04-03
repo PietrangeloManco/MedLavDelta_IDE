@@ -2,7 +2,7 @@
 {% block title %}{{ action }}{% endblock %}
 {% block breadcrumb %}
 {% if is_admin_context %}
-<strong>Aziende</strong> {{ azienda.ragione_sociale }} / {{ action }}
+<strong>Aziende</strong> {{ azienda.display_name }} / {{ action }}
 {% else %}
 <strong>Lavoratori</strong> {{ action }}
 {% endif %}

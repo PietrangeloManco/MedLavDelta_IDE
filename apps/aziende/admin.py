@@ -48,6 +48,16 @@ class AziendaAdminForm(forms.ModelForm):
                 "Inseriscila se vuoi creare un nuovo account azienda da questa scheda. "
                 "La password verrà generata automaticamente e inviata via email."
             )
+        if not current_user:
+            self.fields['account_email'].help_text = (
+                "Inseriscila se vuoi creare un nuovo account azienda da questa scheda. "
+                "Se la lasci vuota, la scheda azienda verrÃ  creata senza account collegato."
+            )
+        if not current_user:
+            self.fields['account_email'].help_text = (
+                "Inseriscila se vuoi creare un nuovo account azienda da questa scheda. "
+                "Se la lasci vuota, la scheda azienda verra creata senza account collegato."
+            )
         self.fields['user'].queryset = user_queryset.order_by('email')
 
         if 'logo_azienda' in self.fields:
@@ -82,11 +92,6 @@ class AziendaAdminForm(forms.ModelForm):
         user = cleaned.get('user')
         current_user = user or getattr(self.instance, 'user', None)
         account_email = (cleaned.get('account_email') or '').strip()
-
-        if not self.instance.pk and not user and not account_email:
-            raise ValidationError(
-                'Per una nuova azienda devi selezionare un account esistente o inserire una email account.'
-            )
 
         if account_email:
             conflict_qs = CustomUser.objects.exclude(

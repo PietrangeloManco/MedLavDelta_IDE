@@ -10,7 +10,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Nuova azienda</h1>
-        <p class="page-subtitle">Crea account, profilo aziendale e documenti iniziali in un unico passaggio.</p>
+        <p class="page-subtitle">Crea account, profilo aziendale e documenti iniziali in un unico passaggio, anche in modo parziale.</p>
     </div>
     <a href="{% url 'admin_aziende' %}" class="btn btn-outline">Torna alle aziende</a>
 </div>
@@ -49,23 +49,23 @@
     </div>
 
     <aside class="form-card">
-        <div class="form-card-title">Documenti iniziali richiesti</div>
+        <div class="form-card-title">Documenti iniziali facoltativi</div>
         <div style="display:grid; gap:12px">
             <div class="detail-panel">
                 <div class="form-label">Protocollo sanitario</div>
-                <div class="text-muted small">Documento obbligatorio visibile anche all'azienda nella nuova sezione Documenti.</div>
+                <div class="text-muted small">Se caricato ora, sar&agrave; visibile anche all'azienda nella nuova sezione Documenti.</div>
             </div>
             <div class="detail-panel">
                 <div class="form-label">Nomina del medico</div>
-                <div class="text-muted small">Allegato iniziale del profilo aziendale.</div>
+                <div class="text-muted small">Allegato iniziale del profilo aziendale, caricabile anche in un secondo momento.</div>
             </div>
             <div class="detail-panel">
                 <div class="form-label">Verbali sopralluogo</div>
-                <div class="text-muted small">Storico base caricato al momento della creazione.</div>
+                <div class="text-muted small">Storico base opzionale da associare subito alla scheda.</div>
             </div>
             <div class="detail-panel">
                 <div class="form-label">Documento aggiuntivo</div>
-                <div class="text-muted small">Campo facoltativo con note descrittive associate.</div>
+                <div class="text-muted small">Campo opzionale con note descrittive associate.</div>
             </div>
         </div>
     </aside>

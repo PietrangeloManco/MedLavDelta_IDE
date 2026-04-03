@@ -11,7 +11,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">
-            {% if azienda_selezionata %}{{ azienda_selezionata.ragione_sociale }}{% else %}Tutti i lavoratori{% endif %}
+            {% if azienda_selezionata %}{{ azienda_selezionata.display_name }}{% else %}Tutti i lavoratori{% endif %}
         </h1>
         {% if azienda_selezionata %}
         <p class="page-subtitle"><a href="{% url 'admin_lavoratori' %}" style="color:var(--accent)">Rimuovi filtro azienda</a></p>
@@ -40,7 +40,7 @@
                 <option value="">Tutte le aziende</option>
                 {% for azienda in aziende %}
                 <option value="{{ azienda.pk }}"{% if azienda_selezionata and azienda_selezionata.pk == azienda.pk %} selected{% endif %}>
-                    {{ azienda.ragione_sociale }}
+                    {{ azienda.display_name }}
                 </option>
                 {% endfor %}
             </select>
