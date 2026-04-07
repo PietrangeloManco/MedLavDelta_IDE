@@ -13,6 +13,7 @@ urlpatterns = [
     path('dashboard/aziende/nuova/', views.AdminCreaAziendaView.as_view(), name='admin_crea_azienda'),
     path('dashboard/lavoratori/', views.AdminLavoratoriView.as_view(), name='admin_lavoratori'),
     path('dashboard/lavoratori/<int:pk>/', views.AdminLavoratoreDetailView.as_view(), name='admin_lavoratore_detail'),
+    path('dashboard/lavoratori/<int:pk>/crea-account/', views.AdminLavoratoreCreateAccountView.as_view(), name='admin_lavoratore_crea_account'),
     path('dashboard/lavoratori/<int:pk>/modifica/', views.AdminLavoratoreEditView.as_view(), name='admin_lavoratore_modifica'),
     path('dashboard/lavoratori/<int:pk>/documento/', views.AdminCaricaDocumentoView.as_view(), name='admin_carica_documento'),
     path('dashboard/lavoratori/<int:pk>/esito/', views.AdminRegistraEsitoView.as_view(), name='admin_registra_esito'),
@@ -23,6 +24,7 @@ urlpatterns = [
     path('azienda/documenti/carica/', views.AziendaCaricaDocumentoView.as_view(), name='azienda_carica_documento'),
     path('azienda/lavoratori/nuovo/', views.AziendaLavoratoreCreateView.as_view(), name='azienda_lavoratore_nuovo'),
     path('azienda/lavoratori/<int:pk>/', views.AziendaLavoratoreDetailView.as_view(), name='azienda_lavoratore'),
+    path('azienda/lavoratori/<int:pk>/crea-account/', views.AziendaLavoratoreCreateAccountView.as_view(), name='azienda_lavoratore_crea_account'),
     path('azienda/lavoratori/<int:pk>/modifica/', views.AziendaLavoratoreEditView.as_view(), name='azienda_lavoratore_modifica'),
 
     # Operatore

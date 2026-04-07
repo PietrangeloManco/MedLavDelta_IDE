@@ -178,6 +178,30 @@
             <div class="text-muted small" style="margin-top:8px">{{ lavoratore.user.email }}</div>
             {% else %}
             <div class="badge badge-neutral">Nessun account collegato</div>
+            <div class="text-muted small" style="margin-top:8px">
+                Puoi creare l'account appena hai l'email del lavoratore.
+            </div>
+            {% if can_manage_account %}
+            <form method="post" action="{% url 'admin_lavoratore_crea_account' lavoratore.pk %}" style="margin-top:16px">
+                {% csrf_token %}
+                {% if account_form.non_field_errors %}
+                <ul class="messages">
+                    {% for error in account_form.non_field_errors %}
+                    <li class="error">{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% for field in account_form %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field.as_widget }}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary btn-block">Crea account</button>
+            </form>
+            {% endif %}
             {% endif %}
         </div>
 

@@ -31,21 +31,19 @@ class CreaAziendaForm(forms.Form):
     )
     logo_azienda = forms.FileField(
         label='Logo azienda',
-        required=False,
         help_text=(
             'Formati ammessi: PNG, JPG, JPEG, SVG, WEBP. '
             f'Max {COMPANY_LOGO_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
         ),
     )
-    protocollo_sanitario = forms.FileField(label='Protocollo sanitario', required=False)
-    nomina_medico = forms.FileField(label='Nomina del medico', required=False)
+    protocollo_sanitario = forms.FileField(label='Protocollo sanitario')
+    nomina_medico = forms.FileField(label='Nomina del medico')
     verbali_sopralluogo = forms.FileField(
         label='Verbali sopralluogo ambiente di lavoro',
-        required=False,
     )
-    varie_documento = forms.FileField(label='Varie (documento)', required=False)
+    varie_documento = forms.FileField(label='Altri documenti', required=False)
     varie_note = forms.CharField(
-        label='Note',
+        label='Note altri documenti',
         required=False,
         widget=forms.Textarea(attrs={'rows': 3}),
     )
@@ -56,7 +54,11 @@ class CreaAziendaForm(forms.Form):
             f'Formati ammessi: PDF, DOCX. Max {COMPANY_DOCUMENT_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
         )
         self.fields['email'].help_text = (
-            'La password verra generata automaticamente e inviata a questo indirizzo email.'
+            'La password verrà generata automaticamente e inviata a questo indirizzo email.'
+        )
+        self.fields['logo_azienda'].help_text = (
+            'Obbligatorio. Carica il logo aziendale. '
+            f'Formati ammessi: PNG, JPG, JPEG, SVG, WEBP. Max {COMPANY_LOGO_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
         )
 
         for field_name, field in self.fields.items():
@@ -71,18 +73,30 @@ class CreaAziendaForm(forms.Form):
                 else:
                     field.widget.attrs.setdefault('accept', '.pdf,.docx')
 
-        for field_name in (
-            'protocollo_sanitario',
-            'nomina_medico',
-            'verbali_sopralluogo',
-            'varie_documento',
-        ):
-            self.fields[field_name].help_text = document_help_text
+        self.fields['protocollo_sanitario'].help_text = (
+            'Obbligatorio. Carica il protocollo sanitario aziendale. '
+            f'{document_help_text}'
+        )
+        self.fields['nomina_medico'].help_text = (
+            'Obbligatorio. Carica la nomina del medico competente. '
+            f'{document_help_text}'
+        )
+        self.fields['verbali_sopralluogo'].help_text = (
+            "Obbligatorio. Carica i verbali di sopralluogo dell'ambiente di lavoro. "
+            f'{document_help_text}'
+        )
+        self.fields['varie_documento'].help_text = (
+            "Facoltativi. Carica eventuali altri documenti aziendali già disponibili. "
+            f'{document_help_text}'
+        )
+        self.fields['varie_note'].help_text = (
+            'Facoltative. Aggiungi una breve descrizione degli altri documenti, se utile.'
+        )
 
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip()
         if CustomUser.objects.filter(email=email).exists():
-            raise forms.ValidationError('Esiste gia un account con questa email.')
+            raise forms.ValidationError('Esiste già un account con questa email.')
         return email
 
     def clean_codice_univoco(self):
@@ -137,11 +151,12 @@ class LavoratoreForm(forms.ModelForm):
 
         if include_account_fields and not getattr(self.instance, 'user', None):
             self.fields['account_email'] = forms.EmailField(
-                required=True,
+                required=False,
                 label='Email account lavoratore',
                 help_text=(
-                    "Obbligatoria: crea l'account lavoratore e invia via email una password "
-                    'generata automaticamente.'
+                    "Facoltativa. Se la inserisci, viene creato subito l'account lavoratore e "
+                    "viene inviata una password temporanea via email. Se la lasci vuota, viene "
+                    "creata solo la scheda lavoratore e potrai collegare l'account in seguito."
                 ),
             )
 
@@ -157,7 +172,37 @@ class LavoratoreForm(forms.ModelForm):
         if 'account_email' in self.fields:
             account_email = cleaned.get('account_email')
             if account_email and CustomUser.objects.filter(email=account_email).exists():
-                self.add_error('account_email', 'Esiste gia un account con questa email.')
+                self.add_error('account_email', 'Esiste già un account con questa email.')
+        return cleaned
+
+
+class CreaAccountLavoratoreForm(forms.Form):
+    account_email = forms.EmailField(
+        label='Email account lavoratore',
+        help_text=(
+            "Inserisci l'email del lavoratore per creare l'account e inviare una password "
+            'temporanea.'
+        ),
+    )
+
+    def __init__(self, *args, lavoratore=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lavoratore = lavoratore
+
+        for field in self.fields.values():
+            existing = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = f"{existing} form-control".strip()
+
+    def clean_account_email(self):
+        email = (self.cleaned_data.get('account_email') or '').strip()
+        if CustomUser.objects.filter(email=email).exists():
+            raise forms.ValidationError('Esiste già un account con questa email.')
+        return email
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.lavoratore and getattr(self.lavoratore, 'user_id', None):
+            raise forms.ValidationError('Questo lavoratore ha già un account collegato.')
         return cleaned
 
 

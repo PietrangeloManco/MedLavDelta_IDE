@@ -1,6 +1,5 @@
 from django import forms
 from django.contrib import admin
-from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from apps.accounts.models import CustomUser
@@ -171,17 +170,18 @@ class LavoratoreAdminForm(forms.ModelForm):
                 "La password verrà generata automaticamente e inviata via email."
             )
         self.fields['user'].queryset = user_queryset.order_by('email')
+        if not current_user:
+            self.fields['account_email'].help_text = (
+                "Facoltativa. Inseriscila per creare il nuovo account operatore da questa scheda. "
+                "Se la lasci vuota, verrà creata solo la scheda lavoratore e potrai collegare "
+                "l'account in un secondo momento."
+            )
 
     def clean(self):
         cleaned = super().clean()
         user = cleaned.get('user')
         current_user = user or getattr(self.instance, 'user', None)
         account_email = (cleaned.get('account_email') or '').strip()
-
-        if not current_user and not account_email:
-            raise ValidationError(
-                'Per un lavoratore senza account devi selezionare un account esistente o inserire una email account.'
-            )
 
         if account_email:
             conflict_qs = CustomUser.objects.exclude(

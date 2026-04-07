@@ -24,10 +24,11 @@ def upload_logo_azienda(instance, filename):
 
 class Azienda(models.Model):
     INITIAL_DOCUMENT_FIELDS = (
+        ('logo_azienda', 'Logo azienda'),
         ('protocollo_sanitario', 'Protocollo sanitario'),
         ('nomina_medico', 'Nomina del medico'),
         ('verbali_sopralluogo', 'Verbali sopralluogo ambiente di lavoro'),
-        ('varie_documento', 'Documento aggiuntivo iniziale'),
+        ('varie_documento', 'Altri documenti'),
     )
 
     user = models.OneToOneField(

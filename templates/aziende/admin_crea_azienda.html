@@ -10,7 +10,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Nuova azienda</h1>
-        <p class="page-subtitle">Crea account, profilo aziendale e documenti iniziali in un unico passaggio, anche in modo parziale.</p>
+        <p class="page-subtitle">Crea account, profilo aziendale e carica i documenti iniziali obbligatori in un unico passaggio.</p>
     </div>
     <a href="{% url 'admin_aziende' %}" class="btn btn-outline">Torna alle aziende</a>
 </div>
@@ -49,23 +49,27 @@
     </div>
 
     <aside class="form-card">
-        <div class="form-card-title">Documenti iniziali facoltativi</div>
+        <div class="form-card-title">Documenti aziendali</div>
         <div style="display:grid; gap:12px">
             <div class="detail-panel">
+                <div class="form-label">Logo azienda</div>
+                <div class="text-muted small">Obbligatorio. Fa parte dei 4 documenti richiesti per la creazione del profilo aziendale.</div>
+            </div>
+            <div class="detail-panel">
                 <div class="form-label">Protocollo sanitario</div>
-                <div class="text-muted small">Se caricato ora, sar&agrave; visibile anche all'azienda nella nuova sezione Documenti.</div>
+                <div class="text-muted small">Obbligatorio. Fa parte dei 4 documenti richiesti per attivare il profilo aziendale.</div>
             </div>
             <div class="detail-panel">
                 <div class="form-label">Nomina del medico</div>
-                <div class="text-muted small">Allegato iniziale del profilo aziendale, caricabile anche in un secondo momento.</div>
+                <div class="text-muted small">Obbligatorio. Fa parte dei 4 documenti richiesti e va caricato subito insieme all'anagrafica.</div>
             </div>
             <div class="detail-panel">
                 <div class="form-label">Verbali sopralluogo</div>
-                <div class="text-muted small">Storico base opzionale da associare subito alla scheda.</div>
+                <div class="text-muted small">Obbligatorio. Fa parte dei 4 documenti richiesti per completare la documentazione iniziale.</div>
             </div>
             <div class="detail-panel">
-                <div class="form-label">Documento aggiuntivo</div>
-                <div class="text-muted small">Campo opzionale con note descrittive associate.</div>
+                <div class="form-label">Altri documenti</div>
+                <div class="text-muted small">Facoltativi. Puoi caricarli ora oppure aggiungerli successivamente nella sezione Documenti dell'azienda.</div>
             </div>
         </div>
     </aside>

@@ -114,7 +114,7 @@ class CreaAziendaFlowTests(TestCase):
             ),
         )
 
-    def test_form_requires_company_name_and_email(self):
+    def test_form_requires_company_name_email_and_required_company_documents(self):
         data = self.build_valid_data()
         data.pop('ragione_sociale')
         data.pop('email')
@@ -128,7 +128,11 @@ class CreaAziendaFlowTests(TestCase):
         self.assertNotIn('pec', form.errors)
         self.assertNotIn('referente_azienda', form.errors)
         self.assertNotIn('condizioni_pagamento_riservate', form.errors)
-        self.assertNotIn('logo_azienda', form.errors)
+        self.assertIn('logo_azienda', form.errors)
+        self.assertIn('protocollo_sanitario', form.errors)
+        self.assertIn('nomina_medico', form.errors)
+        self.assertIn('verbali_sopralluogo', form.errors)
+        self.assertNotIn('varie_documento', form.errors)
 
     def test_form_rejects_oversized_logo_and_documents(self):
         data = self.build_valid_data()
@@ -399,7 +403,7 @@ class LavoratoreAdminFormTests(TestCase):
         self.assertEqual(saved_lavoratore.user.email, 'marco.rossi@example.com')
         self.assertTrue(saved_lavoratore.user.check_password(form.generated_password))
 
-    def test_lavoratore_admin_form_requires_phone_and_account_email_without_linked_user(self):
+    def test_lavoratore_admin_form_requires_phone_but_not_account_email_without_linked_user(self):
         lavoratore = Lavoratore.objects.create(
             azienda=self.azienda,
             nome='Sara',
@@ -432,12 +436,10 @@ class LavoratoreAdminFormTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn('telefono', form.errors)
-        self.assertIn(
-            'Per un lavoratore senza account devi selezionare un account esistente o inserire una email account.',
-            form.non_field_errors(),
-        )
+        self.assertNotIn('account_email', form.errors)
+        self.assertEqual(form.non_field_errors(), [])
 
-    def test_lavoratore_admin_form_requires_account_email_when_phone_is_present(self):
+    def test_lavoratore_admin_form_allows_missing_account_email_when_phone_is_present(self):
         lavoratore = Lavoratore.objects.create(
             azienda=self.azienda,
             nome='Anna',
@@ -468,11 +470,11 @@ class LavoratoreAdminFormTests(TestCase):
             instance=lavoratore,
         )
 
-        self.assertFalse(form.is_valid())
-        self.assertIn(
-            'Per un lavoratore senza account devi selezionare un account esistente o inserire una email account.',
-            form.non_field_errors(),
-        )
+        self.assertTrue(form.is_valid(), form.errors)
+
+        saved_lavoratore = form.save()
+
+        self.assertIsNone(saved_lavoratore.user)
 
 
 class LavoratoreDeletionTests(TestCase):
@@ -751,7 +753,7 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
         self.assertIn('telefono', response.context['form'].errors)
         self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BNCLNE93C52H501A').exists())
 
-    def test_admin_worker_create_requires_account_email(self):
+    def test_admin_worker_create_allows_missing_account_email(self):
         self.client.force_login(self.admin_user)
 
         response = self.client.post(
@@ -770,9 +772,10 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('account_email', response.context['form'].errors)
-        self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BNCLNE93C52H501A').exists())
+        lavoratore = Lavoratore.objects.get(codice_fiscale='BNCLNE93C52H501A')
+
+        self.assertRedirects(response, reverse('admin_azienda_detail', args=[self.azienda.pk]))
+        self.assertIsNone(lavoratore.user)
 
     def test_admin_worker_create_requires_company_or_worker_permission(self):
         self.client.force_login(self.admin_medical_only)
@@ -788,6 +791,24 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
 
         self.assertContains(response, 'Modifica')
         self.assertContains(response, reverse('admin_lavoratore_modifica', args=[self.lavoratore.pk]))
+        self.assertContains(response, reverse('admin_lavoratore_crea_account', args=[self.lavoratore.pk]))
+
+    def test_admin_can_create_worker_account_later_from_detail(self):
+        self.client.force_login(self.admin_detail_user)
+
+        response = self.client.post(
+            reverse('admin_lavoratore_crea_account', args=[self.lavoratore.pk]),
+            data={'account_email': 'paolo.rossi@example.com'},
+        )
+
+        self.lavoratore.refresh_from_db()
+        match = re.search(r'Password temporanea: (.+)', mail.outbox[-1].body)
+
+        self.assertRedirects(response, reverse('admin_lavoratore_detail', args=[self.lavoratore.pk]))
+        self.assertIsNotNone(self.lavoratore.user)
+        self.assertEqual(self.lavoratore.user.email, 'paolo.rossi@example.com')
+        self.assertIsNotNone(match)
+        self.assertTrue(self.lavoratore.user.check_password(match.group(1).strip()))
 
     def test_admin_aziende_list_supports_search_and_sort(self):
         altra_user = CustomUser.objects.create_user(
@@ -948,7 +969,7 @@ class AziendaLavoratoreCreateTests(TestCase):
             condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
         )
 
-    def test_company_can_create_worker_with_required_phone_and_email(self):
+    def test_company_can_create_worker_with_phone_and_optional_email(self):
         self.client.force_login(self.user)
 
         response = self.client.post(
@@ -996,7 +1017,7 @@ class AziendaLavoratoreCreateTests(TestCase):
         self.assertIn('telefono', response.context['form'].errors)
         self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BLULDI94L58H501T').exists())
 
-    def test_company_worker_create_requires_account_email(self):
+    def test_company_worker_create_allows_missing_account_email(self):
         self.client.force_login(self.user)
 
         response = self.client.post(
@@ -1015,9 +1036,40 @@ class AziendaLavoratoreCreateTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('account_email', response.context['form'].errors)
-        self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BLULDI94L58H501T').exists())
+        lavoratore = Lavoratore.objects.get(codice_fiscale='BLULDI94L58H501T')
+
+        self.assertRedirects(response, reverse('azienda_dashboard'))
+        self.assertIsNone(lavoratore.user)
+
+    def test_company_can_create_worker_account_later_from_detail(self):
+        lavoratore = Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Lidia',
+            cognome='Blu',
+            data_nascita=date(1994, 7, 18),
+            codice_fiscale='BLULDI94L58H501T',
+            telefono='3334445556',
+            mansione='Impiegata',
+            note='Scheda senza account',
+            attivo=True,
+        )
+        self.client.force_login(self.user)
+
+        detail_response = self.client.get(reverse('azienda_lavoratore', args=[lavoratore.pk]))
+        create_response = self.client.post(
+            reverse('azienda_lavoratore_crea_account', args=[lavoratore.pk]),
+            data={'account_email': 'lidia.blu@example.com'},
+        )
+
+        lavoratore.refresh_from_db()
+        match = re.search(r'Password temporanea: (.+)', mail.outbox[-1].body)
+
+        self.assertContains(detail_response, reverse('azienda_lavoratore_crea_account', args=[lavoratore.pk]))
+        self.assertRedirects(create_response, reverse('azienda_lavoratore', args=[lavoratore.pk]))
+        self.assertIsNotNone(lavoratore.user)
+        self.assertEqual(lavoratore.user.email, 'lidia.blu@example.com')
+        self.assertIsNotNone(match)
+        self.assertTrue(lavoratore.user.check_password(match.group(1).strip()))
 
 
 class AziendaDashboardContactTests(TestCase):

@@ -22,7 +22,12 @@ from apps.accounts.services import create_user_with_generated_password
 from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm
 from apps.sanitaria.models import CartellaClinica, DocumentoSanitario, EsitoIdoneita
 
-from .forms import CreaAziendaForm, DocumentoAziendaleForm, LavoratoreForm
+from .forms import (
+    CreaAccountLavoratoreForm,
+    CreaAziendaForm,
+    DocumentoAziendaleForm,
+    LavoratoreForm,
+)
 from .models import Azienda, DocumentoAziendale, Lavoratore
 
 CENTRO_DELTA_CONTACT = {
@@ -79,6 +84,26 @@ def create_lavoratore_with_optional_account(form, azienda, request=None):
     return lavoratore
 
 
+def create_account_for_lavoratore(lavoratore, account_email, request=None):
+    user, _temporary_password = create_user_with_generated_password(
+        email=account_email,
+        role=CustomUser.OPERATORE,
+        request=request,
+    )
+    lavoratore.user = user
+    lavoratore.save(update_fields=['user'])
+    return user
+
+
+def get_lavoratore_create_success_message(lavoratore):
+    if lavoratore.user_id:
+        return f'{lavoratore.nome_completo} aggiunto con successo.'
+    return (
+        f"{lavoratore.nome_completo} aggiunto con successo senza account. "
+        "Potrai creare l'account in seguito dalla scheda lavoratore."
+    )
+
+
 def can_admin_manage_workers(user):
     return user.has_admin_permission(CustomUser.ADMIN_PERMISSION_WORKERS) or user.has_admin_permission(
         CustomUser.ADMIN_PERMISSION_COMPANIES
@@ -91,6 +116,32 @@ def with_latest_worker_status(queryset):
         ultimo_esito=Subquery(latest_outcome.values('esito')[:1]),
         ultima_scadenza=Subquery(latest_outcome.values('data_scadenza')[:1]),
     )
+
+
+def get_admin_lavoratore_detail_context(request, lavoratore, *, account_form=None):
+    cartella, _ = CartellaClinica.objects.get_or_create(lavoratore=lavoratore)
+    esiti = EsitoIdoneita.objects.filter(lavoratore=lavoratore).order_by('-data_visita')
+    documenti = cartella.documenti.order_by('-data')
+    return {
+        'lavoratore': lavoratore,
+        'cartella': cartella,
+        'esiti': esiti,
+        'documenti': documenti,
+        'doc_form': DocumentoSanitarioForm(),
+        'esito_form': EsitoIdoneitaForm(),
+        'account_form': account_form or CreaAccountLavoratoreForm(lavoratore=lavoratore),
+        'can_edit_worker': can_admin_manage_workers(request.user),
+        'can_manage_account': can_admin_manage_workers(request.user),
+    }
+
+
+def get_azienda_lavoratore_detail_context(lavoratore, *, account_form=None):
+    esiti = EsitoIdoneita.objects.filter(lavoratore=lavoratore).order_by('-data_visita')
+    return {
+        'lavoratore': lavoratore,
+        'esiti': esiti,
+        'account_form': account_form or CreaAccountLavoratoreForm(lavoratore=lavoratore),
+    }
 
 
 class AdminDashboardView(AdminPermissionRequiredMixin, View):
@@ -349,6 +400,7 @@ class AdminAziendaLavoratoreCreateView(AdminPermissionRequiredMixin, View):
             'azienda': azienda,
             'action': 'Nuovo lavoratore',
             'is_admin_context': True,
+            'show_optional_account_notice': True,
             'back_href': reverse('admin_azienda_detail', args=[azienda.pk]),
             'back_label': 'Torna alla scheda azienda',
         })
@@ -358,13 +410,14 @@ class AdminAziendaLavoratoreCreateView(AdminPermissionRequiredMixin, View):
         form = LavoratoreForm(request.POST, azienda=azienda, include_account_fields=True)
         if form.is_valid():
             lavoratore = create_lavoratore_with_optional_account(form, azienda, request=request)
-            messages.success(request, f'{lavoratore.nome_completo} aggiunto con successo.')
+            messages.success(request, get_lavoratore_create_success_message(lavoratore))
             return redirect('admin_azienda_detail', pk=azienda.pk)
         return render(request, 'aziende/azienda_lavoratore_form.html', {
             'form': form,
             'azienda': azienda,
             'action': 'Nuovo lavoratore',
             'is_admin_context': True,
+            'show_optional_account_notice': True,
             'back_href': reverse('admin_azienda_detail', args=[azienda.pk]),
             'back_label': 'Torna alla scheda azienda',
         })
@@ -411,18 +464,41 @@ class AdminLavoratoreDetailView(AdminPermissionRequiredMixin, View):
 
     def get(self, request, pk):
         lavoratore = get_object_or_404(Lavoratore, pk=pk)
-        cartella, _ = CartellaClinica.objects.get_or_create(lavoratore=lavoratore)
-        esiti = EsitoIdoneita.objects.filter(lavoratore=lavoratore).order_by('-data_visita')
-        documenti = cartella.documenti.order_by('-data')
-        return render(request, 'aziende/admin_lavoratore_detail.html', {
-            'lavoratore': lavoratore,
-            'cartella': cartella,
-            'esiti': esiti,
-            'documenti': documenti,
-            'doc_form': DocumentoSanitarioForm(),
-            'esito_form': EsitoIdoneitaForm(),
-            'can_edit_worker': can_admin_manage_workers(request.user),
-        })
+        return render(
+            request,
+            'aziende/admin_lavoratore_detail.html',
+            get_admin_lavoratore_detail_context(request, lavoratore),
+        )
+
+
+class AdminLavoratoreCreateAccountView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (
+        CustomUser.ADMIN_PERMISSION_WORKERS,
+        CustomUser.ADMIN_PERMISSION_COMPANIES,
+    )
+    admin_permissions_mode = 'any'
+
+    def post(self, request, pk):
+        lavoratore = get_object_or_404(Lavoratore, pk=pk)
+        if lavoratore.user_id:
+            messages.warning(request, 'Questo lavoratore ha già un account collegato.')
+            return redirect('admin_lavoratore_detail', pk=pk)
+
+        form = CreaAccountLavoratoreForm(request.POST, lavoratore=lavoratore)
+        if form.is_valid():
+            create_account_for_lavoratore(
+                lavoratore,
+                form.cleaned_data['account_email'],
+                request=request,
+            )
+            messages.success(request, 'Account lavoratore creato e collegato con successo.')
+            return redirect('admin_lavoratore_detail', pk=pk)
+
+        return render(
+            request,
+            'aziende/admin_lavoratore_detail.html',
+            get_admin_lavoratore_detail_context(request, lavoratore, account_form=form),
+        )
 
 
 class AdminCaricaDocumentoView(AdminPermissionRequiredMixin, View):
@@ -571,6 +647,7 @@ class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
             'form': form,
             'azienda': azienda,
             'action': 'Nuovo lavoratore',
+            'show_optional_account_notice': True,
             'back_href': reverse('azienda_dashboard'),
             'back_label': 'Torna alla lista',
         })
@@ -580,12 +657,13 @@ class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
         form = LavoratoreForm(request.POST, azienda=azienda, include_account_fields=True)
         if form.is_valid():
             lavoratore = create_lavoratore_with_optional_account(form, azienda, request=request)
-            messages.success(request, f'{lavoratore.nome_completo} aggiunto con successo.')
+            messages.success(request, get_lavoratore_create_success_message(lavoratore))
             return redirect('azienda_dashboard')
         return render(request, 'aziende/azienda_lavoratore_form.html', {
             'form': form,
             'azienda': azienda,
             'action': 'Nuovo lavoratore',
+            'show_optional_account_notice': True,
             'back_href': reverse('azienda_dashboard'),
             'back_label': 'Torna alla lista',
         })
@@ -625,11 +703,36 @@ class AziendaLavoratoreDetailView(AziendaRequiredMixin, View):
     def get(self, request, pk):
         azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
-        esiti = EsitoIdoneita.objects.filter(lavoratore=lavoratore).order_by('-data_visita')
-        return render(request, 'aziende/azienda_lavoratore.html', {
-            'lavoratore': lavoratore,
-            'esiti': esiti,
-        })
+        return render(
+            request,
+            'aziende/azienda_lavoratore.html',
+            get_azienda_lavoratore_detail_context(lavoratore),
+        )
+
+
+class AziendaLavoratoreCreateAccountView(AziendaRequiredMixin, View):
+    def post(self, request, pk):
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
+        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
+        if lavoratore.user_id:
+            messages.warning(request, 'Questo lavoratore ha già un account collegato.')
+            return redirect('azienda_lavoratore', pk=pk)
+
+        form = CreaAccountLavoratoreForm(request.POST, lavoratore=lavoratore)
+        if form.is_valid():
+            create_account_for_lavoratore(
+                lavoratore,
+                form.cleaned_data['account_email'],
+                request=request,
+            )
+            messages.success(request, 'Account lavoratore creato e collegato con successo.')
+            return redirect('azienda_lavoratore', pk=pk)
+
+        return render(
+            request,
+            'aziende/azienda_lavoratore.html',
+            get_azienda_lavoratore_detail_context(lavoratore, account_form=form),
+        )
 
 
 class OperatoreDashboardView(OperatoreRequiredMixin, View):

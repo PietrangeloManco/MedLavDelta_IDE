@@ -22,7 +22,12 @@
 <div class="page-header" style="margin-top:8px">
     <div>
         <h1 class="page-title">{{ action }}</h1>
-        <p class="page-subtitle">Compila i dati anagrafici e lavorativi del profilo.</p>
+        <p class="page-subtitle">
+            Compila i dati anagrafici e lavorativi del profilo.
+            {% if show_optional_account_notice %}
+            L'email account è facoltativa: se la lasci vuota verrà creata solo la scheda lavoratore.
+            {% endif %}
+        </p>
     </div>
 </div>
 
