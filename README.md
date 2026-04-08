@@ -1,27 +1,40 @@
+<div align="center">
+
 # MedLavDelta_IDE
 
-I built MedLavDelta as the management platform used by CentroDeltaSrl to simplify occupational-medicine workflows. The platform is deployed at [medlavdelta.it](https://medlavdelta.it/) and is meant to support the daily operational work around Medicina del Lavoro.
+Operational management platform built to support occupational-medicine workflows inside Centro Delta.
 
-## Live Project
+<p>
+  <a href="https://medlavdelta.it/">Live Platform</a>
+</p>
 
-- Website: [https://medlavdelta.it/](https://medlavdelta.it/)
+<p>
+  <img src="https://img.shields.io/badge/Django-Business%20Platform-183153?style=for-the-badge" alt="Django Business Platform" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Data%20Layer-274472?style=for-the-badge" alt="PostgreSQL Data Layer" />
+  <img src="https://img.shields.io/badge/Use%20Case-Occupational%20Medicine-3f6ab3?style=for-the-badge" alt="Occupational Medicine" />
+  <img src="https://img.shields.io/badge/Screenshots-Redacted-1f4db3?style=for-the-badge" alt="Screenshots Redacted" />
+</p>
 
-## What I Built
+</div>
 
-The platform is designed so that health companies working with Centro Delta can register themselves and their workers, while Centro Delta manages the administrative side of the system.
+## Overview
 
-The main workflows covered by the application include:
+I built MedLavDelta as the management platform used by Centro Delta to simplify occupational-medicine workflows. The platform is meant to support the daily operational work around *Medicina del Lavoro*, not just present static information.
+
+It is a role-based business application designed to coordinate administrative work, company-side activity, worker management, medical documentation, and deadline-sensitive processes.
+
+## What the platform covers
+
+The main workflows include:
 
 - company onboarding and management,
 - worker registration and organization,
 - occupational-health records,
 - medical visit outcomes and expirations,
 - company and medical document management,
-- notifications and dashboard flows for the different user roles.
+- dashboards and notifications for different user roles.
 
-## Product Workflow
-
-MedLavDelta is not a generic demo dashboard: I built it as an operational platform around the actual workflow of occupational medicine.
+## Product workflow
 
 The publishable product flow includes:
 
@@ -30,21 +43,24 @@ The publishable product flow includes:
 - expiry-oriented views that help track visits and medical-document deadlines,
 - role-aware navigation that separates internal administration from company-side usage.
 
-I am also preparing redacted screenshots for the README. Any personal data visible in production-like screens, such as names, surnames, emails, or phone numbers, will be censored before publication.
-
 ## Screenshots
 
-### Administrative overview
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="assets/screenshots/admin-dashboard-redacted.png" alt="MedLavDelta admin dashboard" width="100%" />
+      <br />
+      <sub><b>Administrative overview</b></sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="assets/screenshots/company-workspace-redacted.png" alt="MedLavDelta company workspace" width="100%" />
+      <br />
+      <sub><b>Company workspace</b></sub>
+    </td>
+  </tr>
+</table>
 
-![MedLavDelta admin dashboard](assets/screenshots/admin-dashboard-redacted.png)
-
-### Company workspace
-
-![MedLavDelta company workspace](assets/screenshots/company-workspace-redacted.png)
-
-## Tech Stack
-
-I built the platform with:
+## Tech stack
 
 - Django
 - PostgreSQL
@@ -52,7 +68,7 @@ I built the platform with:
 - ReportLab
 - svglib
 
-## Main Django Apps
+## Main Django apps
 
 - `apps.accounts`
 - `apps.aziende`
@@ -60,7 +76,7 @@ I built the platform with:
 - `apps.sanitaria`
 - `apps.notifiche`
 
-## Local Setup
+## Local setup
 
 ```bash
 python -m venv .venv
@@ -87,8 +103,8 @@ The project expects runtime values for:
 - `DB_PORT`
 - email-related settings used by the platform
 
-## Notes
+## Public release notes
 
-- The platform is role-based and mirrors the actual operational structure of the business.
+- The platform mirrors a real business workflow, so the public repository focuses on product structure and usage rather than business-sensitive runtime data.
 - Uploaded company and health documents are part of the normal workflow, so any production deployment should be configured with persistent media storage.
-- Because this is a company platform, the public repository documents the product structure and workflow, but not business-sensitive runtime data.
+- Screenshots in this repository are intentionally redacted wherever names, emails, phone numbers, or other identifiable details appeared in production-like views.
