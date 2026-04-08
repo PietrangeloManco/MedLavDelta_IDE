@@ -32,6 +32,16 @@ The publishable product flow includes:
 
 I am also preparing redacted screenshots for the README. Any personal data visible in production-like screens, such as names, surnames, emails, or phone numbers, will be censored before publication.
 
+## Screenshots
+
+### Administrative overview
+
+![MedLavDelta admin dashboard](assets/screenshots/admin-dashboard-redacted.png)
+
+### Company workspace
+
+![MedLavDelta company workspace](assets/screenshots/company-workspace-redacted.png)
+
 ## Tech Stack
 
 I built the platform with:
