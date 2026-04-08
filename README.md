@@ -19,6 +19,19 @@ The main workflows covered by the application include:
 - company and medical document management,
 - notifications and dashboard flows for the different user roles.
 
+## Product Workflow
+
+MedLavDelta is not a generic demo dashboard: I built it as an operational platform around the actual workflow of occupational medicine.
+
+The publishable product flow includes:
+
+- a Centro Delta administrative dashboard for global activity overview,
+- company-specific workspaces where each client can manage workers and supporting documents,
+- expiry-oriented views that help track visits and medical-document deadlines,
+- role-aware navigation that separates internal administration from company-side usage.
+
+I am also preparing redacted screenshots for the README. Any personal data visible in production-like screens, such as names, surnames, emails, or phone numbers, will be censored before publication.
+
 ## Tech Stack
 
 I built the platform with:
@@ -68,3 +81,4 @@ The project expects runtime values for:
 
 - The platform is role-based and mirrors the actual operational structure of the business.
 - Uploaded company and health documents are part of the normal workflow, so any production deployment should be configured with persistent media storage.
+- Because this is a company platform, the public repository documents the product structure and workflow, but not business-sensitive runtime data.
