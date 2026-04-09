@@ -7,7 +7,7 @@ from .models import Azienda, Lavoratore
 
 
 @receiver(post_delete, sender=Azienda)
-def delete_linked_company_account(sender, instance, **kwargs):
+def delete_linked_company_account(_sender, instance, **kwargs):
     if not instance.user_id:
         return
     CustomUser.objects.filter(
@@ -17,7 +17,7 @@ def delete_linked_company_account(sender, instance, **kwargs):
 
 
 @receiver(post_delete, sender=Lavoratore)
-def delete_linked_operator_account(sender, instance, **kwargs):
+def delete_linked_operator_account(_sender, instance, **kwargs):
     if not instance.user_id:
         return
     CustomUser.objects.filter(

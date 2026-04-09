@@ -92,14 +92,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
-
-# Rende tutti i widget compatibili con Bootstrap
-from django.forms.widgets import Input, Select, Textarea
-def apply_bootstrap(cls):
-    original_init = cls.__init__
-    def new_init(self, *args, **kwargs):
-        original_init(self, *args, **kwargs)
-        self.attrs.setdefault('class', 'form-control')
-    cls.__init__ = new_init
-
-# Non serve aggiungere altro — usiamo un templatetag custom (vedi sotto)

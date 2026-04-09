@@ -5,13 +5,6 @@ from django.shortcuts import render
 from apps.aziende.models import Azienda
 
 
-class AdminRequiredMixin(LoginRequiredMixin):
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not request.user.is_admin:
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
-
-
 class AdminPermissionRequiredMixin(LoginRequiredMixin):
     admin_permissions_required = ()
     admin_permissions_mode = 'all'

@@ -41,8 +41,6 @@ class InvoiceIssuer:
     city: str
     province: str
     nation: str = 'IT'
-    phone: str = '0824 363764'
-    fax: str = '0824 364092'
     tax_regime: str = 'RF01'
 
 

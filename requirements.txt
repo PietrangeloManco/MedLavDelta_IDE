@@ -7,3 +7,5 @@ reportlab==4.4.10
 sqlparse==0.5.5
 svglib==1.6.0
 tzdata==2025.3
+ruff==0.15.10
+vulture==2.16
