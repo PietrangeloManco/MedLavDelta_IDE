@@ -27,36 +27,40 @@ It is a role-based business application designed to coordinate administrative wo
 
 The main workflows include:
 
-- company onboarding and management,
-- worker registration and organization,
-- occupational-health records,
-- medical visit outcomes and expirations,
-- company and medical document management,
-- dashboards and notifications for different user roles.
+- company onboarding and management
+- worker registration and organization
+- occupational-health records
+- medical visit outcomes and expirations
+- company and medical document management
+- dashboards and notifications for different user roles
 
 ## Product workflow
 
 The publishable product flow includes:
 
-- a Centro Delta administrative dashboard for global activity overview,
-- company-specific workspaces where each client can manage workers and supporting documents,
-- expiry-oriented views that help track visits and medical-document deadlines,
-- role-aware navigation that separates internal administration from company-side usage.
+- a Centro Delta administrative dashboard for global activity overview
+- company-specific workspaces where each client can manage workers and supporting documents
+- expiry-oriented views that help track visits and medical-document deadlines
+- role-aware navigation that separates internal administration from company-side usage
 
 ## Screenshots
 
 <table>
   <tr>
+    <th align="center" width="50%">Administrative view</th>
+    <th align="center" width="50%">Company-side view</th>
+  </tr>
+  <tr>
     <td align="center" width="50%">
       <img src="assets/screenshots/admin-dashboard-redacted.png" alt="MedLavDelta admin dashboard" width="100%" />
-      <br />
-      <sub><b>Administrative overview</b></sub>
     </td>
     <td align="center" width="50%">
       <img src="assets/screenshots/company-workspace-redacted.png" alt="MedLavDelta company workspace" width="100%" />
-      <br />
-      <sub><b>Company workspace</b></sub>
     </td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Centro Delta overview with operational totals, actions, and deadline tracking.</sub></td>
+    <td align="center"><sub>Client workspace for worker management and company document handling.</sub></td>
   </tr>
 </table>
 
@@ -87,7 +91,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-On Windows, activate the environment with `.venv\\Scripts\\activate`.
+On Windows, activate the environment with `.venv\Scripts\activate`.
 
 ## Configuration
 
