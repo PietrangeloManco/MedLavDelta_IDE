@@ -115,9 +115,26 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
-                                    {{ esito.data_scadenza }}
-                                </span>
+                                <div class="stack-actions">
+                                    <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
+                                        {{ esito.data_scadenza }}
+                                    </span>
+                                    <button type="button" class="btn btn-outline btn-sm" data-toggle-target="edit-scadenza-{{ esito.pk }}">Modifica</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="edit-scadenza-{{ esito.pk }}" class="inline-replace-row" hidden>
+                            <td colspan="3">
+                                <div class="inline-replace-panel">
+                                    <form method="post" action="{% url 'admin_modifica_scadenza_esito' lavoratore.pk esito.pk %}" class="inline-replace-form">
+                                        {% csrf_token %}
+                                        <div class="form-group" style="margin-bottom:0">
+                                            <label class="form-label" for="scadenza-{{ esito.pk }}">Nuova data di scadenza</label>
+                                            <input id="scadenza-{{ esito.pk }}" type="date" name="data_scadenza" class="form-control" value="{{ esito.data_scadenza|date:'Y-m-d' }}" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Salva scadenza</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         <tr id="replace-cert-{{ esito.pk }}" class="inline-replace-row" hidden>

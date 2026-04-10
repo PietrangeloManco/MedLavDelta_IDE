@@ -134,7 +134,7 @@ class LavoratoreForm(forms.ModelForm):
             'attivo',
         ]
         widgets = {
-            'data_nascita': forms.DateInput(attrs={'type': 'date'}),
+            'data_nascita': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
             'note': forms.Textarea(attrs={'rows': 3}),
         }
 

@@ -37,6 +37,11 @@ urlpatterns = [
         views.AdminReplaceWorkerCertificateView.as_view(),
         name='admin_sostituisci_certificato_lavoratore',
     ),
+    path(
+        'dashboard/lavoratori/<int:pk>/esiti/<int:esito_pk>/scadenza/',
+        views.AdminEditEsitoScadenzaView.as_view(),
+        name='admin_modifica_scadenza_esito',
+    ),
 
     # Azienda
     path('azienda/dashboard/', views.AziendaDashboardView.as_view(), name='azienda_dashboard'),

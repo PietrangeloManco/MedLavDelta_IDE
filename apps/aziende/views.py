@@ -19,7 +19,7 @@ from apps.accounts.mixins import (
 )
 from apps.accounts.models import CustomUser
 from apps.accounts.services import create_user_with_generated_password
-from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm, validate_document_upload
+from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm, EsitoScadenzaForm, validate_document_upload
 from apps.sanitaria.models import CartellaClinica, DocumentoSanitario, EsitoIdoneita
 
 from .forms import (
@@ -727,6 +727,21 @@ class AdminReplaceWorkerCertificateView(AdminPermissionRequiredMixin, View):
 
         replace_model_file(esito, 'certificato', form.cleaned_data['file'])
         messages.success(request, 'Certificato sostituito con successo.')
+        return redirect('admin_lavoratore_detail', pk=pk)
+
+
+class AdminEditEsitoScadenzaView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,)
+
+    def post(self, request, pk, esito_pk):
+        lavoratore = get_object_or_404(Lavoratore, pk=pk)
+        esito = get_object_or_404(EsitoIdoneita, pk=esito_pk, lavoratore=lavoratore)
+        form = EsitoScadenzaForm(request.POST, instance=esito)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Data di scadenza aggiornata.')
+        else:
+            messages.error(request, 'Errore nella modifica della scadenza.')
         return redirect('admin_lavoratore_detail', pk=pk)
 
 

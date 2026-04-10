@@ -59,3 +59,18 @@ class EsitoIdoneitaForm(forms.ModelForm):
 
     def clean_certificato(self):
         return validate_document_upload(self.cleaned_data.get('certificato'))
+
+
+class EsitoScadenzaForm(forms.ModelForm):
+    class Meta:
+        model = EsitoIdoneita
+        fields = ['data_scadenza']
+        widgets = {
+            'data_scadenza': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            existing = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = f"{existing} form-control".strip()
