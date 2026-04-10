@@ -406,8 +406,8 @@ def build_quote_pdf_bytes(preventivo) -> bytes:
     )
 
     detail_rows = [[
-        Paragraph('<b>ATTIVITA</b>', styles['QuoteCentered']),
-        Paragraph('<b>DETTAGLIO ATTIVITA</b>', styles['QuoteCentered']),
+        Paragraph('<b>ATTIVITÀ</b>', styles['QuoteCentered']),
+        Paragraph('<b>DETTAGLIO ATTIVITÀ</b>', styles['QuoteCentered']),
         Paragraph('<b>IMPORTO</b>', styles['QuoteCentered']),
     ]]
     for voce in preventivo.voci.order_by('ordine', 'id'):
@@ -532,7 +532,7 @@ def build_quote_pdf_bytes(preventivo) -> bytes:
         if preventivo.descrizione_oggetto.strip()
         else (
             'In riferimento alla Vs. richiesta e sulla base delle informazioni fornite, '
-            'trasmettiamo la nostra migliore offerta per le attivita indicate di seguito.'
+            'trasmettiamo la nostra migliore offerta per le attività indicate di seguito.'
         )
     )
 
