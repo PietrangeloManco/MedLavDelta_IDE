@@ -10,11 +10,11 @@ from xml.sax.saxutils import escape
 
 from django.conf import settings
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from svglib.svglib import svg2rlg
 
 
@@ -56,6 +56,19 @@ ISSUER = InvoiceIssuer(
     city='Apollosa',
     province='BN',
 )
+
+QUOTE_CONTACT_FALLBACK = {
+    'commerciale': 'Rosanna Cocozza - rosanna.cocozza@tecnobios.com - 351 6572647',
+    'tecnico': 'Piercarmine Porcaro - piercarmine.porcaro@tecnobios.com - 348 0964346',
+}
+
+QUOTE_ATTACHMENTS = [
+    'CS - Carta dei servizi',
+    'All. 1 CS - Guida agli esami di laboratorio',
+    'IO 03 Modalità di raccolta, conservazione e trasporto dei campioni',
+    'Certificato di accreditamento ISO 15189',
+    "Modulo PG07 M01 Rev. 2 - Sul significato dell'accreditamento",
+]
 
 
 def _decimal_string(value: Decimal | int | float | str) -> str:
@@ -156,6 +169,458 @@ def invoice_pdf_filename(fattura) -> str:
 
 def invoice_xml_filename(fattura) -> str:
     return f'IT{ISSUER.vat_code}_{_invoice_progressive_code(fattura)}.xml'
+
+
+def preventivo_pdf_filename(preventivo) -> str:
+    return f'Preventivo_{preventivo.numero_preventivo or "bozza"}_{preventivo.data_preventivo.year}.pdf'
+
+
+def _company_site_data(azienda):
+    sede = azienda.sedi.order_by('id').first()
+    return {
+        'indirizzo': (sede.indirizzo if sede else '').strip(),
+        'cap': (sede.cap if sede else '').strip(),
+        'comune': (sede.citta if sede else '').strip(),
+        'provincia': (sede.provincia if sede else '').strip(),
+    }
+
+
+def _quote_line_parts(value: str):
+    lines = [line.strip() for line in (value or '').splitlines() if line.strip()]
+    if len(lines) >= 2:
+        return lines[0], lines[1:]
+    if lines:
+        if ' - ' in lines[0]:
+            first, second = lines[0].split(' - ', 1)
+            return first.strip(), [second.strip()]
+        return lines[0], []
+    return '-', []
+
+
+def _format_quote_validity(preventivo) -> str:
+    if preventivo.durata_offerta:
+        return f'Valida fino al {_date_string(preventivo.durata_offerta)}'
+    return 'Da concordare'
+
+
+def _quote_delivery_timing(preventivo) -> str:
+    if preventivo.giorni_lavorativi:
+        return f'{preventivo.giorni_lavorativi} giorni lavorativi'
+    return 'Da concordare'
+
+
+def _quote_banner_flowable(styles):
+    banner_path = Path(settings.BASE_DIR) / 'assets' / 'docx_extract' / 'image2.png'
+    if banner_path.exists():
+        return Image(str(banner_path), width=178 * mm, height=35.5 * mm)
+    return Paragraph(
+        (
+            f'<b>{escape(ISSUER.display_name)}</b><br/>'
+            f'{escape(ISSUER.legal_name)}<br/>'
+            f'{escape(ISSUER.address)} - {escape(ISSUER.cap)} {escape(ISSUER.city)} {escape(ISSUER.province)}'
+        ),
+        styles['QuoteBannerFallback'],
+    )
+
+
+def _quote_qr_flowable():
+    qr_path = Path(settings.BASE_DIR) / 'assets' / 'docx_extract' / 'image1.png'
+    if qr_path.exists():
+        return Image(str(qr_path), width=24 * mm, height=23 * mm)
+    return None
+
+
+def build_quote_pdf_bytes(preventivo) -> bytes:
+    company_site = _company_site_data(preventivo.azienda)
+    client_lines = [preventivo.azienda.display_name]
+    if company_site['indirizzo']:
+        client_lines.append(company_site['indirizzo'])
+    location_line = ' '.join(
+        part for part in [
+            company_site['cap'],
+            company_site['comune'],
+            company_site['provincia'],
+        ] if part
+    )
+    if location_line:
+        client_lines.append(location_line)
+
+    styles = getSampleStyleSheet()
+    styles.add(
+        ParagraphStyle(
+            name='QuoteBannerFallback',
+            parent=styles['BodyText'],
+            fontName='Helvetica-Bold',
+            fontSize=10,
+            leading=13,
+            textColor=colors.HexColor('#1c256a'),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='QuoteMeta',
+            parent=styles['BodyText'],
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor('#334155'),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='QuoteBody',
+            parent=styles['BodyText'],
+            fontSize=9,
+            leading=12,
+            alignment=TA_LEFT,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='QuoteCell',
+            parent=styles['BodyText'],
+            fontSize=8.4,
+            leading=10.5,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='QuoteCellStrong',
+            parent=styles['BodyText'],
+            fontName='Helvetica-Bold',
+            fontSize=8.4,
+            leading=10.5,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='QuoteAmount',
+            parent=styles['BodyText'],
+            fontName='Helvetica-Bold',
+            fontSize=8.4,
+            leading=10.5,
+            alignment=TA_RIGHT,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='QuoteLabel',
+            parent=styles['BodyText'],
+            fontName='Helvetica-Bold',
+            fontSize=9,
+            leading=11,
+            textColor=colors.HexColor('#1e3a8a'),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='QuoteSmall',
+            parent=styles['BodyText'],
+            fontSize=7.6,
+            leading=9.2,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='QuoteCentered',
+            parent=styles['BodyText'],
+            fontSize=8.2,
+            leading=10,
+            alignment=TA_CENTER,
+        )
+    )
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=16 * mm,
+        rightMargin=16 * mm,
+        topMargin=14 * mm,
+        bottomMargin=18 * mm,
+    )
+
+    meta_table = Table(
+        [[
+            Paragraph(
+                (
+                    f'Prot. rc.{preventivo.numero_preventivo or "BOZZA"}/{preventivo.data_preventivo:%y}<br/>'
+                    f'Preventivo n. {preventivo.numero_formattato}'
+                ),
+                styles['QuoteMeta'],
+            ),
+            Paragraph(
+                f'Rev. 0<br/>{_date_string(preventivo.data_preventivo)}',
+                styles['QuoteMeta'],
+            ),
+        ]],
+        colWidths=[120 * mm, 58 * mm],
+    )
+    meta_table.setStyle(TableStyle([('ALIGN', (1, 0), (1, 0), 'RIGHT')]))
+
+    client_box = Table(
+        [[Paragraph(
+            'Spett.le<br/>' + '<br/>'.join(_paragraph_text(line) for line in client_lines),
+            styles['QuoteCell'],
+        )]],
+        colWidths=[82 * mm],
+    )
+    client_box.setStyle(
+        TableStyle(
+            [
+                ('BOX', (0, 0), (-1, -1), 0.7, colors.HexColor('#cbd5e1')),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]
+        )
+    )
+
+    summary_box = Table(
+        [
+            [
+                Paragraph('<b>Oggetto</b>', styles['QuoteCellStrong']),
+                Paragraph(_paragraph_text(preventivo.oggetto or 'Preventivo servizi sanitari'), styles['QuoteCell']),
+            ],
+            [
+                Paragraph('<b>Data</b>', styles['QuoteCellStrong']),
+                Paragraph(_date_string(preventivo.data_preventivo), styles['QuoteCell']),
+            ],
+            [
+                Paragraph('<b>Validità</b>', styles['QuoteCellStrong']),
+                Paragraph(_paragraph_text(_format_quote_validity(preventivo)), styles['QuoteCell']),
+            ],
+        ],
+        colWidths=[26 * mm, 70 * mm],
+    )
+    summary_box.setStyle(
+        TableStyle(
+            [
+                ('GRID', (0, 0), (-1, -1), 0.7, colors.HexColor('#cbd5e1')),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+
+    detail_rows = [[
+        Paragraph('<b>ATTIVITA</b>', styles['QuoteCentered']),
+        Paragraph('<b>DETTAGLIO ATTIVITA</b>', styles['QuoteCentered']),
+        Paragraph('<b>IMPORTO</b>', styles['QuoteCentered']),
+    ]]
+    for voce in preventivo.voci.order_by('ordine', 'id'):
+        activity, detail_lines = _quote_line_parts(voce.descrizione)
+        amount_lines = [f'<b>{escape(_currency_string(voce.importo_totale))}</b>']
+        amount_lines.append(
+            f'Q.ta {escape(_decimal_string(voce.quantita))} x {escape(_currency_string(voce.costo_unitario))}'
+        )
+        if voce.sconto_percentuale:
+            amount_lines.append(f'Sconto {escape(_decimal_string(voce.sconto_percentuale))}%')
+        detail_rows.append([
+            Paragraph(_paragraph_text(activity), styles['QuoteCellStrong']),
+            Paragraph(
+                _paragraph_text('\n'.join(detail_lines) if detail_lines else 'Prestazione come da anagrafica'),
+                styles['QuoteCell'],
+            ),
+            Paragraph('<br/>'.join(amount_lines), styles['QuoteAmount']),
+        ])
+
+    detail_table = Table(
+        detail_rows,
+        colWidths=[42 * mm, 92 * mm, 44 * mm],
+        repeatRows=1,
+    )
+    detail_table.setStyle(
+        TableStyle(
+            [
+                ('GRID', (0, 0), (-1, -1), 0.7, colors.HexColor('#cbd5e1')),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e2e8f0')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+
+    conditions_table = Table(
+        [
+            ['Condizioni di fornitura', preventivo.condizioni_pagamento_riservate or '-'],
+            ['IVA', f'{_decimal_string(preventivo.aliquota_iva)}%'],
+            ['Modalità di pagamento', preventivo.condizioni_pagamento_riservate or '-'],
+            ['Durata dell\'offerta', _format_quote_validity(preventivo)],
+            ['Tempi di restituzione', _quote_delivery_timing(preventivo)],
+        ],
+        colWidths=[48 * mm, 54 * mm],
+    )
+    conditions_table.setStyle(
+        TableStyle(
+            [
+                ('GRID', (0, 0), (-1, -1), 0.7, colors.HexColor('#cbd5e1')),
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f8fafc')),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+
+    totals_table = Table(
+        [
+            ['Totale prestazioni', _currency_string(preventivo.totale_imponibile)],
+            [f'IVA {_decimal_string(preventivo.aliquota_iva)}%', _currency_string(preventivo.totale_iva)],
+            ['Totale preventivo', _currency_string(preventivo.totale_complessivo)],
+        ],
+        colWidths=[42 * mm, 34 * mm],
+        hAlign='RIGHT',
+    )
+    totals_table.setStyle(
+        TableStyle(
+            [
+                ('GRID', (0, 0), (-1, -1), 0.7, colors.HexColor('#cbd5e1')),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+
+    contacts_lines = [
+        f'Riferimento commerciale: {preventivo.riferimento_commerciale or QUOTE_CONTACT_FALLBACK["commerciale"]}',
+        f'Assistente tecnico: {preventivo.assistente_tecnico or QUOTE_CONTACT_FALLBACK["tecnico"]}',
+    ]
+
+    qr_flowable = _quote_qr_flowable()
+    accreditation_cells = []
+    if qr_flowable:
+        accreditation_cells.append(qr_flowable)
+    else:
+        accreditation_cells.append(Paragraph('QR', styles['QuoteCentered']))
+    accreditation_cells.append(
+        Paragraph(
+            (
+                'Il QR code consente l\'accesso diretto al sito www.accredia.it, dove è possibile '
+                'consultare l\'elenco aggiornato delle prove oggetto di accreditamento e verificarne '
+                'la validità.'
+            ),
+            styles['QuoteSmall'],
+        )
+    )
+    accreditation_table = Table([accreditation_cells], colWidths=[28 * mm, 150 * mm])
+    accreditation_table.setStyle(
+        TableStyle(
+            [
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+
+    intro_text = (
+        preventivo.descrizione_oggetto.strip()
+        if preventivo.descrizione_oggetto.strip()
+        else (
+            'In riferimento alla Vs. richiesta e sulla base delle informazioni fornite, '
+            'trasmettiamo la nostra migliore offerta per le attivita indicate di seguito.'
+        )
+    )
+
+    story = [
+        meta_table,
+        Spacer(1, 5),
+        _quote_banner_flowable(styles),
+        Spacer(1, 10),
+        Table([[client_box, summary_box]], colWidths=[82 * mm, 96 * mm]),
+        Spacer(1, 8),
+        Paragraph(f'<b>OGGETTO:</b> {_paragraph_text(preventivo.oggetto or "Preventivo")}', styles['QuoteBody']),
+        Spacer(1, 6),
+        Paragraph(_paragraph_text(intro_text), styles['QuoteBody']),
+        Spacer(1, 10),
+        detail_table,
+        Spacer(1, 10),
+        Table([[conditions_table, totals_table]], colWidths=[102 * mm, 76 * mm]),
+    ]
+
+    if preventivo.note.strip():
+        story.extend([
+            Spacer(1, 8),
+            Paragraph('<b>Nota</b>', styles['QuoteLabel']),
+            Spacer(1, 3),
+            Paragraph(_paragraph_text(preventivo.note), styles['QuoteBody']),
+        ])
+
+    story.extend([
+        Spacer(1, 8),
+        Paragraph('<b>Persone di contatto</b>', styles['QuoteLabel']),
+        Spacer(1, 3),
+    ])
+    for line in contacts_lines:
+        story.append(Paragraph(_paragraph_text(line), styles['QuoteBody']))
+
+    story.extend([
+        Spacer(1, 8),
+        accreditation_table,
+        Spacer(1, 8),
+        Paragraph('<b>Allegati</b>', styles['QuoteLabel']),
+    ])
+    for attachment in QUOTE_ATTACHMENTS:
+        story.append(Paragraph(f'- {_paragraph_text(attachment)}', styles['QuoteBody']))
+
+    story.extend([
+        Spacer(1, 8),
+        Paragraph(
+            (
+                'Vi preghiamo di inviare il presente documento firmato per accettazione. '
+                'Restiamo a disposizione per eventuali chiarimenti.'
+            ),
+            styles['QuoteBody'],
+        ),
+        Spacer(1, 10),
+        Table(
+            [[
+                Paragraph(
+                    f'Apollosa, {_date_string(preventivo.data_preventivo)}',
+                    styles['QuoteCell'],
+                ),
+                Paragraph(
+                    '<b>Per accettazione</b><br/>Centro Delta s.r.l.',
+                    styles['QuoteAmount'],
+                ),
+            ]],
+            colWidths=[98 * mm, 80 * mm],
+        ),
+    ])
+
+    def _draw_footer(canvas, document):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 7)
+        canvas.setFillColor(colors.HexColor('#1c256a'))
+        canvas.drawString(
+            document.leftMargin,
+            10 * mm,
+            f'{ISSUER.display_name} - P.I. {ISSUER.vat_code} - PEC {ISSUER.pec}',
+        )
+        canvas.setFillColor(colors.black)
+        canvas.drawRightString(
+            A4[0] - document.rightMargin,
+            10 * mm,
+            f'Pagina {canvas.getPageNumber()}',
+        )
+        canvas.restoreState()
+
+    doc.build(story, onFirstPage=_draw_footer, onLaterPages=_draw_footer)
+    return buffer.getvalue()
 
 
 def build_invoice_xml_bytes(fattura) -> bytes:

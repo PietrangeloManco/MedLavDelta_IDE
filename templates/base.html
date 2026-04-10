@@ -793,6 +793,23 @@
             padding: 32px 20px;
         }
 
+        .inline-replace-row[hidden] {
+            display: none;
+        }
+
+        .inline-replace-panel {
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            padding: 16px 20px;
+        }
+
+        .inline-replace-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
@@ -886,6 +903,10 @@
             .list-toolbar-actions .btn {
                 width: 100%;
             }
+
+            .inline-replace-panel {
+                padding: 16px;
+            }
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -895,7 +916,7 @@
 <aside class="sidebar" id="app-sidebar">
     <div class="sidebar-brand">
         <a class="brand-link" href="{% url 'dashboard' %}" title="Vai a MedLavDelta">
-            <img src="{% static 'Logo_oriz.svg' %}" alt="Centro Delta Logo" class="brand-logo">
+            <img src="{{ platform_branding.logo_url }}" alt="{{ platform_branding.logo_alt }}" class="brand-logo">
         </a>
     </div>
 
@@ -987,6 +1008,20 @@
             if (window.innerWidth <= 960) {
                 closeSidebar();
             }
+        });
+    });
+
+    document.querySelectorAll('[data-toggle-target]').forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+            const targetId = trigger.getAttribute('data-toggle-target');
+            if (!targetId) {
+                return;
+            }
+            const target = document.getElementById(targetId);
+            if (!target) {
+                return;
+            }
+            target.hidden = !target.hidden;
         });
     });
 })();

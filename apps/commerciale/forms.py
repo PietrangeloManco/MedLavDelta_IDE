@@ -215,6 +215,10 @@ class PreventivoVoceForm(forms.ModelForm):
         model = PreventivoVoce
         fields = ['descrizione', 'quantita', 'costo_unitario', 'sconto_percentuale', 'ordine']
         widgets = {
+            'descrizione': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': "Prima riga: attivita. Righe successive: dettaglio attivita.",
+            }),
             'ordine': forms.HiddenInput(),
         }
 

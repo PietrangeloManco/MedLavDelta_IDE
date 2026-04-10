@@ -19,7 +19,7 @@ from apps.accounts.mixins import (
 )
 from apps.accounts.models import CustomUser
 from apps.accounts.services import create_user_with_generated_password
-from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm
+from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm, validate_document_upload
 from apps.sanitaria.models import CartellaClinica, DocumentoSanitario, EsitoIdoneita
 
 from .forms import (
@@ -27,8 +27,15 @@ from .forms import (
     CreaAziendaForm,
     DocumentoAziendaleForm,
     LavoratoreForm,
+    ReplaceFileForm,
 )
 from .models import Azienda, DocumentoAziendale, Lavoratore
+from .validators import (
+    COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
+    COMPANY_LOGO_MAX_UPLOAD_SIZE,
+    validate_company_document_upload,
+    validate_company_logo_upload,
+)
 
 CENTRO_DELTA_CONTACT = {
     'nome': 'Rosanna Cocozza',
@@ -67,6 +74,56 @@ def get_azienda_documenti_context(azienda):
         'documenti_iniziali': azienda.get_documenti_iniziali(),
         'documenti_aggiuntivi': azienda.documenti_generici.select_related('caricato_da'),
     }
+
+
+def add_form_errors_message(request, form, default_message):
+    errors = []
+    for field_name, field_errors in form.errors.items():
+        label = ''
+        if field_name in form.fields:
+            label = form.fields[field_name].label
+        for error in field_errors:
+            errors.append(f'{label}: {error}' if label else str(error))
+    if errors:
+        messages.error(request, ' '.join(errors))
+        return
+    messages.error(request, default_message)
+
+
+def replace_model_file(instance, field_name, uploaded_file, *, extra_updates=None):
+    extra_updates = extra_updates or []
+    field = instance._meta.get_field(field_name)
+    current_file = getattr(instance, field_name)
+    previous_name = current_file.name if current_file else ''
+    setattr(instance, field_name, uploaded_file)
+    instance.save(update_fields=[field_name, *extra_updates])
+    updated_file = getattr(instance, field_name)
+    updated_name = updated_file.name if updated_file else ''
+    if previous_name and previous_name != updated_name:
+        field.storage.delete(previous_name)
+
+
+def build_replace_file_form(
+    post_data=None,
+    files_data=None,
+    *,
+    validator,
+    file_help_text,
+    accept,
+    include_note=False,
+    note_initial='',
+    note_label='Note',
+):
+    return ReplaceFileForm(
+        post_data,
+        files_data,
+        validator=validator,
+        file_help_text=file_help_text,
+        accept=accept,
+        include_note=include_note,
+        note_initial=note_initial,
+        note_label=note_label,
+    )
 
 
 def create_lavoratore_with_optional_account(form, azienda, request=None):
@@ -330,6 +387,70 @@ class AdminCaricaDocumentoAziendaleView(AdminPermissionRequiredMixin, View):
         return redirect('admin_azienda_detail', pk=pk)
 
 
+class AdminReplaceInitialCompanyDocumentView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS,)
+
+    def post(self, request, pk, field_name):
+        azienda = get_object_or_404(Azienda, pk=pk)
+        initial_fields = dict(Azienda.INITIAL_DOCUMENT_FIELDS)
+        if field_name not in initial_fields:
+            raise Http404('Documento aziendale non disponibile.')
+
+        is_logo = field_name == 'logo_azienda'
+        form = build_replace_file_form(
+            request.POST,
+            request.FILES,
+            validator=validate_company_logo_upload if is_logo else validate_company_document_upload,
+            file_help_text=(
+                'Formati ammessi: PNG, JPG, JPEG, SVG, WEBP. Max '
+                f'{COMPANY_LOGO_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
+                if is_logo else
+                'Formati ammessi: PDF, DOCX. Max '
+                f'{COMPANY_DOCUMENT_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
+            ),
+            accept='.png,.jpg,.jpeg,.svg,.webp' if is_logo else '.pdf,.docx',
+            include_note=field_name == 'varie_documento',
+            note_initial=azienda.varie_note,
+            note_label='Note documento',
+        )
+        if not form.is_valid():
+            add_form_errors_message(request, form, 'Errore nella sostituzione del documento.')
+            return redirect('admin_azienda_detail', pk=pk)
+
+        if field_name == 'varie_documento':
+            azienda.varie_note = form.cleaned_data.get('note', '')
+        replace_model_file(
+            azienda,
+            field_name,
+            form.cleaned_data['file'],
+            extra_updates=['varie_note'] if field_name == 'varie_documento' else None,
+        )
+        messages.success(request, f'{initial_fields[field_name]} sostituito con successo.')
+        return redirect('admin_azienda_detail', pk=pk)
+
+
+class AdminReplaceCompanyDocumentView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS,)
+
+    def post(self, request, pk, documento_pk):
+        azienda = get_object_or_404(Azienda, pk=pk)
+        documento = get_object_or_404(DocumentoAziendale, pk=documento_pk, azienda=azienda)
+        form = build_replace_file_form(
+            request.POST,
+            request.FILES,
+            validator=validate_company_document_upload,
+            file_help_text='Formati ammessi: PDF, DOCX. Max 10 MB.',
+            accept='.pdf,.docx',
+        )
+        if not form.is_valid():
+            add_form_errors_message(request, form, 'Errore nella sostituzione del documento.')
+            return redirect('admin_azienda_detail', pk=pk)
+
+        replace_model_file(documento, 'file', form.cleaned_data['file'])
+        messages.success(request, f'Documento "{documento.titolo}" sostituito con successo.')
+        return redirect('admin_azienda_detail', pk=pk)
+
+
 class AdminLavoratoriView(AdminPermissionRequiredMixin, View):
     admin_permissions_required = (
         CustomUser.ADMIN_PERMISSION_WORKERS,
@@ -530,6 +651,29 @@ class AdminCaricaDocumentoView(AdminPermissionRequiredMixin, View):
         return redirect('admin_lavoratore_detail', pk=pk)
 
 
+class AdminReplaceWorkerDocumentView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,)
+
+    def post(self, request, pk, documento_pk):
+        lavoratore = get_object_or_404(Lavoratore, pk=pk)
+        cartella, _ = CartellaClinica.objects.get_or_create(lavoratore=lavoratore)
+        documento = get_object_or_404(DocumentoSanitario, pk=documento_pk, cartella=cartella)
+        form = build_replace_file_form(
+            request.POST,
+            request.FILES,
+            validator=validate_document_upload,
+            file_help_text='Formati ammessi: PDF, DOCX. Max 10 MB.',
+            accept='.pdf,.docx',
+        )
+        if not form.is_valid():
+            add_form_errors_message(request, form, 'Errore nella sostituzione del documento.')
+            return redirect('admin_lavoratore_detail', pk=pk)
+
+        replace_model_file(documento, 'file', form.cleaned_data['file'])
+        messages.success(request, f'Documento "{documento.titolo}" sostituito con successo.')
+        return redirect('admin_lavoratore_detail', pk=pk)
+
+
 class AdminRegistraEsitoView(AdminPermissionRequiredMixin, View):
     admin_permissions_required = (CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,)
 
@@ -561,6 +705,28 @@ class AdminRegistraEsitoView(AdminPermissionRequiredMixin, View):
             messages.success(request, 'Esito idoneità registrato.')
         else:
             messages.error(request, "Errore nella registrazione dell'esito.")
+        return redirect('admin_lavoratore_detail', pk=pk)
+
+
+class AdminReplaceWorkerCertificateView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS,)
+
+    def post(self, request, pk, esito_pk):
+        lavoratore = get_object_or_404(Lavoratore, pk=pk)
+        esito = get_object_or_404(EsitoIdoneita, pk=esito_pk, lavoratore=lavoratore)
+        form = build_replace_file_form(
+            request.POST,
+            request.FILES,
+            validator=validate_document_upload,
+            file_help_text='Formati ammessi: PDF, DOCX. Max 10 MB.',
+            accept='.pdf,.docx',
+        )
+        if not form.is_valid():
+            add_form_errors_message(request, form, 'Errore nella sostituzione del certificato.')
+            return redirect('admin_lavoratore_detail', pk=pk)
+
+        replace_model_file(esito, 'certificato', form.cleaned_data['file'])
+        messages.success(request, 'Certificato sostituito con successo.')
         return redirect('admin_lavoratore_detail', pk=pk)
 
 
@@ -733,6 +899,27 @@ class AziendaLavoratoreCreateAccountView(AziendaRequiredMixin, View):
             'aziende/azienda_lavoratore.html',
             get_azienda_lavoratore_detail_context(lavoratore, account_form=form),
         )
+
+
+class AziendaReplaceWorkerCertificateView(AziendaRequiredMixin, View):
+    def post(self, request, pk, esito_pk):
+        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
+        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
+        esito = get_object_or_404(EsitoIdoneita, pk=esito_pk, lavoratore=lavoratore)
+        form = build_replace_file_form(
+            request.POST,
+            request.FILES,
+            validator=validate_document_upload,
+            file_help_text='Formati ammessi: PDF, DOCX. Max 10 MB.',
+            accept='.pdf,.docx',
+        )
+        if not form.is_valid():
+            add_form_errors_message(request, form, 'Errore nella sostituzione del certificato.')
+            return redirect('azienda_lavoratore', pk=pk)
+
+        replace_model_file(esito, 'certificato', form.cleaned_data['file'])
+        messages.success(request, 'Certificato sostituito con successo.')
+        return redirect('azienda_lavoratore', pk=pk)
 
 
 class OperatoreDashboardView(OperatoreRequiredMixin, View):

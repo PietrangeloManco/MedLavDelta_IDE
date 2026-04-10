@@ -32,6 +32,11 @@
         width: 100%;
     }
 
+    .lines-table textarea {
+        min-height: 88px;
+        resize: vertical;
+    }
+
     .summary-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -59,7 +64,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">{{ action }}</h1>
-        <p class="page-subtitle">Le condizioni di pagamento riservate vengono richiamate dal profilo aziendale.</p>
+        <p class="page-subtitle">Le righe del preventivo usano il formato attivita e dettaglio nel PDF finale.</p>
     </div>
     <a href="{% url 'admin_preventivi' %}" class="btn btn-outline">Torna all'elenco</a>
 </div>
@@ -220,6 +225,9 @@
 
     <div class="stack-actions stack-actions-end">
         <a href="{% url 'admin_preventivi' %}" class="btn btn-outline">Annulla</a>
+        {% if preventivo %}
+        <a href="{% url 'admin_preventivo_pdf' preventivo.pk %}" class="btn btn-outline" target="_blank" rel="noopener">Stampa PDF</a>
+        {% endif %}
         <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
     </div>
 </form>

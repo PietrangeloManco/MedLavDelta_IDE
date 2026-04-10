@@ -138,8 +138,51 @@
                             <td><span class="badge badge-info">{{ documento.origine_label }}</span></td>
                             <td>{{ documento.data_caricamento|date:"d/m/Y H:i" }}</td>
                             <td>{{ documento.note|default:"-" }}</td>
-                            <td><a href="{{ documento.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a></td>
+                            <td>
+                                <div class="stack-actions">
+                                    <a href="{{ documento.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a>
+                                    {% if can_upload_documents %}
+                                    <button type="button" class="btn btn-outline btn-sm" data-toggle-target="replace-initial-{{ documento.field_name }}">Sostituisci</button>
+                                    {% endif %}
+                                </div>
+                            </td>
                         </tr>
+                        {% if can_upload_documents %}
+                        <tr id="replace-initial-{{ documento.field_name }}" class="inline-replace-row" hidden>
+                            <td colspan="5">
+                                <div class="inline-replace-panel">
+                                    <form method="post" action="{% url 'admin_azienda_sostituisci_documento_iniziale' azienda.pk documento.field_name %}" enctype="multipart/form-data" class="inline-replace-form">
+                                        {% csrf_token %}
+                                        <div class="form-group" style="margin-bottom:0">
+                                            <label class="form-label" for="initial-file-{{ documento.field_name }}">Nuovo file</label>
+                                            <input
+                                                id="initial-file-{{ documento.field_name }}"
+                                                type="file"
+                                                name="file"
+                                                class="form-control"
+                                                accept="{% if documento.field_name == 'logo_azienda' %}.png,.jpg,.jpeg,.svg,.webp{% else %}.pdf,.docx{% endif %}"
+                                                required
+                                            >
+                                            <div class="form-text">
+                                                {% if documento.field_name == 'logo_azienda' %}
+                                                Formati ammessi: PNG, JPG, JPEG, SVG, WEBP.
+                                                {% else %}
+                                                Formati ammessi: PDF, DOCX. Max 10 MB.
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% if documento.field_name == 'varie_documento' %}
+                                        <div class="form-group" style="margin-bottom:0">
+                                            <label class="form-label" for="initial-note-{{ documento.field_name }}">Note documento</label>
+                                            <textarea id="initial-note-{{ documento.field_name }}" name="note" class="form-control" rows="2">{{ azienda.varie_note }}</textarea>
+                                        </div>
+                                        {% endif %}
+                                        <button type="submit" class="btn btn-primary">Sostituisci documento</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
                         {% empty %}
                         <tr>
                             <td colspan="5"><div class="empty-state">Nessun documento iniziale disponibile.</div></td>
@@ -177,8 +220,32 @@
                             <td>{{ documento.caricato_da.email|default:"-" }}</td>
                             <td>{{ documento.data_caricamento|date:"d/m/Y H:i" }}</td>
                             <td>{{ documento.note|default:"-" }}</td>
-                            <td><a href="{{ documento.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a></td>
+                            <td>
+                                <div class="stack-actions">
+                                    <a href="{{ documento.file.url }}" target="_blank" class="btn btn-outline btn-sm">Apri</a>
+                                    {% if can_upload_documents %}
+                                    <button type="button" class="btn btn-outline btn-sm" data-toggle-target="replace-company-doc-{{ documento.pk }}">Sostituisci</button>
+                                    {% endif %}
+                                </div>
+                            </td>
                         </tr>
+                        {% if can_upload_documents %}
+                        <tr id="replace-company-doc-{{ documento.pk }}" class="inline-replace-row" hidden>
+                            <td colspan="6">
+                                <div class="inline-replace-panel">
+                                    <form method="post" action="{% url 'admin_azienda_sostituisci_documento' azienda.pk documento.pk %}" enctype="multipart/form-data" class="inline-replace-form">
+                                        {% csrf_token %}
+                                        <div class="form-group" style="margin-bottom:0">
+                                            <label class="form-label" for="company-doc-file-{{ documento.pk }}">Nuovo file</label>
+                                            <input id="company-doc-file-{{ documento.pk }}" type="file" name="file" class="form-control" accept=".pdf,.docx" required>
+                                            <div class="form-text">Formati ammessi: PDF, DOCX. Max 10 MB.</div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Sostituisci documento</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
                         {% empty %}
                         <tr>
                             <td colspan="6"><div class="empty-state">Nessun documento aggiuntivo caricato.</div></td>

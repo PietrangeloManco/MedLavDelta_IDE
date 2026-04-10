@@ -87,7 +87,7 @@ class PreventivoVoce(models.Model):
         on_delete=models.CASCADE,
         related_name='voci',
     )
-    descrizione = models.CharField(max_length=255)
+    descrizione = models.TextField()
     quantita = models.DecimalField(
         max_digits=10,
         decimal_places=2,

@@ -10,13 +10,33 @@ urlpatterns = [
     path('dashboard/aziende/<int:pk>/lavoratori/nuovo/', views.AdminAziendaLavoratoreCreateView.as_view(), name='admin_azienda_lavoratore_nuovo'),
     path('dashboard/aziende/<int:pk>/contratto/', views.AdminAggiornaContrattoView.as_view(), name='admin_azienda_contratto'),
     path('dashboard/aziende/<int:pk>/documenti/', views.AdminCaricaDocumentoAziendaleView.as_view(), name='admin_azienda_carica_documento'),
+    path(
+        'dashboard/aziende/<int:pk>/documenti-iniziali/<str:field_name>/sostituisci/',
+        views.AdminReplaceInitialCompanyDocumentView.as_view(),
+        name='admin_azienda_sostituisci_documento_iniziale',
+    ),
+    path(
+        'dashboard/aziende/<int:pk>/documenti/<int:documento_pk>/sostituisci/',
+        views.AdminReplaceCompanyDocumentView.as_view(),
+        name='admin_azienda_sostituisci_documento',
+    ),
     path('dashboard/aziende/nuova/', views.AdminCreaAziendaView.as_view(), name='admin_crea_azienda'),
     path('dashboard/lavoratori/', views.AdminLavoratoriView.as_view(), name='admin_lavoratori'),
     path('dashboard/lavoratori/<int:pk>/', views.AdminLavoratoreDetailView.as_view(), name='admin_lavoratore_detail'),
     path('dashboard/lavoratori/<int:pk>/crea-account/', views.AdminLavoratoreCreateAccountView.as_view(), name='admin_lavoratore_crea_account'),
     path('dashboard/lavoratori/<int:pk>/modifica/', views.AdminLavoratoreEditView.as_view(), name='admin_lavoratore_modifica'),
     path('dashboard/lavoratori/<int:pk>/documento/', views.AdminCaricaDocumentoView.as_view(), name='admin_carica_documento'),
+    path(
+        'dashboard/lavoratori/<int:pk>/documenti/<int:documento_pk>/sostituisci/',
+        views.AdminReplaceWorkerDocumentView.as_view(),
+        name='admin_sostituisci_documento_lavoratore',
+    ),
     path('dashboard/lavoratori/<int:pk>/esito/', views.AdminRegistraEsitoView.as_view(), name='admin_registra_esito'),
+    path(
+        'dashboard/lavoratori/<int:pk>/esiti/<int:esito_pk>/certificato/',
+        views.AdminReplaceWorkerCertificateView.as_view(),
+        name='admin_sostituisci_certificato_lavoratore',
+    ),
 
     # Azienda
     path('azienda/dashboard/', views.AziendaDashboardView.as_view(), name='azienda_dashboard'),
@@ -26,6 +46,11 @@ urlpatterns = [
     path('azienda/lavoratori/<int:pk>/', views.AziendaLavoratoreDetailView.as_view(), name='azienda_lavoratore'),
     path('azienda/lavoratori/<int:pk>/crea-account/', views.AziendaLavoratoreCreateAccountView.as_view(), name='azienda_lavoratore_crea_account'),
     path('azienda/lavoratori/<int:pk>/modifica/', views.AziendaLavoratoreEditView.as_view(), name='azienda_lavoratore_modifica'),
+    path(
+        'azienda/lavoratori/<int:pk>/esiti/<int:esito_pk>/certificato/',
+        views.AziendaReplaceWorkerCertificateView.as_view(),
+        name='azienda_sostituisci_certificato_lavoratore',
+    ),
 
     # Operatore
     path('operatore/dashboard/', views.OperatoreDashboardView.as_view(), name='operatore_dashboard'),

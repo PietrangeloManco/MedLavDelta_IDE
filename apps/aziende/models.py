@@ -183,6 +183,13 @@ class Sede(models.Model):
 
 
 class Lavoratore(models.Model):
+    SESSO_MASCHILE = 'M'
+    SESSO_FEMMINILE = 'F'
+    SESSO_CHOICES = [
+        (SESSO_MASCHILE, 'Maschile'),
+        (SESSO_FEMMINILE, 'Femminile'),
+    ]
+
     user = models.OneToOneField(
         CustomUser, on_delete=models.SET_NULL, null=True, blank=True,
         limit_choices_to={'role': 'operatore'}
@@ -197,6 +204,7 @@ class Lavoratore(models.Model):
     nome = models.CharField(max_length=100)
     cognome = models.CharField(max_length=100)
     data_nascita = models.DateField()
+    sesso = models.CharField(max_length=1, choices=SESSO_CHOICES, blank=True, default='')
     codice_fiscale = models.CharField(max_length=16, unique=True)
     telefono = models.CharField('Numero di telefono', max_length=20, default='')
     mansione = models.CharField(max_length=255)

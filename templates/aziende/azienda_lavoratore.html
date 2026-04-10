@@ -76,6 +76,10 @@
                     <div><strong>{{ lavoratore.data_nascita }}</strong></div>
                 </div>
                 <div>
+                    <div class="text-muted small">Sesso</div>
+                    <div><strong>{{ lavoratore.get_sesso_display|default:"-" }}</strong></div>
+                </div>
+                <div>
                     <div class="text-muted small">Codice fiscale</div>
                     <div><strong>{{ lavoratore.codice_fiscale }}</strong></div>
                 </div>
@@ -182,12 +186,17 @@
                     <td>{{ esito.data_visita }}</td>
                     <td>{{ esito.mansione }}</td>
                     <td>
-                        <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
-                            {{ esito.get_esito_display }}
-                        </span>
-                        {% if esito.esito == 'idoneo' and esito.certificato %}
-                        <a href="{{ esito.certificato.url }}" target="_blank" class="btn btn-link btn-sm">Certificato</a>
-                        {% endif %}
+                        <div class="stack-actions">
+                            <span class="badge badge-{% if esito.esito == 'idoneo' %}success{% elif esito.esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
+                                {{ esito.get_esito_display }}
+                            </span>
+                            {% if esito.certificato %}
+                            <a href="{{ esito.certificato.url }}" target="_blank" class="btn btn-link btn-sm">Certificato</a>
+                            {% endif %}
+                            <button type="button" class="btn btn-outline btn-sm" data-toggle-target="azienda-replace-cert-{{ esito.pk }}">
+                                {% if esito.certificato %}Sostituisci{% else %}Carica certificato{% endif %}
+                            </button>
+                        </div>
                     </td>
                     <td>
                         <span class="{% if esito.is_scaduto %}badge badge-danger{% else %}badge badge-neutral{% endif %}">
@@ -195,6 +204,25 @@
                         </span>
                     </td>
                     <td>{{ esito.note|default:"-" }}</td>
+                </tr>
+                <tr id="azienda-replace-cert-{{ esito.pk }}" class="inline-replace-row" hidden>
+                    <td colspan="5">
+                        <div class="inline-replace-panel">
+                            <form method="post" action="{% url 'azienda_sostituisci_certificato_lavoratore' lavoratore.pk esito.pk %}" enctype="multipart/form-data" class="inline-replace-form">
+                                {% csrf_token %}
+                                <div class="form-group" style="margin-bottom:0">
+                                    <label class="form-label" for="azienda-cert-file-{{ esito.pk }}">
+                                        {% if esito.certificato %}Nuovo certificato{% else %}Carica certificato{% endif %}
+                                    </label>
+                                    <input id="azienda-cert-file-{{ esito.pk }}" type="file" name="file" class="form-control" accept=".pdf,.docx" required>
+                                    <div class="form-text">Formati ammessi: PDF, DOCX. Max 10 MB.</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    {% if esito.certificato %}Sostituisci certificato{% else %}Salva certificato{% endif %}
+                                </button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>

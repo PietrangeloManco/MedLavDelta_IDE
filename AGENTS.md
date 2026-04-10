@@ -42,3 +42,7 @@ Before closing a UI task, quickly verify:
 
 - Whenever a Python package is installed, upgraded, or added for project code or tests, update `requirements.txt` in the same change.
 - Do not leave environment-only installs undocumented if the repository depends on them to run or test successfully.
+
+## Dead Code Hygiene
+
+- Periodically perform the task: `Delete all dead code. Use ruff and vulture.`

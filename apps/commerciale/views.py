@@ -12,9 +12,11 @@ from apps.aziende.models import Azienda
 
 from .documents import (
     build_invoice_pdf_bytes,
+    build_quote_pdf_bytes,
     build_invoice_xml_bytes,
     invoice_pdf_filename,
     invoice_xml_filename,
+    preventivo_pdf_filename,
 )
 from .forms import (
     FatturaForm,
@@ -166,6 +168,16 @@ class AdminPreventivoUpdateView(AdminPermissionRequiredMixin, View):
             'action': f'Modifica preventivo {preventivo.numero_formattato}',
             'submit_label': 'Aggiorna preventivo',
         }
+
+
+class AdminPreventivoPdfView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_PREVENTIVI,)
+
+    def get(self, request, pk):
+        preventivo = get_object_or_404(Preventivo.objects.select_related('azienda').prefetch_related('voci'), pk=pk)
+        response = HttpResponse(build_quote_pdf_bytes(preventivo), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{preventivo_pdf_filename(preventivo)}"'
+        return response
 
 
 class AdminFattureListView(AdminPermissionRequiredMixin, View):

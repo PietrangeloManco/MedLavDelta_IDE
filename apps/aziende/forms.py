@@ -125,6 +125,7 @@ class LavoratoreForm(forms.ModelForm):
             'nome',
             'cognome',
             'data_nascita',
+            'sesso',
             'codice_fiscale',
             'telefono',
             'mansione',
@@ -166,6 +167,8 @@ class LavoratoreForm(forms.ModelForm):
                 continue
             existing = field.widget.attrs.get('class', '')
             field.widget.attrs['class'] = f"{existing} form-control".strip()
+
+        self.fields['sesso'].widget.attrs.setdefault('autocomplete', 'sex')
 
     def clean(self):
         cleaned = super().clean()
@@ -234,3 +237,49 @@ class DocumentoAziendaleForm(forms.ModelForm):
 
     def clean_file(self):
         return validate_company_document_upload(self.cleaned_data.get('file'))
+
+
+class ReplaceFileForm(forms.Form):
+    file = forms.FileField(label='Nuovo file')
+    note = forms.CharField(
+        label='Note',
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 2}),
+    )
+
+    def __init__(
+        self,
+        *args,
+        validator=None,
+        file_help_text='',
+        accept='',
+        include_note=False,
+        note_initial='',
+        note_label='Note',
+        **kwargs,
+    ):
+        self.validator = validator
+        super().__init__(*args, **kwargs)
+
+        if not include_note:
+            self.fields.pop('note')
+        else:
+            self.fields['note'].initial = note_initial
+            self.fields['note'].label = note_label
+
+        self.fields['file'].help_text = file_help_text
+        if accept:
+            self.fields['file'].widget.attrs.setdefault('accept', accept)
+
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault('style', 'width:auto; height:auto')
+                continue
+            existing = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = f"{existing} form-control".strip()
+
+    def clean_file(self):
+        upload = self.cleaned_data.get('file')
+        if self.validator:
+            return self.validator(upload)
+        return upload
