@@ -219,7 +219,7 @@
         </div>
 
         <div class="form-card">
-            <div class="form-card-title">Carica documento</div>
+            <div class="form-card-title">Carica documento <span class="text-muted" style="font-weight:normal; font-size:0.85em">— visibile al lavoratore</span></div>
             <form method="post" action="{% url 'admin_carica_documento' lavoratore.pk %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 {% for field in doc_form %}
@@ -271,7 +271,7 @@
         </div>
 
         <div class="form-card">
-            <div class="form-card-title">Registra esito idoneità</div>
+            <div class="form-card-title">Registra esito idoneità <span class="text-muted" style="font-weight:normal; font-size:0.85em">— visibile all'azienda</span></div>
             <form method="post" action="{% url 'admin_registra_esito' lavoratore.pk %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 {% for field in esito_form %}
