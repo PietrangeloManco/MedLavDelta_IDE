@@ -12,10 +12,26 @@ from apps.accounts.models import CustomUser
 from .admin import AziendaAdminForm, LavoratoreAdminForm
 from .forms import CreaAziendaForm
 from .models import Azienda, DocumentoAziendale, Lavoratore
+from .services import INTERNAL_CREATION_NOTIFICATION_RECIPIENTS
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
     COMPANY_LOGO_MAX_UPLOAD_SIZE,
 )
+
+
+def find_last_email_to(recipient):
+    for message in reversed(mail.outbox):
+        if recipient in message.to:
+            return message
+    return None
+
+
+def find_internal_creation_email():
+    expected_recipients = set(INTERNAL_CREATION_NOTIFICATION_RECIPIENTS)
+    for message in reversed(mail.outbox):
+        if set(message.to) == expected_recipients:
+            return message
+    return None
 
 
 class CreaAziendaFlowTests(TestCase):
@@ -51,8 +67,9 @@ class CreaAziendaFlowTests(TestCase):
             'varie_note': 'Note azienda',
         }
 
-    def extract_password_from_last_email(self):
-        match = re.search(r'Password temporanea: (.+)', mail.outbox[-1].body)
+    def extract_password_from_email(self, message):
+        self.assertIsNotNone(message)
+        match = re.search(r'Password temporanea: (.+)', message.body)
         self.assertIsNotNone(match)
         return match.group(1).strip()
 
@@ -114,7 +131,7 @@ class CreaAziendaFlowTests(TestCase):
             ),
         )
 
-    def test_form_requires_company_name_email_and_required_company_documents(self):
+    def test_form_requires_company_name_and_email_but_not_company_documents(self):
         data = self.build_valid_data()
         data.pop('ragione_sociale')
         data.pop('email')
@@ -128,10 +145,10 @@ class CreaAziendaFlowTests(TestCase):
         self.assertNotIn('pec', form.errors)
         self.assertNotIn('referente_azienda', form.errors)
         self.assertNotIn('condizioni_pagamento_riservate', form.errors)
-        self.assertIn('logo_azienda', form.errors)
-        self.assertIn('protocollo_sanitario', form.errors)
-        self.assertIn('nomina_medico', form.errors)
-        self.assertIn('verbali_sopralluogo', form.errors)
+        self.assertNotIn('logo_azienda', form.errors)
+        self.assertNotIn('protocollo_sanitario', form.errors)
+        self.assertNotIn('nomina_medico', form.errors)
+        self.assertNotIn('verbali_sopralluogo', form.errors)
         self.assertNotIn('varie_documento', form.errors)
 
     def test_form_rejects_oversized_logo_and_documents(self):
@@ -182,9 +199,33 @@ class CreaAziendaFlowTests(TestCase):
         self.assertTrue(azienda.protocollo_sanitario.name.endswith('protocollo.pdf'))
         self.assertEqual(azienda.user.email, 'azienda@example.com')
         self.assertEqual(azienda.user.role, CustomUser.AZIENDA)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ['azienda@example.com'])
-        self.assertTrue(azienda.user.check_password(self.extract_password_from_last_email()))
+        self.assertEqual(len(mail.outbox), 2)
+        credentials_email = find_last_email_to('azienda@example.com')
+        internal_email = find_internal_creation_email()
+        self.assertIsNotNone(credentials_email)
+        self.assertEqual(credentials_email.to, ['azienda@example.com'])
+        self.assertTrue(azienda.user.check_password(self.extract_password_from_email(credentials_email)))
+        self.assertIsNotNone(internal_email)
+        self.assertEqual(set(internal_email.to), set(INTERNAL_CREATION_NOTIFICATION_RECIPIENTS))
+        self.assertIn('Azienda: Azienda Test SRL', internal_email.body)
+
+    def test_admin_create_view_allows_missing_company_documents(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.post(
+            reverse('admin_crea_azienda'),
+            data=self.build_valid_data(),
+        )
+
+        azienda = Azienda.objects.get(ragione_sociale='Azienda Test SRL')
+
+        self.assertRedirects(response, reverse('admin_azienda_detail', args=[azienda.pk]))
+        self.assertFalse(bool(azienda.logo_azienda))
+        self.assertFalse(bool(azienda.protocollo_sanitario))
+        self.assertFalse(bool(azienda.nomina_medico))
+        self.assertFalse(bool(azienda.verbali_sopralluogo))
+        self.assertFalse(bool(azienda.varie_documento))
+        self.assertEqual(len(mail.outbox), 2)
 
     def test_admin_create_view_requires_account_email(self):
         self.client.force_login(self.admin_user)
@@ -696,13 +737,20 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
         )
 
         lavoratore = Lavoratore.objects.get(codice_fiscale='VRDLCU91D15H501K')
-        match = re.search(r'Password temporanea: (.+)', mail.outbox[-1].body)
+        credentials_email = find_last_email_to('luca.verdi@example.com')
+        internal_email = find_internal_creation_email()
+        self.assertIsNotNone(credentials_email)
+        match = re.search(r'Password temporanea: (.+)', credentials_email.body)
 
         self.assertRedirects(response, reverse('admin_azienda_detail', args=[self.azienda.pk]))
         self.assertEqual(lavoratore.azienda, self.azienda)
         self.assertEqual(lavoratore.user.email, 'luca.verdi@example.com')
+        self.assertEqual(len(mail.outbox), 2)
         self.assertIsNotNone(match)
         self.assertTrue(lavoratore.user.check_password(match.group(1).strip()))
+        self.assertIsNotNone(internal_email)
+        self.assertIn(f'Lavoratore: {lavoratore.nome_completo}', internal_email.body)
+        self.assertIn(f'Azienda: {self.azienda.display_name}', internal_email.body)
 
     def test_admin_with_company_permission_can_create_worker(self):
         self.client.force_login(self.admin_no_workers)
@@ -993,6 +1041,13 @@ class AziendaLavoratoreCreateTests(TestCase):
         self.assertRedirects(response, reverse('azienda_dashboard'))
         self.assertEqual(lavoratore.telefono, '3334445556')
         self.assertEqual(lavoratore.user.email, 'lidia.blu@example.com')
+        self.assertEqual(len(mail.outbox), 2)
+        credentials_email = find_last_email_to('lidia.blu@example.com')
+        internal_email = find_internal_creation_email()
+        self.assertIsNotNone(credentials_email)
+        self.assertIsNotNone(internal_email)
+        self.assertIn(f'Lavoratore: {lavoratore.nome_completo}', internal_email.body)
+        self.assertIn(f'Azienda: {self.azienda.display_name}', internal_email.body)
 
     def test_company_worker_create_requires_phone(self):
         self.client.force_login(self.user)

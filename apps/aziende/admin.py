@@ -5,6 +5,10 @@ from django.db.models import Q
 from apps.accounts.models import CustomUser
 from apps.accounts.services import generate_temporary_password, send_account_credentials_email
 from .models import Azienda, DocumentoAziendale, Lavoratore, Sede
+from .services import (
+    send_new_company_created_notification,
+    send_new_worker_created_notification,
+)
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
     COMPANY_LOGO_MAX_UPLOAD_SIZE,
@@ -293,6 +297,8 @@ class AziendaAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
         if getattr(form, 'generated_password', None) and obj.user:
             send_account_credentials_email(obj.user, form.generated_password, request=request)
+        if not change:
+            send_new_company_created_notification(obj, request=request)
 
 
 @admin.register(DocumentoAziendale)
@@ -341,3 +347,5 @@ class LavoratoreAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
         if getattr(form, 'generated_password', None) and obj.user:
             send_account_credentials_email(obj.user, form.generated_password, request=request)
+        if not change:
+            send_new_worker_created_notification(obj, request=request)

@@ -30,6 +30,10 @@ from .forms import (
     ReplaceFileForm,
 )
 from .models import Azienda, DocumentoAziendale, Lavoratore
+from .services import (
+    send_new_company_created_notification,
+    send_new_worker_created_notification,
+)
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
     COMPANY_LOGO_MAX_UPLOAD_SIZE,
@@ -138,6 +142,7 @@ def create_lavoratore_with_optional_account(form, azienda, request=None):
         )
         lavoratore.user = user
     lavoratore.save()
+    send_new_worker_created_notification(lavoratore, request=request)
     return lavoratore
 
 
@@ -361,6 +366,7 @@ class AdminCreaAziendaView(AdminPermissionRequiredMixin, View):
                 varie_documento=form.cleaned_data.get('varie_documento'),
                 varie_note=form.cleaned_data.get('varie_note', ''),
             )
+            send_new_company_created_notification(azienda, request=request)
             messages.success(
                 request,
                 f'{azienda.display_name} creata con successo.',

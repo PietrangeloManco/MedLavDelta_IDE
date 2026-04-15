@@ -35,11 +35,13 @@ class CreaAziendaForm(forms.Form):
             'Formati ammessi: PNG, JPG, JPEG, SVG, WEBP. '
             f'Max {COMPANY_LOGO_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
         ),
+        required=False,
     )
-    protocollo_sanitario = forms.FileField(label='Protocollo sanitario')
-    nomina_medico = forms.FileField(label='Nomina del medico')
+    protocollo_sanitario = forms.FileField(label='Protocollo sanitario', required=False)
+    nomina_medico = forms.FileField(label='Nomina del medico', required=False)
     verbali_sopralluogo = forms.FileField(
         label='Verbali sopralluogo ambiente di lavoro',
+        required=False,
     )
     varie_documento = forms.FileField(label='Altri documenti', required=False)
     varie_note = forms.CharField(
@@ -57,7 +59,7 @@ class CreaAziendaForm(forms.Form):
             'La password verrà generata automaticamente e inviata a questo indirizzo email.'
         )
         self.fields['logo_azienda'].help_text = (
-            'Obbligatorio. Carica il logo aziendale. '
+            'Facoltativo. Puoi caricare il logo aziendale ora oppure aggiungerlo successivamente. '
             f'Formati ammessi: PNG, JPG, JPEG, SVG, WEBP. Max {COMPANY_LOGO_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
         )
 
@@ -74,15 +76,15 @@ class CreaAziendaForm(forms.Form):
                     field.widget.attrs.setdefault('accept', '.pdf,.docx')
 
         self.fields['protocollo_sanitario'].help_text = (
-            'Obbligatorio. Carica il protocollo sanitario aziendale. '
+            'Facoltativo. Puoi caricare il protocollo sanitario aziendale ora oppure aggiungerlo successivamente. '
             f'{document_help_text}'
         )
         self.fields['nomina_medico'].help_text = (
-            'Obbligatorio. Carica la nomina del medico competente. '
+            'Facoltativa. Puoi caricare la nomina del medico competente ora oppure aggiungerla successivamente. '
             f'{document_help_text}'
         )
         self.fields['verbali_sopralluogo'].help_text = (
-            "Obbligatorio. Carica i verbali di sopralluogo dell'ambiente di lavoro. "
+            "Facoltativi. Puoi caricare i verbali di sopralluogo dell'ambiente di lavoro ora oppure aggiungerli successivamente. "
             f'{document_help_text}'
         )
         self.fields['varie_documento'].help_text = (
