@@ -9,3 +9,4 @@ media/
 db.sqlite3
 restart.sh
 static/guides/Guida_Interna_*.pdf
+!static/guides/Guida_Interna_Staff_CentroDelta_rev020426.pdf
