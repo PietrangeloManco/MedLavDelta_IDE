@@ -31,7 +31,7 @@
                 name="q"
                 value="{{ current_search }}"
                 class="form-control"
-                placeholder="Nome, cognome, azienda, sede, mansione..."
+                placeholder="Cognome, nome, azienda, sede, mansione..."
             >
         </div>
         <div class="form-group" style="margin-bottom:0">
@@ -80,7 +80,7 @@
                     <td>
                         {% if lavoratore.ultimo_esito %}
                         <span class="badge badge-{% if lavoratore.ultimo_esito == 'idoneo' %}success{% elif lavoratore.ultimo_esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
-                            {% if lavoratore.ultimo_esito == 'idoneo' %}Idoneo{% elif lavoratore.ultimo_esito == 'idoneo_limitazioni' %}Idoneo con limitazioni{% elif lavoratore.ultimo_esito == 'non_idoneo' %}Non idoneo{% else %}Non idoneo temporaneo{% endif %}
+                            {% if lavoratore.ultimo_esito == 'idoneo' %}Idoneo{% elif lavoratore.ultimo_esito == 'idoneo_limitazioni' %}Idoneo con limitazioni{% elif lavoratore.ultimo_esito == 'idoneita_prescrizione' %}Idoneità con prescrizione{% elif lavoratore.ultimo_esito == 'non_idoneo' %}Non idoneo{% else %}Non idoneo temporaneo{% endif %}
                         </span>
                         {% else %}
                         <span class="text-muted">-</span>

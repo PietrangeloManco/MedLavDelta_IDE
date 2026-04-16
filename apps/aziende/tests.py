@@ -8,6 +8,8 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import CustomUser
+from apps.sanitaria.forms import EsitoIdoneitaForm
+from apps.sanitaria.models import EsitoIdoneita
 
 from .admin import AziendaAdminForm, LavoratoreAdminForm
 from .forms import CreaAziendaForm
@@ -240,6 +242,13 @@ class CreaAziendaFlowTests(TestCase):
         self.assertFalse(Azienda.objects.filter(ragione_sociale='Azienda Essenziale SRL').exists())
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_admin_create_page_shows_company_specific_other_documents_label(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.get(reverse('admin_crea_azienda'))
+
+        self.assertContains(response, 'Altri documenti (per azienda)')
+
     def test_azienda_admin_form_can_update_linked_account_email(self):
         azienda = self.create_existing_company()
 
@@ -366,6 +375,12 @@ class DocumentoAziendaFlowTests(TestCase):
         )
 
     def test_admin_company_detail_shows_initial_and_additional_documents(self):
+        self.azienda.varie_documento = SimpleUploadedFile(
+            'documenti-azienda.pdf',
+            b'%PDF-1.4 documenti azienda',
+            content_type='application/pdf',
+        )
+        self.azienda.save(update_fields=['varie_documento'])
         DocumentoAziendale.objects.create(
             azienda=self.azienda,
             titolo='Visura camerale',
@@ -382,6 +397,8 @@ class DocumentoAziendaFlowTests(TestCase):
         response = self.client.get(reverse('admin_azienda_detail', args=[self.azienda.pk]))
 
         self.assertContains(response, 'Protocollo sanitario')
+        self.assertContains(response, 'Altri documenti (per azienda)')
+        self.assertContains(response, 'Bianchi Marta')
         self.assertContains(response, 'Visura camerale')
 
 
@@ -444,7 +461,7 @@ class LavoratoreAdminFormTests(TestCase):
         self.assertEqual(saved_lavoratore.user.email, 'marco.rossi@example.com')
         self.assertTrue(saved_lavoratore.user.check_password(form.generated_password))
 
-    def test_lavoratore_admin_form_requires_phone_but_not_account_email_without_linked_user(self):
+    def test_lavoratore_admin_form_allows_missing_phone_and_account_email_without_linked_user(self):
         lavoratore = Lavoratore.objects.create(
             azienda=self.azienda,
             nome='Sara',
@@ -475,8 +492,10 @@ class LavoratoreAdminFormTests(TestCase):
             instance=lavoratore,
         )
 
-        self.assertFalse(form.is_valid())
-        self.assertIn('telefono', form.errors)
+        self.assertTrue(form.is_valid(), form.errors)
+        saved_lavoratore = form.save()
+
+        self.assertEqual(saved_lavoratore.telefono, '')
         self.assertNotIn('account_email', form.errors)
         self.assertEqual(form.non_field_errors(), [])
 
@@ -516,6 +535,16 @@ class LavoratoreAdminFormTests(TestCase):
         saved_lavoratore = form.save()
 
         self.assertIsNone(saved_lavoratore.user)
+
+
+class EsitoIdoneitaFormTests(TestCase):
+    def test_form_includes_prescription_option(self):
+        form = EsitoIdoneitaForm()
+
+        self.assertIn(
+            (EsitoIdoneita.IDONEITA_PRESCRIZIONE, 'Idoneità con prescrizione'),
+            list(form.fields['esito'].choices),
+        )
 
 
 class LavoratoreDeletionTests(TestCase):
@@ -778,7 +807,7 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
         self.assertEqual(lavoratore.mansione, 'Analista')
         self.assertEqual(lavoratore.user.email, 'giulia.neri@example.com')
 
-    def test_admin_worker_create_requires_phone(self):
+    def test_admin_worker_create_allows_missing_phone(self):
         self.client.force_login(self.admin_user)
 
         response = self.client.post(
@@ -797,9 +826,10 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('telefono', response.context['form'].errors)
-        self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BNCLNE93C52H501A').exists())
+        lavoratore = Lavoratore.objects.get(codice_fiscale='BNCLNE93C52H501A')
+
+        self.assertRedirects(response, reverse('admin_azienda_detail', args=[self.azienda.pk]))
+        self.assertEqual(lavoratore.telefono, '')
 
     def test_admin_worker_create_allows_missing_account_email(self):
         self.client.force_login(self.admin_user)
@@ -923,9 +953,23 @@ class AdminAziendaLavoratoreCreateTests(TestCase):
         sort_response = self.client.get(reverse('admin_lavoratori'), {'sort': 'nominativo', 'dir': 'asc'})
         sort_html = sort_response.content.decode()
 
-        self.assertContains(search_response, 'Andrea Bianchi')
-        self.assertNotContains(search_response, 'Paolo Rossi')
-        self.assertLess(sort_html.find('Andrea Bianchi'), sort_html.find('Paolo Rossi'))
+        self.assertContains(search_response, 'Bianchi Andrea')
+        self.assertNotContains(search_response, 'Rossi Paolo')
+        self.assertLess(sort_html.find('Bianchi Andrea'), sort_html.find('Rossi Paolo'))
+
+    def test_admin_lavoratori_list_shows_prescription_label_for_latest_outcome(self):
+        EsitoIdoneita.objects.create(
+            lavoratore=self.lavoratore,
+            esito=EsitoIdoneita.IDONEITA_PRESCRIZIONE,
+            mansione=self.lavoratore.mansione,
+            data_visita=date(2026, 4, 10),
+            data_scadenza=date(2027, 4, 10),
+        )
+        self.client.force_login(self.admin_user)
+
+        response = self.client.get(reverse('admin_lavoratori'))
+
+        self.assertContains(response, 'Idoneità con prescrizione')
 
     def test_admin_can_edit_worker_with_shared_form(self):
         self.client.force_login(self.admin_detail_user)
@@ -1049,7 +1093,7 @@ class AziendaLavoratoreCreateTests(TestCase):
         self.assertIn(f'Lavoratore: {lavoratore.nome_completo}', internal_email.body)
         self.assertIn(f'Azienda: {self.azienda.display_name}', internal_email.body)
 
-    def test_company_worker_create_requires_phone(self):
+    def test_company_worker_create_allows_missing_phone(self):
         self.client.force_login(self.user)
 
         response = self.client.post(
@@ -1068,9 +1112,10 @@ class AziendaLavoratoreCreateTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('telefono', response.context['form'].errors)
-        self.assertFalse(Lavoratore.objects.filter(codice_fiscale='BLULDI94L58H501T').exists())
+        lavoratore = Lavoratore.objects.get(codice_fiscale='BLULDI94L58H501T')
+
+        self.assertRedirects(response, reverse('azienda_dashboard'))
+        self.assertEqual(lavoratore.telefono, '')
 
     def test_company_worker_create_allows_missing_account_email(self):
         self.client.force_login(self.user)
@@ -1152,7 +1197,7 @@ class AziendaDashboardContactTests(TestCase):
 
         response = self.client.get(reverse('azienda_dashboard'))
 
-        self.assertContains(response, 'Rosanna Cocozza')
+        self.assertContains(response, 'Cocozza Rosanna')
         self.assertContains(response, 'rosanna.cocozza@tecnobios.com')
         self.assertContains(response, '351 6572647')
 
@@ -1183,6 +1228,30 @@ class AziendaDashboardContactTests(TestCase):
         sort_response = self.client.get(reverse('azienda_dashboard'), {'sort': 'nominativo', 'dir': 'asc'})
         sort_html = sort_response.content.decode()
 
-        self.assertContains(search_response, 'Anna Bianchi')
-        self.assertNotContains(search_response, 'Paolo Rossi')
-        self.assertLess(sort_html.find('Anna Bianchi'), sort_html.find('Paolo Rossi'))
+        self.assertContains(search_response, 'Bianchi Anna')
+        self.assertNotContains(search_response, 'Rossi Paolo')
+        self.assertLess(sort_html.find('Bianchi Anna'), sort_html.find('Rossi Paolo'))
+
+    def test_dashboard_worker_list_shows_prescription_label_for_latest_outcome(self):
+        lavoratore = Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Anna',
+            cognome='Bianchi',
+            data_nascita=date(1991, 4, 1),
+            codice_fiscale='BNCNNA91D41H501V',
+            mansione='Analista',
+            note='',
+            attivo=True,
+        )
+        EsitoIdoneita.objects.create(
+            lavoratore=lavoratore,
+            esito=EsitoIdoneita.IDONEITA_PRESCRIZIONE,
+            mansione=lavoratore.mansione,
+            data_visita=date(2026, 4, 10),
+            data_scadenza=date(2027, 4, 10),
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('azienda_dashboard'))
+
+        self.assertContains(response, 'Idoneità con prescrizione')

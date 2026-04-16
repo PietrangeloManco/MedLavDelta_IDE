@@ -61,12 +61,14 @@ class DocumentoSanitario(models.Model):
 class EsitoIdoneita(models.Model):
     IDONEO = 'idoneo'
     IDONEO_LIMITAZIONI = 'idoneo_limitazioni'
+    IDONEITA_PRESCRIZIONE = 'idoneita_prescrizione'
     NON_IDONEO = 'non_idoneo'
     TEMPORANEO = 'non_idoneo_temporaneo'
 
     ESITO_CHOICES = [
         (IDONEO, 'Idoneo'),
         (IDONEO_LIMITAZIONI, 'Idoneo con limitazioni'),
+        (IDONEITA_PRESCRIZIONE, 'Idoneità con prescrizione'),
         (NON_IDONEO, 'Non idoneo'),
         (TEMPORANEO, 'Non idoneo temporaneo'),
     ]

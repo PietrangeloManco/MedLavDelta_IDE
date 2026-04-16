@@ -28,7 +28,7 @@ class Azienda(models.Model):
         ('protocollo_sanitario', 'Protocollo sanitario'),
         ('nomina_medico', 'Nomina del medico'),
         ('verbali_sopralluogo', 'Verbali sopralluogo ambiente di lavoro'),
-        ('varie_documento', 'Altri documenti'),
+        ('varie_documento', 'Altri documenti (per azienda)'),
     )
 
     user = models.OneToOneField(
@@ -97,6 +97,14 @@ class Azienda(models.Model):
         if self.pk:
             return f'Azienda #{self.pk}'
         return 'Azienda senza nome'
+
+    @property
+    def referente_display_name(self):
+        referente = (self.referente_azienda or '').strip()
+        parts = referente.split()
+        if len(parts) == 2:
+            return f'{parts[1]} {parts[0]}'
+        return referente
 
     def get_documenti_iniziali(self):
         documenti = []
@@ -206,7 +214,7 @@ class Lavoratore(models.Model):
     data_nascita = models.DateField()
     sesso = models.CharField(max_length=1, choices=SESSO_CHOICES, blank=True, default='')
     codice_fiscale = models.CharField(max_length=16, unique=True)
-    telefono = models.CharField('Numero di telefono', max_length=20, default='')
+    telefono = models.CharField('Numero di telefono', max_length=20, blank=True, default='')
     mansione = models.CharField(max_length=255)
     note = models.TextField(blank=True)
     attivo = models.BooleanField(default=True)
@@ -222,4 +230,4 @@ class Lavoratore(models.Model):
 
     @property
     def nome_completo(self):
-        return f'{self.nome} {self.cognome}'    
+        return f'{self.cognome} {self.nome}'.strip()

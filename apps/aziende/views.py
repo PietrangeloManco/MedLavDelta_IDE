@@ -42,7 +42,7 @@ from .validators import (
 )
 
 CENTRO_DELTA_CONTACT = {
-    'nome': 'Rosanna Cocozza',
+    'nome': 'Cocozza Rosanna',
     'email': 'rosanna.cocozza@tecnobios.com',
     'telefono': '351 6572647',
     'ruolo': 'Referente Centro Delta',

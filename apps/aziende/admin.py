@@ -152,7 +152,7 @@ class LavoratoreAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['telefono'].help_text = 'Campo obbligatorio.'
+        self.fields['telefono'].help_text = 'Facoltativo.'
         self.fields['telefono'].widget.attrs.update({
             'inputmode': 'tel',
             'autocomplete': 'tel',

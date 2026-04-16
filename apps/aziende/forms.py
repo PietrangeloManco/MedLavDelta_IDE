@@ -43,9 +43,9 @@ class CreaAziendaForm(forms.Form):
         label='Verbali sopralluogo ambiente di lavoro',
         required=False,
     )
-    varie_documento = forms.FileField(label='Altri documenti', required=False)
+    varie_documento = forms.FileField(label='Altri documenti (per azienda)', required=False)
     varie_note = forms.CharField(
-        label='Note altri documenti',
+        label='Note altri documenti (per azienda)',
         required=False,
         widget=forms.Textarea(attrs={'rows': 3}),
     )
@@ -92,7 +92,7 @@ class CreaAziendaForm(forms.Form):
             f'{document_help_text}'
         )
         self.fields['varie_note'].help_text = (
-            'Facoltative. Aggiungi una breve descrizione degli altri documenti, se utile.'
+            'Facoltative. Aggiungi una breve descrizione degli altri documenti aziendali, se utile.'
         )
 
     def clean_email(self):
@@ -145,7 +145,7 @@ class LavoratoreForm(forms.ModelForm):
         if azienda:
             self.fields['sede'].queryset = Sede.objects.filter(azienda=azienda)
 
-        self.fields['telefono'].help_text = 'Campo obbligatorio.'
+        self.fields['telefono'].help_text = 'Facoltativo.'
         self.fields['telefono'].widget.attrs.update({
             'inputmode': 'tel',
             'autocomplete': 'tel',

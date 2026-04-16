@@ -58,8 +58,8 @@ ISSUER = InvoiceIssuer(
 )
 
 QUOTE_CONTACT_FALLBACK = {
-    'commerciale': 'Rosanna Cocozza - rosanna.cocozza@tecnobios.com - 351 6572647',
-    'tecnico': 'Piercarmine Porcaro - piercarmine.porcaro@tecnobios.com - 348 0964346',
+    'commerciale': 'Cocozza Rosanna - rosanna.cocozza@tecnobios.com - 351 6572647',
+    'tecnico': 'Porcaro Piercarmine - piercarmine.porcaro@tecnobios.com - 348 0964346',
 }
 
 QUOTE_ATTACHMENTS = [
