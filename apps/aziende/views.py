@@ -1,9 +1,7 @@
-import logging
 from datetime import timedelta
 
 from django.conf import settings
 from django.contrib import messages
-from django.core.mail import send_mail
 from django.db.models import Count, OuterRef, Subquery
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -23,16 +21,20 @@ from apps.sanitaria.forms import DocumentoSanitarioForm, EsitoIdoneitaForm, Esit
 from apps.sanitaria.models import CartellaClinica, DocumentoSanitario, EsitoIdoneita
 
 from .forms import (
+    AziendaNotificationCcForm,
+    CreaAccountAziendaReadOnlyForm,
     CreaAccountLavoratoreForm,
     CreaAziendaForm,
     DocumentoAziendaleForm,
     LavoratoreForm,
     ReplaceFileForm,
 )
-from .models import Azienda, DocumentoAziendale, Lavoratore
+from .models import Azienda, AziendaReadOnlyAccess, DocumentoAziendale, Lavoratore
 from .services import (
+    send_company_notification_email,
     send_new_company_created_notification,
     send_new_worker_created_notification,
+    send_platform_email,
 )
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
@@ -49,28 +51,6 @@ CENTRO_DELTA_CONTACT = {
 }
 ADMIN_STAFF_GUIDE_FILENAME = 'Guida_Interna_Staff_CentroDelta_rev020426.pdf'
 ADMIN_STAFF_GUIDE_PATH = settings.BASE_DIR / 'static' / 'guides' / ADMIN_STAFF_GUIDE_FILENAME
-
-
-def send_notification_email(subject, message, recipients):
-    recipient_list = [email for email in recipients if email]
-    if not recipient_list:
-        return
-    logger = logging.getLogger(__name__)
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=recipient_list,
-            fail_silently=False,
-        )
-    except Exception:
-        logger.exception(
-            "Errore invio email. Subject=%s, From=%s, To=%s",
-            subject,
-            settings.DEFAULT_FROM_EMAIL,
-            ", ".join(recipient_list),
-        )
 
 
 def get_azienda_documenti_context(azienda):
@@ -206,6 +186,88 @@ def get_azienda_lavoratore_detail_context(lavoratore, *, account_form=None):
     }
 
 
+def get_admin_azienda_detail_context(request, azienda, *, notification_cc_form=None):
+    return {
+        'azienda': azienda,
+        'lavoratori': azienda.lavoratori.filter(attivo=True).order_by('cognome', 'nome'),
+        'document_form': DocumentoAziendaleForm(),
+        'notification_cc_form': notification_cc_form or AziendaNotificationCcForm(initial={
+            'email_notifiche_cc': azienda.formatted_notification_cc_emails,
+        }),
+        'read_only_accounts': azienda.read_only_accesses.select_related('user', 'created_by'),
+        'can_manage_company': request.user.has_admin_permission(
+            CustomUser.ADMIN_PERMISSION_COMPANIES
+        ),
+        'can_upload_documents': request.user.has_admin_permission(
+            CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS
+        ),
+        'can_manage_workers': can_admin_manage_workers(request.user),
+        **get_azienda_documenti_context(azienda),
+    }
+
+
+def get_azienda_dashboard_context(request, azienda, *, read_only_account_form=None):
+    lavoratori = with_latest_worker_status(
+        Lavoratore.objects.filter(
+            azienda=azienda,
+            attivo=True,
+        ).select_related('sede')
+    )
+    current_search = get_list_search_term(request)
+    lavoratori = apply_text_search(
+        lavoratori,
+        current_search,
+        (
+            'nome',
+            'cognome',
+            'codice_fiscale',
+            'sede__nome',
+            'mansione',
+        ),
+    )
+    lavoratori, current_sort, current_dir = apply_sorting(
+        lavoratori,
+        sort_key=request.GET.get('sort'),
+        direction=request.GET.get('dir'),
+        sort_map={
+            'nominativo': ('cognome', 'nome'),
+            'mansione': ('mansione', 'cognome', 'nome'),
+            'sede': ('sede__nome', 'cognome', 'nome'),
+            'esito': ('ultimo_esito', 'cognome', 'nome'),
+            'scadenza': ('ultima_scadenza', 'cognome', 'nome'),
+        },
+        default_sort='nominativo',
+    )
+    return {
+        'azienda': azienda,
+        'lavoratori': lavoratori,
+        'totale_lavoratori': Lavoratore.objects.filter(azienda=azienda, attivo=True).count(),
+        'totale_documenti_aggiuntivi': azienda.documenti_generici.count(),
+        'centro_delta_contact': CENTRO_DELTA_CONTACT,
+        'read_only_accounts': azienda.read_only_accesses.select_related('user', 'created_by'),
+        'read_only_account_form': read_only_account_form or CreaAccountAziendaReadOnlyForm(
+            azienda=azienda,
+        ),
+        'current_search': current_search,
+        'current_sort': current_sort,
+        'current_dir': current_dir,
+        'today': timezone.localdate(),
+    }
+
+
+def create_read_only_account_for_azienda(azienda, account_email, request=None):
+    user, _temporary_password = create_user_with_generated_password(
+        email=account_email,
+        role=CustomUser.AZIENDA,
+        request=request,
+    )
+    return AziendaReadOnlyAccess.objects.create(
+        azienda=azienda,
+        user=user,
+        created_by=getattr(request, 'user', None) if request else None,
+    )
+
+
 class AdminDashboardView(AdminPermissionRequiredMixin, View):
     admin_permissions_required = (CustomUser.ADMIN_PERMISSION_DASHBOARD,)
 
@@ -296,20 +358,11 @@ class AdminAziendaDetailView(AdminPermissionRequiredMixin, View):
 
     def get(self, request, pk):
         azienda = get_object_or_404(Azienda, pk=pk)
-        context = {
-            'azienda': azienda,
-            'lavoratori': azienda.lavoratori.filter(attivo=True).order_by('cognome', 'nome'),
-            'document_form': DocumentoAziendaleForm(),
-            'can_manage_company': request.user.has_admin_permission(
-                CustomUser.ADMIN_PERMISSION_COMPANIES
-            ),
-            'can_upload_documents': request.user.has_admin_permission(
-                CustomUser.ADMIN_PERMISSION_COMPANY_DOCUMENTS
-            ),
-            'can_manage_workers': can_admin_manage_workers(request.user),
-            **get_azienda_documenti_context(azienda),
-        }
-        return render(request, 'aziende/admin_azienda_detail.html', context)
+        return render(
+            request,
+            'aziende/admin_azienda_detail.html',
+            get_admin_azienda_detail_context(request, azienda),
+        )
 
 
 class AdminAggiornaContrattoView(AdminPermissionRequiredMixin, View):
@@ -330,6 +383,25 @@ class AdminAggiornaContrattoView(AdminPermissionRequiredMixin, View):
         if next_url:
             return redirect(next_url)
         return redirect('admin_azienda_detail', pk=pk)
+
+
+class AdminAggiornaNotificheAziendaView(AdminPermissionRequiredMixin, View):
+    admin_permissions_required = (CustomUser.ADMIN_PERMISSION_COMPANIES,)
+
+    def post(self, request, pk):
+        azienda = get_object_or_404(Azienda, pk=pk)
+        form = AziendaNotificationCcForm(request.POST)
+        if form.is_valid():
+            azienda.email_notifiche_cc = form.cleaned_data['email_notifiche_cc']
+            azienda.save(update_fields=['email_notifiche_cc'])
+            messages.success(request, 'Email in cc aggiornate con successo.')
+            return redirect('admin_azienda_detail', pk=pk)
+
+        return render(
+            request,
+            'aziende/admin_azienda_detail.html',
+            get_admin_azienda_detail_context(request, azienda, notification_cc_form=form),
+        )
 
 
 class AdminCreaAziendaView(AdminPermissionRequiredMixin, View):
@@ -651,7 +723,7 @@ class AdminCaricaDocumentoView(AdminPermissionRequiredMixin, View):
                     "Cordiali saluti,\n"
                     "Centro Delta"
                 )
-                send_notification_email(subject, corpo, [lavoratore.user.email])
+                send_platform_email(subject, corpo, [lavoratore.user.email])
         else:
             messages.error(request, 'Errore nel caricamento del documento.')
         return redirect('admin_lavoratore_detail', pk=pk)
@@ -691,11 +763,6 @@ class AdminRegistraEsitoView(AdminPermissionRequiredMixin, View):
             esito.lavoratore = lavoratore
             esito.save()
             azienda = lavoratore.azienda
-            destinatario = (
-                azienda.user.email
-                if getattr(azienda, 'user', None)
-                else azienda.email_contatto
-            )
             subject = 'Giudizio di idoneità disponibile su MedLavDelta'
             corpo = (
                 "Gentile,\n"
@@ -707,7 +774,7 @@ class AdminRegistraEsitoView(AdminPermissionRequiredMixin, View):
                 "Cordiali saluti,\n"
                 "Centro Delta"
             )
-            send_notification_email(subject, corpo, [destinatario])
+            send_company_notification_email(azienda, subject, corpo)
             messages.success(request, 'Esito idoneità registrato.')
         else:
             messages.error(request, "Errore nella registrazione dell'esito.")
@@ -753,70 +820,31 @@ class AdminEditEsitoScadenzaView(AdminPermissionRequiredMixin, View):
 
 class AziendaDashboardView(AziendaRequiredMixin, View):
     def get(self, request):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        lavoratori = with_latest_worker_status(
-            Lavoratore.objects.filter(
-                azienda=azienda,
-                attivo=True,
-            ).select_related('sede')
+        return render(
+            request,
+            'aziende/azienda_dashboard.html',
+            get_azienda_dashboard_context(request, request.azienda),
         )
-        current_search = get_list_search_term(request)
-        lavoratori = apply_text_search(
-            lavoratori,
-            current_search,
-            (
-                'nome',
-                'cognome',
-                'codice_fiscale',
-                'sede__nome',
-                'mansione',
-            ),
-        )
-        lavoratori, current_sort, current_dir = apply_sorting(
-            lavoratori,
-            sort_key=request.GET.get('sort'),
-            direction=request.GET.get('dir'),
-            sort_map={
-                'nominativo': ('cognome', 'nome'),
-                'mansione': ('mansione', 'cognome', 'nome'),
-                'sede': ('sede__nome', 'cognome', 'nome'),
-                'esito': ('ultimo_esito', 'cognome', 'nome'),
-                'scadenza': ('ultima_scadenza', 'cognome', 'nome'),
-            },
-            default_sort='nominativo',
-        )
-        context = {
-            'azienda': azienda,
-            'lavoratori': lavoratori,
-            'totale_lavoratori': Lavoratore.objects.filter(azienda=azienda, attivo=True).count(),
-            'totale_documenti_aggiuntivi': azienda.documenti_generici.count(),
-            'centro_delta_contact': CENTRO_DELTA_CONTACT,
-            'current_search': current_search,
-            'current_sort': current_sort,
-            'current_dir': current_dir,
-            'today': timezone.localdate(),
-        }
-        return render(request, 'aziende/azienda_dashboard.html', context)
 
 
 class AziendaDocumentiView(AziendaRequiredMixin, View):
     def get(self, request):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         context = {
-            'azienda': azienda,
+            'azienda': request.azienda,
             'document_form': DocumentoAziendaleForm(),
-            **get_azienda_documenti_context(azienda),
+            **get_azienda_documenti_context(request.azienda),
         }
         return render(request, 'aziende/azienda_documenti.html', context)
 
 
 class AziendaCaricaDocumentoView(AziendaRequiredMixin, View):
+    requires_company_write_access = True
+
     def post(self, request):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
         form = DocumentoAziendaleForm(request.POST, request.FILES)
         if form.is_valid():
             documento = form.save(commit=False)
-            documento.azienda = azienda
+            documento.azienda = request.azienda
             documento.origine = DocumentoAziendale.ORIGINE_AZIENDA
             documento.caricato_da = request.user
             documento.save()
@@ -827,12 +855,13 @@ class AziendaCaricaDocumentoView(AziendaRequiredMixin, View):
 
 
 class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
+    requires_company_write_access = True
+
     def get(self, request):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        form = LavoratoreForm(azienda=azienda, include_account_fields=True)
+        form = LavoratoreForm(azienda=request.azienda, include_account_fields=True)
         return render(request, 'aziende/azienda_lavoratore_form.html', {
             'form': form,
-            'azienda': azienda,
+            'azienda': request.azienda,
             'action': 'Nuovo lavoratore',
             'show_optional_account_notice': True,
             'back_href': reverse('azienda_dashboard'),
@@ -840,15 +869,14 @@ class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
         })
 
     def post(self, request):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        form = LavoratoreForm(request.POST, azienda=azienda, include_account_fields=True)
+        form = LavoratoreForm(request.POST, azienda=request.azienda, include_account_fields=True)
         if form.is_valid():
-            lavoratore = create_lavoratore_with_optional_account(form, azienda, request=request)
+            lavoratore = create_lavoratore_with_optional_account(form, request.azienda, request=request)
             messages.success(request, get_lavoratore_create_success_message(lavoratore))
             return redirect('azienda_dashboard')
         return render(request, 'aziende/azienda_lavoratore_form.html', {
             'form': form,
-            'azienda': azienda,
+            'azienda': request.azienda,
             'action': 'Nuovo lavoratore',
             'show_optional_account_notice': True,
             'back_href': reverse('azienda_dashboard'),
@@ -857,29 +885,29 @@ class AziendaLavoratoreCreateView(AziendaRequiredMixin, View):
 
 
 class AziendaLavoratoreEditView(AziendaRequiredMixin, View):
+    requires_company_write_access = True
+
     def get(self, request, pk):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
-        form = LavoratoreForm(instance=lavoratore, azienda=azienda)
+        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=request.azienda)
+        form = LavoratoreForm(instance=lavoratore, azienda=request.azienda)
         return render(request, 'aziende/azienda_lavoratore_form.html', {
             'form': form,
-            'azienda': azienda,
+            'azienda': request.azienda,
             'action': 'Modifica lavoratore',
             'back_href': reverse('azienda_dashboard'),
             'back_label': 'Torna alla lista',
         })
 
     def post(self, request, pk):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
-        form = LavoratoreForm(request.POST, instance=lavoratore, azienda=azienda)
+        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=request.azienda)
+        form = LavoratoreForm(request.POST, instance=lavoratore, azienda=request.azienda)
         if form.is_valid():
             form.save()
             messages.success(request, 'Lavoratore aggiornato.')
             return redirect('azienda_dashboard')
         return render(request, 'aziende/azienda_lavoratore_form.html', {
             'form': form,
-            'azienda': azienda,
+            'azienda': request.azienda,
             'action': 'Modifica lavoratore',
             'back_href': reverse('azienda_dashboard'),
             'back_label': 'Torna alla lista',
@@ -888,8 +916,7 @@ class AziendaLavoratoreEditView(AziendaRequiredMixin, View):
 
 class AziendaLavoratoreDetailView(AziendaRequiredMixin, View):
     def get(self, request, pk):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
+        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=request.azienda)
         return render(
             request,
             'aziende/azienda_lavoratore.html',
@@ -898,9 +925,10 @@ class AziendaLavoratoreDetailView(AziendaRequiredMixin, View):
 
 
 class AziendaLavoratoreCreateAccountView(AziendaRequiredMixin, View):
+    requires_company_write_access = True
+
     def post(self, request, pk):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
+        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=request.azienda)
         if lavoratore.user_id:
             messages.warning(request, 'Questo lavoratore ha già un account collegato.')
             return redirect('azienda_lavoratore', pk=pk)
@@ -923,9 +951,10 @@ class AziendaLavoratoreCreateAccountView(AziendaRequiredMixin, View):
 
 
 class AziendaReplaceWorkerCertificateView(AziendaRequiredMixin, View):
+    requires_company_write_access = True
+
     def post(self, request, pk, esito_pk):
-        azienda = getattr(request, 'azienda', None) or get_object_or_404(Azienda, user=request.user)
-        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=azienda)
+        lavoratore = get_object_or_404(Lavoratore, pk=pk, azienda=request.azienda)
         esito = get_object_or_404(EsitoIdoneita, pk=esito_pk, lavoratore=lavoratore)
         form = build_replace_file_form(
             request.POST,
@@ -941,6 +970,27 @@ class AziendaReplaceWorkerCertificateView(AziendaRequiredMixin, View):
         replace_model_file(esito, 'certificato', form.cleaned_data['file'])
         messages.success(request, 'Certificato sostituito con successo.')
         return redirect('azienda_lavoratore', pk=pk)
+
+
+class AziendaReadOnlyAccountCreateView(AziendaRequiredMixin, View):
+    requires_company_write_access = True
+
+    def post(self, request):
+        form = CreaAccountAziendaReadOnlyForm(request.POST, azienda=request.azienda)
+        if form.is_valid():
+            create_read_only_account_for_azienda(
+                request.azienda,
+                form.cleaned_data['account_email'],
+                request=request,
+            )
+            messages.success(request, 'Account azienda in sola lettura creato con successo.')
+            return redirect('azienda_dashboard')
+
+        return render(
+            request,
+            'aziende/azienda_dashboard.html',
+            get_azienda_dashboard_context(request, request.azienda, read_only_account_form=form),
+        )
 
 
 class OperatoreDashboardView(OperatoreRequiredMixin, View):

@@ -1,9 +1,10 @@
-from datetime import date
+from datetime import date, timedelta
 import re
 from tempfile import TemporaryDirectory
 
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -13,7 +14,7 @@ from apps.sanitaria.models import EsitoIdoneita
 
 from .admin import AziendaAdminForm, LavoratoreAdminForm
 from .forms import CreaAziendaForm
-from .models import Azienda, DocumentoAziendale, Lavoratore
+from .models import Azienda, AziendaReadOnlyAccess, DocumentoAziendale, Lavoratore
 from .services import INTERNAL_CREATION_NOTIFICATION_RECIPIENTS
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
@@ -617,6 +618,15 @@ class AziendaDeletionTests(TestCase):
             telefono='0212222222',
             condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
         )
+        read_only_user = CustomUser.objects.create_user(
+            email='company.readonly@example.com',
+            password='azienda-pass-456',
+            role=CustomUser.AZIENDA,
+        )
+        AziendaReadOnlyAccess.objects.create(
+            azienda=azienda,
+            user=read_only_user,
+        )
         worker_user = CustomUser.objects.create_user(
             email='worker.cascade@example.com',
             password='worker-pass-123',
@@ -637,11 +647,17 @@ class AziendaDeletionTests(TestCase):
         Azienda.objects.filter(pk=azienda.pk).delete()
 
         self.assertFalse(CustomUser.objects.filter(pk=azienda_user.pk).exists())
+        self.assertFalse(CustomUser.objects.filter(pk=read_only_user.pk).exists())
         self.assertFalse(CustomUser.objects.filter(pk=worker_user.pk).exists())
 
         replacement_company_user = CustomUser.objects.create_user(
             email='company.delete@example.com',
             password='new-company-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        replacement_read_only_user = CustomUser.objects.create_user(
+            email='company.readonly@example.com',
+            password='new-company-pass-456',
             role=CustomUser.AZIENDA,
         )
         replacement_worker_user = CustomUser.objects.create_user(
@@ -651,6 +667,7 @@ class AziendaDeletionTests(TestCase):
         )
 
         self.assertEqual(replacement_company_user.email, 'company.delete@example.com')
+        self.assertEqual(replacement_read_only_user.email, 'company.readonly@example.com')
         self.assertEqual(replacement_worker_user.email, 'worker.cascade@example.com')
 
 
@@ -1170,6 +1187,194 @@ class AziendaLavoratoreCreateTests(TestCase):
         self.assertEqual(lavoratore.user.email, 'lidia.blu@example.com')
         self.assertIsNotNone(match)
         self.assertTrue(lavoratore.user.check_password(match.group(1).strip()))
+
+
+class AziendaReadOnlyAccessTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            email='azienda-primary@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        self.azienda = Azienda.objects.create(
+            user=self.user,
+            ragione_sociale='Azienda Secondaria SRL',
+            codice_univoco='SECOND1',
+            pec='secondaria@pec.example.com',
+            referente_azienda='Marta Verdi',
+            codice_fiscale='VRDMRT80A01H501Z',
+            partita_iva='12345678888',
+            email_contatto='secondaria@example.com',
+            telefono='0678901234',
+            condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
+        )
+        self.read_only_user = CustomUser.objects.create_user(
+            email='azienda-readonly@example.com',
+            password='readonly-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        AziendaReadOnlyAccess.objects.create(
+            azienda=self.azienda,
+            user=self.read_only_user,
+            created_by=self.user,
+        )
+        self.lavoratore = Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Luca',
+            cognome='Rossi',
+            data_nascita=date(1992, 4, 10),
+            codice_fiscale='RSSLCU92D10H501X',
+            telefono='3331112222',
+            mansione='Tecnico',
+            note='Scheda test',
+            attivo=True,
+        )
+
+    def test_primary_company_can_create_read_only_account(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse('azienda_crea_account_read_only'),
+            data={'account_email': 'nuovo.readonly@example.com'},
+        )
+
+        access = AziendaReadOnlyAccess.objects.get(user__email='nuovo.readonly@example.com')
+        credentials_email = find_last_email_to('nuovo.readonly@example.com')
+        match = re.search(r'Password temporanea: (.+)', credentials_email.body)
+
+        self.assertRedirects(response, reverse('azienda_dashboard'))
+        self.assertEqual(access.azienda, self.azienda)
+        self.assertIsNotNone(credentials_email)
+        self.assertIsNotNone(match)
+        self.assertTrue(access.user.check_password(match.group(1).strip()))
+
+    def test_read_only_company_can_consult_but_not_modify(self):
+        self.client.force_login(self.read_only_user)
+
+        dashboard_response = self.client.get(reverse('azienda_dashboard'))
+        detail_response = self.client.get(reverse('azienda_lavoratore', args=[self.lavoratore.pk]))
+        create_page_response = self.client.get(reverse('azienda_lavoratore_nuovo'))
+        upload_response = self.client.post(
+            reverse('azienda_carica_documento'),
+            data={
+                'titolo': 'Documento non consentito',
+                'note': 'Tentativo read only',
+                'file': SimpleUploadedFile(
+                    'bloccato.pdf',
+                    b'%PDF-1.4 bloccato',
+                    content_type='application/pdf',
+                ),
+            },
+        )
+
+        self.assertEqual(dashboard_response.status_code, 200)
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertEqual(create_page_response.status_code, 403)
+        self.assertEqual(upload_response.status_code, 403)
+        self.assertContains(dashboard_response, 'Accesso in sola lettura')
+        self.assertNotContains(dashboard_response, reverse('azienda_lavoratore_nuovo'))
+        self.assertNotContains(dashboard_response, reverse('azienda_crea_account_read_only'))
+        self.assertContains(detail_response, 'Accesso in sola lettura')
+
+
+class AziendaNotificationCcTests(TestCase):
+    def setUp(self):
+        self.admin_company_user = CustomUser.objects.create_user(
+            email='admin-company@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[CustomUser.ADMIN_PERMISSION_COMPANIES],
+        )
+        self.admin_medical_user = CustomUser.objects.create_user(
+            email='admin-medical@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS],
+        )
+        self.azienda_user = CustomUser.objects.create_user(
+            email='azienda-notifiche@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        self.azienda = Azienda.objects.create(
+            user=self.azienda_user,
+            ragione_sociale='Azienda Notifiche SRL',
+            codice_univoco='NOTIFY1',
+            pec='notifiche@pec.example.com',
+            referente_azienda='Paolo Neri',
+            codice_fiscale='NRIPLA80A01H501Z',
+            partita_iva='12345670001',
+            email_contatto='notifiche@example.com',
+            email_notifiche_cc='hr@example.com\nsafety@example.com',
+            telefono='0612345678',
+            condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
+        )
+        self.lavoratore = Lavoratore.objects.create(
+            azienda=self.azienda,
+            nome='Anna',
+            cognome='Bianchi',
+            data_nascita=date(1991, 4, 1),
+            codice_fiscale='BNCNNA91D41H501V',
+            mansione='Analista',
+            note='',
+            attivo=True,
+        )
+
+    def test_admin_can_update_notification_cc_addresses_from_company_detail(self):
+        self.client.force_login(self.admin_company_user)
+
+        response = self.client.post(
+            reverse('admin_azienda_notifiche', args=[self.azienda.pk]),
+            data={'email_notifiche_cc': 'nuova.hr@example.com, sicurezza@example.com'},
+        )
+
+        self.azienda.refresh_from_db()
+
+        self.assertRedirects(response, reverse('admin_azienda_detail', args=[self.azienda.pk]))
+        self.assertEqual(
+            self.azienda.email_notifiche_cc,
+            'nuova.hr@example.com\nsicurezza@example.com',
+        )
+
+    def test_esito_notification_uses_company_cc_addresses(self):
+        self.client.force_login(self.admin_medical_user)
+
+        response = self.client.post(
+            reverse('admin_registra_esito', args=[self.lavoratore.pk]),
+            data={
+                'esito': EsitoIdoneita.IDONEO,
+                'mansione': self.lavoratore.mansione,
+                'data_visita': '2026-04-15',
+                'data_scadenza': '2027-04-15',
+                'note': 'Esito inviato con cc',
+            },
+        )
+
+        message = mail.outbox[-1]
+
+        self.assertRedirects(response, reverse('admin_lavoratore_detail', args=[self.lavoratore.pk]))
+        self.assertEqual(message.to, ['azienda-notifiche@example.com'])
+        self.assertEqual(message.cc, ['hr@example.com', 'safety@example.com'])
+        self.assertIn(self.lavoratore.nome_completo, message.body)
+
+    @override_settings(CENTRO_MEDICO_EMAIL='centro@example.com')
+    def test_scadenza_command_keeps_cc_addresses(self):
+        today = date.today()
+        EsitoIdoneita.objects.create(
+            lavoratore=self.lavoratore,
+            esito=EsitoIdoneita.IDONEO,
+            mansione=self.lavoratore.mansione,
+            data_visita=today - timedelta(days=7),
+            data_scadenza=today + timedelta(days=10),
+        )
+
+        call_command('invia_notifiche_scadenza')
+
+        message = mail.outbox[-1]
+
+        self.assertIn('azienda-notifiche@example.com', message.to)
+        self.assertIn('centro@example.com', message.to)
+        self.assertEqual(message.cc, ['hr@example.com', 'safety@example.com'])
 
 
 class AziendaDashboardContactTests(TestCase):

@@ -11,6 +11,11 @@
     <div>
         <h1 class="page-title">Documenti</h1>
         <p class="page-subtitle">Archivio dei documenti caricati all'avvio del profilo aziendale e dei documenti aggiuntivi.</p>
+        {% if request.azienda_is_read_only %}
+        <div style="margin-top:10px">
+            <span class="badge badge-neutral">Accesso in sola lettura</span>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -92,6 +97,7 @@
     </div>
 
     <aside class="form-card">
+        {% if request.azienda_can_edit %}
         <div class="form-card-title">Carica nuovo documento</div>
         <form method="post" action="{% url 'azienda_carica_documento' %}" enctype="multipart/form-data">
             {% csrf_token %}
@@ -105,6 +111,10 @@
             {% endfor %}
             <button type="submit" class="btn btn-primary btn-block">Carica documento</button>
         </form>
+        {% else %}
+        <div class="form-card-title">Accesso in sola lettura</div>
+        <p class="text-muted">Questo account puo consultare l'archivio documenti, ma non caricare nuovi file.</p>
+        {% endif %}
     </aside>
 </div>
 {% endblock %}

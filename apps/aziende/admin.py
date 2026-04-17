@@ -4,7 +4,13 @@ from django.db.models import Q
 
 from apps.accounts.models import CustomUser
 from apps.accounts.services import generate_temporary_password, send_account_credentials_email
-from .models import Azienda, DocumentoAziendale, Lavoratore, Sede
+from .models import (
+    Azienda,
+    DocumentoAziendale,
+    Lavoratore,
+    Sede,
+    normalize_company_notification_cc_emails,
+)
 from .services import (
     send_new_company_created_notification,
     send_new_worker_created_notification,
@@ -39,14 +45,20 @@ class AziendaAdminForm(forms.ModelForm):
 
         user_queryset = CustomUser.objects.filter(role=CustomUser.AZIENDA)
         if current_user:
-            user_queryset = user_queryset.filter(Q(azienda__isnull=True) | Q(pk=current_user.pk))
+            user_queryset = user_queryset.filter(
+                (Q(azienda__isnull=True) & Q(read_only_company_access__isnull=True))
+                | Q(pk=current_user.pk)
+            )
             self.fields['user'].initial = current_user
             self.fields['account_email'].initial = current_user.email
             self.fields['account_email'].help_text = (
                 "Lascia l'email corrente oppure modificala per aggiornare l'account collegato."
             )
         else:
-            user_queryset = user_queryset.filter(azienda__isnull=True)
+            user_queryset = user_queryset.filter(
+                azienda__isnull=True,
+                read_only_company_access__isnull=True,
+            )
             self.fields['account_email'].help_text = (
                 "Inseriscila se vuoi creare un nuovo account azienda da questa scheda. "
                 "La password verrà generata automaticamente e inviata via email."
@@ -76,9 +88,16 @@ class AziendaAdminForm(forms.ModelForm):
             ('pec', 'PEC'),
             ('referente_azienda', 'Referente azienda'),
             ('condizioni_pagamento_riservate', 'Condizioni di pagamento riservate'),
+            ('email_notifiche_cc', 'Email in cc notifiche azienda'),
         ):
             if field_name in self.fields:
                 self.fields[field_name].label = label
+
+        if 'email_notifiche_cc' in self.fields:
+            self.fields['email_notifiche_cc'].help_text = (
+                'Inserisci uno o piu indirizzi email, uno per riga oppure separati da virgole.'
+            )
+            self.fields['email_notifiche_cc'].widget.attrs.setdefault('rows', 4)
 
         for field_name in (
             'protocollo_sanitario',
@@ -105,6 +124,9 @@ class AziendaAdminForm(forms.ModelForm):
 
         cleaned['account_email'] = account_email
         return cleaned
+
+    def clean_email_notifiche_cc(self):
+        return normalize_company_notification_cc_emails(self.cleaned_data.get('email_notifiche_cc'))
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -277,6 +299,9 @@ class AziendaAdmin(admin.ModelAdmin):
                 'condizioni_pagamento_riservate',
                 'contratto_saldato',
             ),
+        }),
+        ('Notifiche email', {
+            'fields': ('email_notifiche_cc',),
         }),
         ('Account azienda', {
             'fields': ('user', 'account_email'),

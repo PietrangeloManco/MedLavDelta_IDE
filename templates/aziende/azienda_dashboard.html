@@ -16,6 +16,12 @@
         align-items: start;
     }
 
+    .dashboard-side {
+        display: grid;
+        gap: 24px;
+        align-content: start;
+    }
+
     .contact-card {
         background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 100%);
         border-color: transparent;
@@ -89,6 +95,41 @@
         color: #bfdbfe;
     }
 
+    .account-list {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .account-item {
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #f8fafc;
+        display: grid;
+        gap: 6px;
+    }
+
+    .account-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .account-email {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text);
+        word-break: break-word;
+    }
+
+    .account-note {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
     @media (max-width: 1100px) {
         .dashboard-layout {
             grid-template-columns: 1fr;
@@ -102,10 +143,17 @@
     <div>
         <h1 class="page-title">{{ azienda.display_name }}</h1>
         <p class="page-subtitle">Gestione lavoratori e archivio documenti aziendali.</p>
+        {% if request.azienda_is_read_only %}
+        <div style="margin-top:10px">
+            <span class="badge badge-neutral">Accesso in sola lettura</span>
+        </div>
+        {% endif %}
     </div>
     <div class="stack-actions">
         <a href="{% url 'azienda_documenti' %}" class="btn btn-outline">Documenti</a>
+        {% if request.azienda_can_edit %}
         <a href="{% url 'azienda_lavoratore_nuovo' %}" class="btn btn-primary">Nuovo lavoratore</a>
+        {% endif %}
     </div>
 </div>
 
@@ -198,30 +246,78 @@
         </div>
     </div>
 
-    <aside class="table-card contact-card">
-        <div class="table-card-header">
-            <span class="table-card-title">Contatti Centro Delta</span>
-        </div>
-        <div class="contact-card-body">
-            <div>
-                <div class="contact-role">{{ centro_delta_contact.ruolo }}</div>
-                <div class="contact-name">{{ centro_delta_contact.nome }}</div>
+    <aside class="dashboard-side">
+        <div class="form-card">
+            <div class="form-card-title">Account azienda</div>
+            <div class="account-list">
+                <div class="account-item">
+                    <div class="account-label">Account principale</div>
+                    <div class="account-email">{{ azienda.user.email|default:azienda.email_contatto|default:"-" }}</div>
+                    <div class="account-note">Riceve le notifiche principali inviate da MedLavDelta.</div>
+                </div>
+                <div class="account-item">
+                    <div class="account-label">Accessi in sola lettura</div>
+                    {% for access in read_only_accounts %}
+                    <div class="account-email">{{ access.user.email }}</div>
+                    {% empty %}
+                    <div class="account-note">Nessun accesso secondario attivo.</div>
+                    {% endfor %}
+                </div>
             </div>
-            <p class="contact-summary">
-                Per supporto organizzativo o operativo puoi contattare direttamente la referente dedicata di Centro Delta.
-            </p>
-            <div class="contact-list">
-                <div class="contact-item">
-                    <div class="contact-label">Email</div>
-                    <a class="contact-link" href="mailto:{{ centro_delta_contact.email }}">{{ centro_delta_contact.email }}</a>
+
+            {% if request.azienda_can_edit %}
+            <form method="post" action="{% url 'azienda_crea_account_read_only' %}">
+                {% csrf_token %}
+                {% if read_only_account_form.non_field_errors %}
+                <ul class="messages">
+                    {% for error in read_only_account_form.non_field_errors %}
+                    <li class="error">{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% for field in read_only_account_form %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
                 </div>
-                <div class="contact-item">
-                    <div class="contact-label">Telefono</div>
-                    <a class="contact-link" href="tel:{{ centro_delta_contact.telefono|cut:' ' }}">{{ centro_delta_contact.telefono }}</a>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary btn-block">Crea account read only</button>
+            </form>
+            {% else %}
+            <div class="alert-banner warning" style="margin-bottom:0">
+                <div class="alert-icon">!</div>
+                <div>Puoi consultare dati e documenti, ma solo l'account azienda principale puo creare o modificare contenuti.</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="table-card contact-card">
+            <div class="table-card-header">
+                <span class="table-card-title">Contatti Centro Delta</span>
+            </div>
+            <div class="contact-card-body">
+                <div>
+                    <div class="contact-role">{{ centro_delta_contact.ruolo }}</div>
+                    <div class="contact-name">{{ centro_delta_contact.nome }}</div>
                 </div>
-                <div class="contact-item">
-                    <div class="contact-label">Archivio documenti</div>
-                    <a class="contact-link" href="{% url 'azienda_documenti' %}">Apri sezione documenti</a>
+                <p class="contact-summary">
+                    Per supporto organizzativo o operativo puoi contattare direttamente la referente dedicata di Centro Delta.
+                </p>
+                <div class="contact-list">
+                    <div class="contact-item">
+                        <div class="contact-label">Email</div>
+                        <a class="contact-link" href="mailto:{{ centro_delta_contact.email }}">{{ centro_delta_contact.email }}</a>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-label">Telefono</div>
+                        <a class="contact-link" href="tel:{{ centro_delta_contact.telefono|cut:' ' }}">{{ centro_delta_contact.telefono }}</a>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-label">Archivio documenti</div>
+                        <a class="contact-link" href="{% url 'azienda_documenti' %}">Apri sezione documenti</a>
+                    </div>
                 </div>
             </div>
         </div>

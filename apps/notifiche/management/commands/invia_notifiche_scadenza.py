@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
-from django.core.mail import send_mail
 from django.utils import timezone
 from django.conf import settings
+from apps.aziende.services import get_company_notification_recipients, send_platform_email
 from apps.sanitaria.models import EsitoIdoneita
 from datetime import timedelta
 import logging
@@ -57,17 +57,13 @@ class Command(BaseCommand):
                 "Centro Delta"
             )
 
-            destinatari = []
-            if getattr(azienda, 'user', None) and azienda.user.email:
-                destinatari.append(azienda.user.email)
-            elif azienda.email_contatto:
-                destinatari.append(azienda.email_contatto)
             centro_email = getattr(settings, 'CENTRO_MEDICO_EMAIL', None)
-            if centro_email:
-                destinatari.append(centro_email)
-            destinatari = list(dict.fromkeys(destinatari))
+            destinatari, destinatari_cc = get_company_notification_recipients(
+                azienda,
+                extra_to=[centro_email] if centro_email else None,
+            )
 
-            if not destinatari:
+            if not destinatari and not destinatari_cc:
                 errori += 1
                 self.stdout.write(
                     self.style.ERROR(f'Nessun destinatario per {azienda.ragione_sociale}.')
@@ -75,27 +71,27 @@ class Command(BaseCommand):
                 continue
 
             try:
-                send_mail(
+                send_platform_email(
                     subject='Promemoria | Scadenze idoneità su MedLavDelta',
                     message=corpo,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=destinatari,
-                    fail_silently=False,
+                    to_emails=destinatari,
+                    cc_emails=destinatari_cc,
                 )
                 inviate += 1
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'Email inviata a {azienda.ragione_sociale} ({", ".join(destinatari)})'
+                        f'Email inviata a {azienda.ragione_sociale} ({", ".join(destinatari + destinatari_cc)})'
                     )
                 )
             except Exception as e:
                 errori += 1
                 logger.exception(
-                    "Errore invio email scadenza. Host=%s Port=%s From=%s To=%s",
+                    "Errore invio email scadenza. Host=%s Port=%s From=%s To=%s Cc=%s",
                     settings.EMAIL_HOST,
                     settings.EMAIL_PORT,
                     settings.DEFAULT_FROM_EMAIL,
                     ", ".join(destinatari),
+                    ", ".join(destinatari_cc),
                 )
                 self.stdout.write(
                     self.style.ERROR(f'Errore per {azienda.ragione_sociale}: {e}')

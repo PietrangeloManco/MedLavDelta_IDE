@@ -18,7 +18,7 @@ def platform_branding(request):
 
     azienda = getattr(request, 'azienda', None)
     if azienda is None:
-        azienda = Azienda.objects.filter(user=user).only('ragione_sociale', 'logo_azienda').first()
+        azienda, _access = Azienda.resolve_for_user(user)
 
     if azienda and azienda.logo_azienda:
         branding.update({

@@ -5,6 +5,8 @@
 <a class="nav-link{% if azienda_nav_section == 'documenti' %} active{% endif %}" href="{% url 'azienda_documenti' %}">
     <span class="nav-icon">{% include 'includes/icons/document.html' %}</span> Documenti
 </a>
+{% if request.azienda_can_edit %}
 <a class="nav-link{% if azienda_nav_section == 'lavoratore_nuovo' %} active{% endif %}" href="{% url 'azienda_lavoratore_nuovo' %}">
     <span class="nav-icon">{% include 'includes/icons/worker.html' %}</span> Nuovo lavoratore
 </a>
+{% endif %}

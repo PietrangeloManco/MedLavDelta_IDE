@@ -15,8 +15,15 @@
         {% if lavoratore.sede %}
         <p class="page-subtitle">{{ lavoratore.sede }}</p>
         {% endif %}
+        {% if request.azienda_is_read_only %}
+        <div style="margin-top:10px">
+            <span class="badge badge-neutral">Accesso in sola lettura</span>
+        </div>
+        {% endif %}
     </div>
+    {% if request.azienda_can_edit %}
     <a href="{% url 'azienda_lavoratore_modifica' lavoratore.pk %}" class="btn btn-outline">Modifica</a>
+    {% endif %}
 </div>
 
 {% with esiti|first as ultimo_esito %}
@@ -135,6 +142,7 @@
     <div class="text-muted small" style="margin-top:8px">{{ lavoratore.user.email }}</div>
     {% else %}
     <div class="badge badge-neutral">Nessun account collegato</div>
+    {% if request.azienda_can_edit %}
     <div class="text-muted small" style="margin-top:8px">
         Se l'email non era disponibile in fase di inserimento, puoi creare ora l'account del lavoratore.
     </div>
@@ -157,6 +165,11 @@
         {% endfor %}
         <button type="submit" class="btn btn-primary btn-block">Crea account</button>
     </form>
+    {% else %}
+    <div class="text-muted small" style="margin-top:8px">
+        Solo l'account azienda principale puo creare l'account del lavoratore.
+    </div>
+    {% endif %}
     {% endif %}
 </div>
 
@@ -193,9 +206,11 @@
                             {% if esito.certificato %}
                             <a href="{{ esito.certificato.url }}" target="_blank" class="btn btn-link btn-sm">Certificato</a>
                             {% endif %}
+                            {% if request.azienda_can_edit %}
                             <button type="button" class="btn btn-outline btn-sm" data-toggle-target="azienda-replace-cert-{{ esito.pk }}">
                                 {% if esito.certificato %}Sostituisci{% else %}Carica certificato{% endif %}
                             </button>
+                            {% endif %}
                         </div>
                     </td>
                     <td>
@@ -205,6 +220,7 @@
                     </td>
                     <td>{{ esito.note|default:"-" }}</td>
                 </tr>
+                {% if request.azienda_can_edit %}
                 <tr id="azienda-replace-cert-{{ esito.pk }}" class="inline-replace-row" hidden>
                     <td colspan="5">
                         <div class="inline-replace-panel">
@@ -224,6 +240,7 @@
                         </div>
                     </td>
                 </tr>
+                {% endif %}
                 {% empty %}
                 <tr>
                     <td colspan="5"><div class="empty-state">Nessun esito registrato.</div></td>

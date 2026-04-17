@@ -28,13 +28,24 @@ class AdminPermissionRequiredMixin(LoginRequiredMixin):
 
 
 class AziendaRequiredMixin(LoginRequiredMixin):
+    requires_company_write_access = False
+
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.is_azienda:
             raise PermissionDenied
-        azienda = Azienda.objects.filter(user=request.user).first()
+
+        azienda, access = Azienda.resolve_for_user(request.user)
         if not azienda:
             raise PermissionDenied
+
         request.azienda = azienda
+        request.azienda_access = access
+        request.azienda_can_edit = access is None
+        request.azienda_is_read_only = not request.azienda_can_edit
+
+        if self.requires_company_write_access and not request.azienda_can_edit:
+            raise PermissionDenied
+
         if not azienda.contratto_saldato:
             return render(request, 'aziende/azienda_contratto_non_saldato.html', {
                 'azienda': azienda,

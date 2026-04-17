@@ -1,7 +1,7 @@
 import logging
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage, send_mail
 from django.utils import timezone
 
 
@@ -14,6 +14,65 @@ INTERNAL_CREATION_NOTIFICATION_RECIPIENTS = (
 
 
 logger = logging.getLogger(__name__)
+
+
+def _unique_emails(emails):
+    unique_emails = []
+    seen = set()
+    for email in emails or []:
+        cleaned_email = (email or '').strip()
+        if not cleaned_email:
+            continue
+        email_key = cleaned_email.lower()
+        if email_key in seen:
+            continue
+        seen.add(email_key)
+        unique_emails.append(cleaned_email)
+    return unique_emails
+
+
+def split_email_recipients(to_emails, cc_emails=None):
+    to_list = _unique_emails(to_emails)
+    to_keys = {email.lower() for email in to_list}
+    cc_list = [
+        email for email in _unique_emails(cc_emails)
+        if email.lower() not in to_keys
+    ]
+    return to_list, cc_list
+
+
+def send_platform_email(subject, message, to_emails, *, cc_emails=None):
+    to_list, cc_list = split_email_recipients(to_emails, cc_emails)
+    if not to_list and not cc_list:
+        return
+
+    try:
+        email = EmailMessage(
+            subject=subject,
+            body=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=to_list,
+            cc=cc_list,
+        )
+        email.send(fail_silently=False)
+    except Exception:
+        logger.exception(
+            'Errore invio email. Subject=%s, From=%s, To=%s, Cc=%s',
+            subject,
+            settings.DEFAULT_FROM_EMAIL,
+            ', '.join(to_list),
+            ', '.join(cc_list),
+        )
+
+
+def get_company_notification_recipients(azienda, *, extra_to=None):
+    to_emails = [azienda.primary_notification_email, *(extra_to or [])]
+    return split_email_recipients(to_emails, azienda.notification_cc_list)
+
+
+def send_company_notification_email(azienda, subject, message, *, extra_to=None):
+    to_list, cc_list = get_company_notification_recipients(azienda, extra_to=extra_to)
+    send_platform_email(subject, message, to_list, cc_emails=cc_list)
 
 
 def _format_actor(request=None):

@@ -91,12 +91,32 @@
                         </div>
                     </div>
                 </div>
-                <div class="detail-panel">
+                <div class="detail-panel" style="grid-column: 1 / -1">
                     <div class="form-label">Accesso e contratto</div>
                     <div style="display:grid; gap:12px">
                         <div>
                             <div class="text-muted small">Account azienda</div>
                             <div><strong>{{ azienda.user.email|default:"-" }}</strong></div>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Account in sola lettura</div>
+                            <div style="display:grid; gap:6px">
+                                {% for access in read_only_accounts %}
+                                <div><strong>{{ access.user.email }}</strong></div>
+                                {% empty %}
+                                <div><strong>-</strong></div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Email in cc notifiche</div>
+                            <div style="display:grid; gap:6px">
+                                {% for email in azienda.notification_cc_list %}
+                                <div><strong>{{ email }}</strong></div>
+                                {% empty %}
+                                <div><strong>-</strong></div>
+                                {% endfor %}
+                            </div>
                         </div>
                         {% if can_manage_company %}
                         <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}">
@@ -275,6 +295,38 @@
             </form>
         </div>
         {% endif %}
+
+        <div class="form-card" style="align-self: start">
+            <div class="form-card-title">Notifiche azienda</div>
+            <div class="text-muted small" style="margin-bottom:16px">
+                Le comunicazioni inviate all'account azienda principale possono includere uno o più indirizzi email in cc.
+            </div>
+            {% if can_manage_company %}
+            <form method="post" action="{% url 'admin_azienda_notifiche' azienda.pk %}">
+                {% csrf_token %}
+                {% if notification_cc_form.non_field_errors %}
+                <ul class="messages">
+                    {% for error in notification_cc_form.non_field_errors %}
+                    <li class="error">{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% for field in notification_cc_form %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary btn-block">Salva email in cc</button>
+            </form>
+            {% else %}
+            <div class="text-muted small">
+                Solo un admin con permesso di gestione aziende può aggiornare queste email.
+            </div>
+            {% endif %}
+        </div>
 
         <div class="table-card">
             <div class="table-card-header">

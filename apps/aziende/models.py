@@ -1,10 +1,44 @@
+import re
+from pathlib import Path
+
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import models
+
 from apps.accounts.models import CustomUser
+
 from .validators import (
     validate_company_document_upload,
     validate_company_logo_upload,
 )
-from pathlib import Path
+
+
+EMAIL_LIST_SPLIT_RE = re.compile(r'[\n\r,;]+')
+
+
+def parse_company_notification_cc_emails(raw_value):
+    emails = []
+    seen = set()
+    for chunk in EMAIL_LIST_SPLIT_RE.split(raw_value or ''):
+        email = chunk.strip()
+        if not email:
+            continue
+        try:
+            validate_email(email)
+        except ValidationError as exc:
+            raise ValidationError(
+                'Inserisci uno o più indirizzi email validi, separati da virgole o su righe distinte.'
+            ) from exc
+        email_key = email.lower()
+        if email_key in seen:
+            continue
+        seen.add(email_key)
+        emails.append(email)
+    return emails
+
+
+def normalize_company_notification_cc_emails(raw_value):
+    return '\n'.join(parse_company_notification_cc_emails(raw_value))
 
 
 def upload_documento_azienda(instance, filename):
@@ -50,6 +84,14 @@ class Azienda(models.Model):
     codice_fiscale = models.CharField(max_length=16, blank=True)
     partita_iva = models.CharField(max_length=11, blank=True)
     email_contatto = models.EmailField(blank=True)
+    email_notifiche_cc = models.TextField(
+        blank=True,
+        default='',
+        help_text=(
+            "Indirizzi email che ricevono in cc le comunicazioni inviate all'account "
+            'azienda principale. Inseriscine uno per riga oppure separali con una virgola.'
+        ),
+    )
     telefono = models.CharField(max_length=20, blank=True)
     condizioni_pagamento_riservate = models.TextField(blank=True)
     protocollo_sanitario = models.FileField(
@@ -90,6 +132,20 @@ class Azienda(models.Model):
     def __str__(self):
         return self.display_name
 
+    @classmethod
+    def resolve_for_user(cls, user):
+        if not getattr(user, 'is_authenticated', False) or not getattr(user, 'is_azienda', False):
+            return None, None
+
+        azienda = cls.objects.filter(user=user).first()
+        if azienda:
+            return azienda, None
+
+        access = AziendaReadOnlyAccess.objects.select_related('azienda').filter(user=user).first()
+        if access:
+            return access.azienda, access
+        return None, None
+
     @property
     def display_name(self):
         if self.ragione_sociale:
@@ -105,6 +161,27 @@ class Azienda(models.Model):
         if len(parts) == 2:
             return f'{parts[1]} {parts[0]}'
         return referente
+
+    @property
+    def notification_cc_list(self):
+        return parse_company_notification_cc_emails(self.email_notifiche_cc)
+
+    @property
+    def formatted_notification_cc_emails(self):
+        return normalize_company_notification_cc_emails(self.email_notifiche_cc)
+
+    @property
+    def primary_notification_email(self):
+        if self.user_id and getattr(self.user, 'email', ''):
+            return self.user.email
+        return (self.email_contatto or '').strip()
+
+    def clean(self):
+        super().clean()
+        try:
+            self.email_notifiche_cc = normalize_company_notification_cc_emails(self.email_notifiche_cc)
+        except ValidationError as exc:
+            raise ValidationError({'email_notifiche_cc': exc.messages}) from exc
 
     def get_documenti_iniziali(self):
         documenti = []
@@ -123,6 +200,36 @@ class Azienda(models.Model):
                 'origine_label': 'Admin',
             })
         return documenti
+
+
+class AziendaReadOnlyAccess(models.Model):
+    azienda = models.ForeignKey(
+        Azienda,
+        on_delete=models.CASCADE,
+        related_name='read_only_accesses',
+    )
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='read_only_company_access',
+        limit_choices_to={'role': 'azienda'},
+    )
+    created_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_company_read_only_accesses',
+    )
+    data_creazione = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Accesso azienda in sola lettura'
+        verbose_name_plural = 'Accessi azienda in sola lettura'
+        ordering = ['user__email', 'pk']
+
+    def __str__(self):
+        return f'{self.azienda} - {self.user.email}'
 
 
 class DocumentoAziendale(models.Model):

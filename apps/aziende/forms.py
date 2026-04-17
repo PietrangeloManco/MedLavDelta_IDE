@@ -2,7 +2,12 @@ from django import forms
 
 from apps.accounts.models import CustomUser
 
-from .models import DocumentoAziendale, Lavoratore, Sede
+from .models import (
+    DocumentoAziendale,
+    Lavoratore,
+    Sede,
+    normalize_company_notification_cc_emails,
+)
 from .validators import (
     COMPANY_DOCUMENT_MAX_UPLOAD_SIZE,
     COMPANY_LOGO_MAX_UPLOAD_SIZE,
@@ -209,6 +214,54 @@ class CreaAccountLavoratoreForm(forms.Form):
         if self.lavoratore and getattr(self.lavoratore, 'user_id', None):
             raise forms.ValidationError('Questo lavoratore ha già un account collegato.')
         return cleaned
+
+
+class CreaAccountAziendaReadOnlyForm(forms.Form):
+    account_email = forms.EmailField(
+        label='Email account secondario',
+        help_text=(
+            "Crea un accesso azienda in sola lettura e invia una password temporanea "
+            "all'indirizzo indicato."
+        ),
+    )
+
+    def __init__(self, *args, azienda=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.azienda = azienda
+
+        for field in self.fields.values():
+            existing = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = f"{existing} form-control".strip()
+            field.widget.attrs.setdefault('autocomplete', 'email')
+
+    def clean_account_email(self):
+        email = (self.cleaned_data.get('account_email') or '').strip()
+        if CustomUser.objects.filter(email=email).exists():
+            raise forms.ValidationError('Esiste già un account con questa email.')
+        return email
+
+
+class AziendaNotificationCcForm(forms.Form):
+    email_notifiche_cc = forms.CharField(
+        required=False,
+        label='Email in cc per notifiche azienda',
+        help_text=(
+            'Inserisci uno o più indirizzi email, uno per riga oppure separati da virgole.'
+        ),
+        widget=forms.Textarea(attrs={
+            'rows': 4,
+            'placeholder': 'ufficio.hr@example.com\nreferente@example.com',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            existing = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = f"{existing} form-control".strip()
+
+    def clean_email_notifiche_cc(self):
+        return normalize_company_notification_cc_emails(self.cleaned_data.get('email_notifiche_cc'))
 
 
 class DocumentoAziendaleForm(forms.ModelForm):
