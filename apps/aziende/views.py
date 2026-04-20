@@ -51,6 +51,8 @@ CENTRO_DELTA_CONTACT = {
 }
 ADMIN_STAFF_GUIDE_FILENAME = 'Guida_Interna_Staff_CentroDelta_rev020426.pdf'
 ADMIN_STAFF_GUIDE_PATH = settings.BASE_DIR / 'static' / 'guides' / ADMIN_STAFF_GUIDE_FILENAME
+COMPANY_GUIDE_FILENAME = 'Guida_Aziende_CentroDelt_rev200426.pdf'
+COMPANY_GUIDE_PATH = settings.BASE_DIR / 'static' / 'guides' / COMPANY_GUIDE_FILENAME
 
 
 def get_azienda_documenti_context(azienda):
@@ -847,6 +849,19 @@ class AziendaDashboardView(AziendaRequiredMixin, View):
             'aziende/azienda_dashboard.html',
             get_azienda_dashboard_context(request, request.azienda),
         )
+
+
+class AziendaGuideView(AziendaRequiredMixin, View):
+    def get(self, request):
+        if not COMPANY_GUIDE_PATH.exists():
+            raise Http404('Guida aziende non disponibile.')
+
+        response = FileResponse(
+            COMPANY_GUIDE_PATH.open('rb'),
+            content_type='application/pdf',
+        )
+        response['Content-Disposition'] = f'inline; filename="{COMPANY_GUIDE_FILENAME}"'
+        return response
 
 
 class AziendaDocumentiView(AziendaRequiredMixin, View):

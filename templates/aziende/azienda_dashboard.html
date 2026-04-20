@@ -150,6 +150,7 @@
         {% endif %}
     </div>
     <div class="stack-actions">
+        <a href="{% url 'azienda_guide' %}" class="btn btn-outline" target="_blank" rel="noopener">Apri guida aziende</a>
         <a href="{% url 'azienda_documenti' %}" class="btn btn-outline">Documenti</a>
         {% if request.azienda_can_edit %}
         <a href="{% url 'azienda_lavoratore_nuovo' %}" class="btn btn-primary">Nuovo lavoratore</a>

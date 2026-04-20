@@ -1099,6 +1099,78 @@ class AdminDashboardGuideTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
 
+class AziendaDashboardGuideTests(TestCase):
+    def setUp(self):
+        self.company_user = CustomUser.objects.create_user(
+            email='azienda-guida@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        self.azienda = Azienda.objects.create(
+            user=self.company_user,
+            ragione_sociale='Azienda Guida SRL',
+            codice_univoco='GUIDA01',
+            pec='guida@pec.example.com',
+            referente_azienda='Sara Bianchi',
+            codice_fiscale='BNCSRA80A01H501Z',
+            partita_iva='12345670009',
+            email_contatto='guida@example.com',
+            telefono='0612340000',
+            condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
+        )
+        self.read_only_user = CustomUser.objects.create_user(
+            email='azienda-guida-readonly@example.com',
+            password='readonly-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        AziendaReadOnlyAccess.objects.create(
+            azienda=self.azienda,
+            user=self.read_only_user,
+            created_by=self.company_user,
+        )
+        self.admin_user = CustomUser.objects.create_user(
+            email='admin-guide-blocked@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[CustomUser.ADMIN_PERMISSION_DASHBOARD],
+        )
+
+    def test_company_dashboard_shows_company_guide_button(self):
+        self.client.force_login(self.company_user)
+
+        response = self.client.get(reverse('azienda_dashboard'))
+
+        self.assertContains(response, 'Apri guida aziende')
+        self.assertContains(response, reverse('azienda_guide'))
+
+    def test_company_guide_view_streams_pdf_for_company_users(self):
+        self.client.force_login(self.company_user)
+
+        response = self.client.get(reverse('azienda_guide'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn(
+            'inline; filename="Guida_Aziende_CentroDelt_rev200426.pdf"',
+            response['Content-Disposition'],
+        )
+
+    def test_company_guide_view_allows_read_only_company_access(self):
+        self.client.force_login(self.read_only_user)
+
+        response = self.client.get(reverse('azienda_guide'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+
+    def test_company_guide_view_requires_company_access(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.get(reverse('azienda_guide'))
+
+        self.assertEqual(response.status_code, 403)
+
+
 class AziendaLavoratoreCreateTests(TestCase):
     def setUp(self):
         self.user = CustomUser.objects.create_user(

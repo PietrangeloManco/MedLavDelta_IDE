@@ -46,6 +46,7 @@ urlpatterns = [
 
     # Azienda
     path('azienda/dashboard/', views.AziendaDashboardView.as_view(), name='azienda_dashboard'),
+    path('azienda/guida/', views.AziendaGuideView.as_view(), name='azienda_guide'),
     path('azienda/documenti/', views.AziendaDocumentiView.as_view(), name='azienda_documenti'),
     path('azienda/documenti/carica/', views.AziendaCaricaDocumentoView.as_view(), name='azienda_carica_documento'),
     path('azienda/account-secondario/crea/', views.AziendaReadOnlyAccountCreateView.as_view(), name='azienda_crea_account_read_only'),
