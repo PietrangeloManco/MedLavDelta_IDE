@@ -38,6 +38,27 @@ def send_account_credentials_email(user, temporary_password, request=None):
     )
 
 
+def send_previous_email_address_changed_notification(previous_email, new_email, request=None):
+    previous_email = (previous_email or '').strip()
+    new_email = (new_email or '').strip()
+    if not previous_email or not new_email or previous_email.lower() == new_email.lower():
+        return
+
+    subject = 'Aggiornamento email account MedLavDelta'
+    body = render_to_string('accounts/account_email_changed_previous_address.txt', {
+        'previous_email': previous_email,
+        'new_email': new_email,
+        'login_url': build_login_url(request),
+    })
+    send_mail(
+        subject=subject,
+        message=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[previous_email],
+        fail_silently=False,
+    )
+
+
 def create_user_with_generated_password(email, role, request=None, **extra_fields):
     temporary_password = generate_temporary_password()
     user = User.objects.create_user(

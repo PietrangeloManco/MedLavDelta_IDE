@@ -57,6 +57,14 @@ def upload_logo_azienda(instance, filename):
 
 
 class Azienda(models.Model):
+    CONTRATTO_SALDATO = 'saldato'
+    CONTRATTO_IN_ATTESA_PAGAMENTO = 'in_attesa_pagamento'
+    CONTRATTO_NON_SALDATO = 'non_saldato'
+    CONTRATTO_STATUS_CHOICES = [
+        (CONTRATTO_SALDATO, 'Saldato'),
+        (CONTRATTO_IN_ATTESA_PAGAMENTO, 'In attesa di pagamento'),
+        (CONTRATTO_NON_SALDATO, 'Non saldato'),
+    ]
     INITIAL_DOCUMENT_FIELDS = (
         ('logo_azienda', 'Logo azienda'),
         ('protocollo_sanitario', 'Protocollo sanitario'),
@@ -119,8 +127,10 @@ class Azienda(models.Model):
         validators=[validate_company_document_upload],
     )
     varie_note = models.TextField(blank=True)
-    contratto_saldato = models.BooleanField(
-        default=True,
+    stato_contratto = models.CharField(
+        max_length=30,
+        choices=CONTRATTO_STATUS_CHOICES,
+        default=CONTRATTO_SALDATO,
         help_text='Se non saldato, l\'azienda vedrà un avviso e le funzionalità saranno limitate.',
     )
     data_registrazione = models.DateTimeField(auto_now_add=True)
@@ -175,6 +185,45 @@ class Azienda(models.Model):
         if self.user_id and getattr(self.user, 'email', ''):
             return self.user.email
         return (self.email_contatto or '').strip()
+
+    @property
+    def contratto_saldato(self):
+        return self.stato_contratto == self.CONTRATTO_SALDATO
+
+    @property
+    def contratto_in_attesa_pagamento(self):
+        return self.stato_contratto == self.CONTRATTO_IN_ATTESA_PAGAMENTO
+
+    @property
+    def contratto_consente_accesso(self):
+        return self.stato_contratto in {
+            self.CONTRATTO_SALDATO,
+            self.CONTRATTO_IN_ATTESA_PAGAMENTO,
+        }
+
+    @property
+    def contratto_badge_class(self):
+        if self.stato_contratto == self.CONTRATTO_SALDATO:
+            return 'success'
+        if self.stato_contratto == self.CONTRATTO_IN_ATTESA_PAGAMENTO:
+            return 'warning'
+        return 'danger'
+
+    @property
+    def contratto_stat_color(self):
+        if self.stato_contratto == self.CONTRATTO_SALDATO:
+            return '#16a34a'
+        if self.stato_contratto == self.CONTRATTO_IN_ATTESA_PAGAMENTO:
+            return '#f59e0b'
+        return '#ef4444'
+
+    @property
+    def contratto_operativita_label(self):
+        if self.stato_contratto == self.CONTRATTO_SALDATO:
+            return 'Accesso azienda attivo'
+        if self.stato_contratto == self.CONTRATTO_IN_ATTESA_PAGAMENTO:
+            return 'Accesso attivo in attesa del saldo'
+        return 'Accesso azienda bloccato'
 
     def clean(self):
         super().clean()

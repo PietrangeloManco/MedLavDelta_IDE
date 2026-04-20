@@ -46,7 +46,7 @@ class AziendaRequiredMixin(LoginRequiredMixin):
         if self.requires_company_write_access and not request.azienda_can_edit:
             raise PermissionDenied
 
-        if not azienda.contratto_saldato:
+        if not azienda.contratto_consente_accesso:
             return render(request, 'aziende/azienda_contratto_non_saldato.html', {
                 'azienda': azienda,
             })

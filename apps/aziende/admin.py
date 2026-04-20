@@ -3,7 +3,11 @@ from django.contrib import admin
 from django.db.models import Q
 
 from apps.accounts.models import CustomUser
-from apps.accounts.services import generate_temporary_password, send_account_credentials_email
+from apps.accounts.services import (
+    generate_temporary_password,
+    send_account_credentials_email,
+    send_previous_email_address_changed_notification,
+)
 from .models import (
     Azienda,
     DocumentoAziendale,
@@ -39,6 +43,7 @@ class AziendaAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         current_user = getattr(self.instance, 'user', None)
+        self.original_account_email = (getattr(current_user, 'email', '') or '').strip()
         document_help_text = (
             f'Formati ammessi: PDF, DOCX. Max {COMPANY_DOCUMENT_MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
         )
@@ -87,6 +92,7 @@ class AziendaAdminForm(forms.ModelForm):
             ('codice_univoco', 'Codice univoco'),
             ('pec', 'PEC'),
             ('referente_azienda', 'Referente azienda'),
+            ('stato_contratto', 'Stato contratto'),
             ('condizioni_pagamento_riservate', 'Condizioni di pagamento riservate'),
             ('email_notifiche_cc', 'Email in cc notifiche azienda'),
         ):
@@ -181,6 +187,7 @@ class LavoratoreAdminForm(forms.ModelForm):
             'placeholder': 'Es. 333 1234567',
         })
         current_user = getattr(self.instance, 'user', None)
+        self.original_account_email = (getattr(current_user, 'email', '') or '').strip()
         user_queryset = CustomUser.objects.filter(role=CustomUser.OPERATORE)
         if current_user:
             user_queryset = user_queryset.filter(Q(lavoratore__isnull=True) | Q(pk=current_user.pk))
@@ -279,10 +286,10 @@ class AziendaAdmin(admin.ModelAdmin):
         'pec',
         'referente_azienda',
         'email_contatto',
-        'contratto_saldato',
+        'stato_contratto_display',
         'user',
     ]
-    list_filter = ['contratto_saldato']
+    list_filter = ['stato_contratto']
     search_fields = ['ragione_sociale', 'partita_iva', 'codice_univoco', 'pec', 'referente_azienda']
     inlines = [SedeInline, LavoratoreInline, DocumentoAziendaleInline]
     fieldsets = (
@@ -297,7 +304,7 @@ class AziendaAdmin(admin.ModelAdmin):
                 'email_contatto',
                 'telefono',
                 'condizioni_pagamento_riservate',
-                'contratto_saldato',
+                'stato_contratto',
             ),
         }),
         ('Notifiche email', {
@@ -318,10 +325,20 @@ class AziendaAdmin(admin.ModelAdmin):
         }),
     )
 
+    @admin.display(description='Contratto')
+    def stato_contratto_display(self, obj):
+        return obj.get_stato_contratto_display()
+
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         if getattr(form, 'generated_password', None) and obj.user:
             send_account_credentials_email(obj.user, form.generated_password, request=request)
+        if change and request.user.is_superuser and obj.user:
+            send_previous_email_address_changed_notification(
+                getattr(form, 'original_account_email', ''),
+                obj.user.email,
+                request=request,
+            )
         if not change:
             send_new_company_created_notification(obj, request=request)
 
@@ -372,5 +389,11 @@ class LavoratoreAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
         if getattr(form, 'generated_password', None) and obj.user:
             send_account_credentials_email(obj.user, form.generated_password, request=request)
+        if change and request.user.is_superuser and obj.user:
+            send_previous_email_address_changed_notification(
+                getattr(form, 'original_account_email', ''),
+                obj.user.email,
+                request=request,
+            )
         if not change:
             send_new_worker_created_notification(obj, request=request)

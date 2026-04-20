@@ -4,7 +4,11 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 
 from .models import CustomUser
-from .services import generate_temporary_password, send_account_credentials_email
+from .services import (
+    generate_temporary_password,
+    send_account_credentials_email,
+    send_previous_email_address_changed_notification,
+)
 
 
 class CustomUserCreationForm(forms.ModelForm):
@@ -105,6 +109,7 @@ class CustomUserChangeForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.initial['password'] = 'Password già impostata'
+        self.original_email = (getattr(self.instance, 'email', '') or '').strip()
         self.initial['admin_permissions'] = self.instance.admin_permissions or []
         self.fields['email'].label = 'Email'
         self.fields['role'].label = 'Ruolo'
@@ -203,6 +208,12 @@ class CustomUserAdmin(UserAdmin):
         super().save_model(request, obj, form, change)
         if not change and getattr(form, 'generated_password', None):
             send_account_credentials_email(obj, form.generated_password, request=request)
+        if change and request.user.is_superuser:
+            send_previous_email_address_changed_notification(
+                getattr(form, 'original_email', ''),
+                obj.email,
+                request=request,
+            )
 
 
 try:

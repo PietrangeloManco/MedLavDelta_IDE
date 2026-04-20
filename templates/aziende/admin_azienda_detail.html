@@ -43,12 +43,12 @@
         <div class="stat-value">{{ documenti_aggiuntivi|length }}</div>
         <div class="stat-icon">{% include 'includes/icons/document.html' %}</div>
     </div>
-    <div class="stat-card" style="--card-accent: {% if azienda.contratto_saldato %}#16a34a{% else %}#ef4444{% endif %}">
+    <div class="stat-card" style="--card-accent: {{ azienda.contratto_stat_color }}">
         <div class="stat-label">Contratto</div>
         <div style="font-size:18px; font-weight:700; color:var(--text)">
-            {% if azienda.contratto_saldato %}Saldato{% else %}Non saldato{% endif %}
+            {{ azienda.get_stato_contratto_display }}
         </div>
-        <div class="text-muted small">Stato operativo</div>
+        <div class="text-muted small">{{ azienda.contratto_operativita_label }}</div>
     </div>
 </div>
 
@@ -119,13 +119,21 @@
                             </div>
                         </div>
                         {% if can_manage_company %}
-                        <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}">
+                        <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}" style="display:grid; gap:12px">
                             {% csrf_token %}
-                            <input type="hidden" name="next" value="{{ request.path }}">
-                            <input type="hidden" name="contratto_saldato" value="{% if azienda.contratto_saldato %}0{% else %}1{% endif %}">
-                            <button type="submit" class="btn btn-outline btn-block">
-                                {% if azienda.contratto_saldato %}Segna non saldato{% else %}Segna saldato{% endif %}
-                            </button>
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <div class="form-group" style="margin-bottom:0">
+                                <label class="form-label" for="contract-status-{{ azienda.pk }}">Stato contratto</label>
+                                <select id="contract-status-{{ azienda.pk }}" name="stato_contratto" class="form-control">
+                                    <option value="saldato"{% if azienda.stato_contratto == 'saldato' %} selected{% endif %}>Saldato</option>
+                                    <option value="in_attesa_pagamento"{% if azienda.stato_contratto == 'in_attesa_pagamento' %} selected{% endif %}>In attesa di pagamento</option>
+                                    <option value="non_saldato"{% if azienda.stato_contratto == 'non_saldato' %} selected{% endif %}>Non saldato</option>
+                                </select>
+                                <div class="form-text">
+                                    Con "In attesa di pagamento" l'azienda può continuare a usare MedLavDelta.
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-outline btn-block">Salva stato contratto</button>
                         </form>
                         {% endif %}
                     </div>

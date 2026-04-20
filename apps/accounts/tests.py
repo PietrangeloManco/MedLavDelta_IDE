@@ -1,12 +1,17 @@
+from django.contrib.admin.sites import AdminSite
 from django.core import mail
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
-from .admin import CustomUserChangeForm, CustomUserCreationForm
+from .admin import CustomUserAdmin, CustomUserChangeForm, CustomUserCreationForm
 from .models import CustomUser
 
 
 class CustomUserAdminFormTests(TestCase):
+    def setUp(self):
+        self.request_factory = RequestFactory()
+        self.admin_site = AdminSite()
+
     def test_creation_form_generates_password_and_hashes_value(self):
         form = CustomUserCreationForm(
             data={
@@ -81,6 +86,47 @@ class CustomUserAdminFormTests(TestCase):
 
         self.assertTrue(saved_user.check_password('Nuova-pass-456'))
         self.assertEqual(saved_user.admin_permissions, [CustomUser.ADMIN_PERMISSION_MEDICAL_RECORDS])
+
+    def test_super_admin_email_change_notifies_previous_address(self):
+        super_admin = CustomUser.objects.create_user(
+            email='superadmin@example.com',
+            password='super-pass-123',
+            role=CustomUser.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+        user = CustomUser.objects.create_user(
+            email='vecchia@example.com',
+            password='utente-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        form = CustomUserChangeForm(
+            data={
+                'email': 'nuova@example.com',
+                'role': user.role,
+                'password': user.password,
+                'new_password': '',
+                'is_active': 'on',
+            },
+            instance=user,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+        request = self.request_factory.post('/admin/accounts/customuser/change/')
+        request.user = super_admin
+        model_admin = CustomUserAdmin(CustomUser, self.admin_site)
+        mail.outbox.clear()
+
+        saved_user = form.save(commit=False)
+        model_admin.save_model(request, saved_user, form, change=True)
+
+        user.refresh_from_db()
+
+        self.assertEqual(user.email, 'nuova@example.com')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['vecchia@example.com'])
+        self.assertIn('nuova@example.com', mail.outbox[0].body)
 
 
 class DashboardRouterTests(TestCase):

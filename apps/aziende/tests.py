@@ -2,17 +2,18 @@ from datetime import date, timedelta
 import re
 from tempfile import TemporaryDirectory
 
+from django.contrib.admin.sites import AdminSite
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import CustomUser
 from apps.sanitaria.forms import EsitoIdoneitaForm
 from apps.sanitaria.models import EsitoIdoneita
 
-from .admin import AziendaAdminForm, LavoratoreAdminForm
+from .admin import AziendaAdmin, AziendaAdminForm, LavoratoreAdminForm
 from .forms import CreaAziendaForm
 from .models import Azienda, AziendaReadOnlyAccess, DocumentoAziendale, Lavoratore
 from .services import INTERNAL_CREATION_NOTIFICATION_RECIPIENTS
@@ -42,6 +43,8 @@ class CreaAziendaFlowTests(TestCase):
         self.media_dir = TemporaryDirectory()
         self.media_override = override_settings(MEDIA_ROOT=self.media_dir.name)
         self.media_override.enable()
+        self.request_factory = RequestFactory()
+        self.admin_site = AdminSite()
 
         self.admin_user = CustomUser.objects.create_user(
             email='admin@example.com',
@@ -264,7 +267,7 @@ class CreaAziendaFlowTests(TestCase):
                 'email_contatto': azienda.email_contatto,
                 'telefono': azienda.telefono,
                 'condizioni_pagamento_riservate': azienda.condizioni_pagamento_riservate,
-                'contratto_saldato': 'on',
+                'stato_contratto': Azienda.CONTRATTO_SALDATO,
                 'user': str(azienda.user.pk),
                 'account_email': 'nuova.azienda@example.com',
                 'varie_note': azienda.varie_note,
@@ -279,6 +282,44 @@ class CreaAziendaFlowTests(TestCase):
 
         self.assertEqual(azienda.user.email, 'nuova.azienda@example.com')
 
+    def test_super_admin_email_change_notifies_previous_company_address(self):
+        azienda = self.create_existing_company()
+        form = AziendaAdminForm(
+            data={
+                'ragione_sociale': azienda.ragione_sociale,
+                'codice_univoco': azienda.codice_univoco,
+                'pec': azienda.pec,
+                'referente_azienda': azienda.referente_azienda,
+                'codice_fiscale': azienda.codice_fiscale,
+                'partita_iva': azienda.partita_iva,
+                'email_contatto': azienda.email_contatto,
+                'telefono': azienda.telefono,
+                'condizioni_pagamento_riservate': azienda.condizioni_pagamento_riservate,
+                'stato_contratto': Azienda.CONTRATTO_SALDATO,
+                'user': str(azienda.user.pk),
+                'account_email': 'nuova.azienda@example.com',
+                'varie_note': azienda.varie_note,
+            },
+            instance=azienda,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+        request = self.request_factory.post('/admin/aziende/azienda/change/')
+        request.user = self.admin_user
+        model_admin = AziendaAdmin(Azienda, self.admin_site)
+        mail.outbox.clear()
+
+        saved_azienda = form.save(commit=False)
+        model_admin.save_model(request, saved_azienda, form, change=True)
+
+        azienda.user.refresh_from_db()
+
+        self.assertEqual(azienda.user.email, 'nuova.azienda@example.com')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['azienda-form@example.com'])
+        self.assertIn('nuova.azienda@example.com', mail.outbox[0].body)
+
     def test_azienda_admin_form_can_create_company_without_account(self):
         form = AziendaAdminForm(
             data={
@@ -291,7 +332,7 @@ class CreaAziendaFlowTests(TestCase):
                 'email_contatto': '',
                 'telefono': '',
                 'condizioni_pagamento_riservate': '',
-                'contratto_saldato': 'on',
+                'stato_contratto': Azienda.CONTRATTO_SALDATO,
                 'user': '',
                 'account_email': '',
                 'varie_note': '',
@@ -1275,6 +1316,73 @@ class AziendaReadOnlyAccessTests(TestCase):
         self.assertNotContains(dashboard_response, reverse('azienda_lavoratore_nuovo'))
         self.assertNotContains(dashboard_response, reverse('azienda_crea_account_read_only'))
         self.assertContains(detail_response, 'Accesso in sola lettura')
+
+
+class AziendaContractStatusTests(TestCase):
+    def setUp(self):
+        self.admin_user = CustomUser.objects.create_user(
+            email='admin-contratto@example.com',
+            password='admin-pass-123',
+            role=CustomUser.ADMIN,
+            admin_permissions=[CustomUser.ADMIN_PERMISSION_COMPANIES],
+        )
+        self.user = CustomUser.objects.create_user(
+            email='azienda-contratto@example.com',
+            password='azienda-pass-123',
+            role=CustomUser.AZIENDA,
+        )
+        self.azienda = Azienda.objects.create(
+            user=self.user,
+            ragione_sociale='Azienda Contratto SRL',
+            codice_univoco='CTRATTO',
+            pec='contratto@pec.example.com',
+            referente_azienda='Luca Neri',
+            codice_fiscale='NRILCU80A01H501Z',
+            partita_iva='12345670002',
+            email_contatto='contratto@example.com',
+            telefono='0611111111',
+            condizioni_pagamento_riservate='Pagamento entro 30 giorni.',
+            stato_contratto=Azienda.CONTRATTO_NON_SALDATO,
+        )
+
+    def test_non_paid_contract_blocks_company_dashboard(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('azienda_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Pagamento del contratto non registrato')
+        self.assertNotContains(response, 'Gestione lavoratori e archivio documenti aziendali.')
+
+    def test_pending_payment_contract_allows_company_dashboard(self):
+        self.azienda.stato_contratto = Azienda.CONTRATTO_IN_ATTESA_PAGAMENTO
+        self.azienda.save(update_fields=['stato_contratto'])
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('azienda_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Gestione lavoratori e archivio documenti aziendali.')
+        self.assertNotContains(response, 'Pagamento del contratto non registrato')
+
+    def test_admin_can_set_pending_payment_status(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.post(
+            reverse('admin_azienda_contratto', args=[self.azienda.pk]),
+            data={
+                'stato_contratto': Azienda.CONTRATTO_IN_ATTESA_PAGAMENTO,
+                'next': reverse('admin_aziende'),
+            },
+        )
+
+        self.azienda.refresh_from_db()
+
+        self.assertRedirects(response, reverse('admin_aziende'))
+        self.assertEqual(
+            self.azienda.stato_contratto,
+            Azienda.CONTRATTO_IN_ATTESA_PAGAMENTO,
+        )
 
 
 class AziendaNotificationCcTests(TestCase):

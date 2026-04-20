@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib import messages
-from django.db.models import Count, OuterRef, Subquery
+from django.db.models import Case, Count, IntegerField, OuterRef, Subquery, Value, When
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -314,7 +314,18 @@ class AdminAziendeListView(AdminPermissionRequiredMixin, View):
     admin_permissions_mode = 'any'
 
     def get(self, request):
-        aziende = Azienda.objects.annotate(lavoratori_totali=Count('lavoratori', distinct=True))
+        aziende = Azienda.objects.annotate(
+            lavoratori_totali=Count('lavoratori', distinct=True),
+            contratto_ordinamento=Case(
+                When(stato_contratto=Azienda.CONTRATTO_SALDATO, then=Value(0)),
+                When(
+                    stato_contratto=Azienda.CONTRATTO_IN_ATTESA_PAGAMENTO,
+                    then=Value(1),
+                ),
+                default=Value(2),
+                output_field=IntegerField(),
+            ),
+        )
         current_search = get_list_search_term(request)
         aziende = apply_text_search(
             aziende,
@@ -337,7 +348,7 @@ class AdminAziendeListView(AdminPermissionRequiredMixin, View):
                 'partita_iva': ('partita_iva', 'ragione_sociale'),
                 'email': ('email_contatto', 'ragione_sociale'),
                 'lavoratori': ('lavoratori_totali', 'ragione_sociale'),
-                'contratto': ('contratto_saldato', 'ragione_sociale'),
+                'contratto': ('contratto_ordinamento', 'ragione_sociale'),
             },
             default_sort='ragione_sociale',
         )
@@ -370,15 +381,26 @@ class AdminAggiornaContrattoView(AdminPermissionRequiredMixin, View):
 
     def post(self, request, pk):
         azienda = get_object_or_404(Azienda, pk=pk)
-        valore = request.POST.get('contratto_saldato')
-        if valore in ('1', 'true', 'True', 'on'):
-            azienda.contratto_saldato = True
-        elif valore in ('0', 'false', 'False'):
-            azienda.contratto_saldato = False
+        stato_contratto = (request.POST.get('stato_contratto') or '').strip()
+        legacy_value = request.POST.get('contratto_saldato')
+        valid_statuses = {value for value, _label in Azienda.CONTRATTO_STATUS_CHOICES}
+
+        if stato_contratto in valid_statuses:
+            nuovo_stato = stato_contratto
+        elif legacy_value in ('1', 'true', 'True', 'on'):
+            nuovo_stato = Azienda.CONTRATTO_SALDATO
+        elif legacy_value in ('0', 'false', 'False'):
+            nuovo_stato = Azienda.CONTRATTO_NON_SALDATO
         else:
-            azienda.contratto_saldato = not azienda.contratto_saldato
-        azienda.save(update_fields=['contratto_saldato'])
-        messages.success(request, f'Contratto aggiornato per {azienda.display_name}.')
+            messages.error(request, 'Seleziona uno stato contratto valido.')
+            next_url = request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('admin_azienda_detail', pk=pk)
+
+        azienda.stato_contratto = nuovo_stato
+        azienda.save(update_fields=['stato_contratto'])
+        messages.success(request, f'Stato contratto aggiornato per {azienda.display_name}.')
         next_url = request.POST.get('next')
         if next_url:
             return redirect(next_url)

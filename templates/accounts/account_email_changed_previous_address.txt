@@ -1,0 +1,14 @@
+Buongiorno,
+
+un super amministratore ha aggiornato l'indirizzo email associato al tuo account MedLavDelta.
+
+Email precedente: {{ previous_email }}
+Nuova email: {{ new_email }}
+Accesso: {{ login_url }}
+
+Da questo momento, per accedere a MedLavDelta, devi usare il nuovo indirizzo email.
+
+Se non riconosci questa modifica, contatta Centro Delta.
+
+Cordiali saluti,
+Centro Delta | MedLavDelta

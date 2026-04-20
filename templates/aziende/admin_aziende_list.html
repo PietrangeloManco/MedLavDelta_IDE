@@ -66,11 +66,7 @@
                     <td class="text-muted">{{ azienda.email_contatto|default:"-" }}</td>
                     <td><span class="badge badge-info">{{ azienda.lavoratori_totali }}</span></td>
                     <td>
-                        {% if azienda.contratto_saldato %}
-                        <span class="badge badge-success">Saldato</span>
-                        {% else %}
-                        <span class="badge badge-danger">Non saldato</span>
-                        {% endif %}
+                        <span class="badge badge-{{ azienda.contratto_badge_class }}">{{ azienda.get_stato_contratto_display }}</span>
                     </td>
                     <td>
                         <div class="stack-actions">
@@ -90,13 +86,15 @@
                             <a href="{% url 'admin_fattura_nuova' %}?azienda={{ azienda.pk }}" class="btn btn-outline btn-sm">Nuova fattura</a>
                             {% endif %}
                             {% if request.user.admin_permission_map.company_profiles_manage %}
-                            <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}">
+                            <form method="post" action="{% url 'admin_azienda_contratto' azienda.pk %}" style="display:grid; gap:8px; min-width:220px">
                                 {% csrf_token %}
-                                <input type="hidden" name="next" value="{{ request.path }}">
-                                <input type="hidden" name="contratto_saldato" value="{% if azienda.contratto_saldato %}0{% else %}1{% endif %}">
-                                <button type="submit" class="btn btn-outline btn-sm">
-                                    {% if azienda.contratto_saldato %}Segna non saldato{% else %}Segna saldato{% endif %}
-                                </button>
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <select name="stato_contratto" class="form-control">
+                                    <option value="saldato"{% if azienda.stato_contratto == 'saldato' %} selected{% endif %}>Saldato</option>
+                                    <option value="in_attesa_pagamento"{% if azienda.stato_contratto == 'in_attesa_pagamento' %} selected{% endif %}>In attesa di pagamento</option>
+                                    <option value="non_saldato"{% if azienda.stato_contratto == 'non_saldato' %} selected{% endif %}>Non saldato</option>
+                                </select>
+                                <button type="submit" class="btn btn-outline btn-sm">Salva contratto</button>
                             </form>
                             {% endif %}
                         </div>
