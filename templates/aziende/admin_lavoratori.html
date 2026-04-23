@@ -80,7 +80,7 @@
                     <td>
                         {% if lavoratore.ultimo_esito %}
                         <span class="badge badge-{% if lavoratore.ultimo_esito == 'idoneo' %}success{% elif lavoratore.ultimo_esito == 'non_idoneo' %}danger{% else %}warning{% endif %}">
-                            {% if lavoratore.ultimo_esito == 'idoneo' %}Idoneo{% elif lavoratore.ultimo_esito == 'idoneo_limitazioni' %}Idoneo con limitazioni{% elif lavoratore.ultimo_esito == 'idoneita_prescrizione' %}Idoneità con prescrizione{% elif lavoratore.ultimo_esito == 'non_idoneo' %}Non idoneo{% else %}Non idoneo temporaneo{% endif %}
+                            {% if lavoratore.ultimo_esito == 'idoneo' %}Idoneità confermata{% elif lavoratore.ultimo_esito == 'idoneo_limitazioni' %}Idoneità con limitazioni{% elif lavoratore.ultimo_esito == 'idoneita_prescrizione' %}Idoneità con prescrizione{% elif lavoratore.ultimo_esito == 'idoneo_prescrizioni_limitazioni' %}Idoneità con prescrizioni e limitazioni{% elif lavoratore.ultimo_esito == 'non_idoneo' %}Idoneità non confermata{% else %}Idoneità non confermata (temporanea){% endif %}
                         </span>
                         {% else %}
                         <span class="text-muted">-</span>

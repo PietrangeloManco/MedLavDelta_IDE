@@ -62,21 +62,23 @@ class EsitoIdoneita(models.Model):
     IDONEO = 'idoneo'
     IDONEO_LIMITAZIONI = 'idoneo_limitazioni'
     IDONEITA_PRESCRIZIONE = 'idoneita_prescrizione'
+    IDONEO_PRESCRIZIONI_LIMITAZIONI = 'idoneo_prescrizioni_limitazioni'
     NON_IDONEO = 'non_idoneo'
     TEMPORANEO = 'non_idoneo_temporaneo'
 
     ESITO_CHOICES = [
-        (IDONEO, 'Idoneo'),
-        (IDONEO_LIMITAZIONI, 'Idoneo con limitazioni'),
+        (IDONEO, 'Idoneità confermata'),
+        (IDONEO_LIMITAZIONI, 'Idoneità con limitazioni'),
         (IDONEITA_PRESCRIZIONE, 'Idoneità con prescrizione'),
-        (NON_IDONEO, 'Non idoneo'),
-        (TEMPORANEO, 'Non idoneo temporaneo'),
+        (IDONEO_PRESCRIZIONI_LIMITAZIONI, 'Idoneità con prescrizioni e limitazioni'),
+        (NON_IDONEO, 'Idoneità non confermata'),
+        (TEMPORANEO, 'Idoneità non confermata (temporanea)'),
     ]
 
     lavoratore = models.ForeignKey(
         Lavoratore, on_delete=models.CASCADE, related_name='idoneita'
     )
-    esito = models.CharField(max_length=30, choices=ESITO_CHOICES)
+    esito = models.CharField(max_length=35, choices=ESITO_CHOICES)
     mansione = models.CharField(max_length=255)
     data_visita = models.DateField()
     data_scadenza = models.DateField()
