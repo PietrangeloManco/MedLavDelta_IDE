@@ -9,7 +9,6 @@ INTERNAL_CREATION_NOTIFICATION_RECIPIENTS = (
     'marketing@centrodeltasrl.com',
     'piero.porcaro@tecnobios.com',
     'piercarmine.porcaro@tecnobios.com',
-    'pietrangelo.manco@centrodeltasrl.com'
 )
 
 
