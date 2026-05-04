@@ -793,7 +793,7 @@ class AdminRegistraEsitoView(AdminPermissionRequiredMixin, View):
                 "Le comunichiamo che Centro Delta ha caricato sulla piattaforma MedLavDelta "
                 f"il giudizio di idoneità alla mansione relativo al lavoratore {lavoratore.nome_completo}.\n"
                 "Il documento è ora consultabile accedendo alla sua area riservata.\n"
-                "[ ACCEDI ALLA PIATTAFORMA ]\n"
+                "https://medlavdelta.it/accounts/login/\n"
                 "Per qualsiasi informazione, rimaniamo a sua disposizione.\n"
                 "Cordiali saluti,\n"
                 "Centro Delta"

@@ -1536,6 +1536,8 @@ class AziendaNotificationCcTests(TestCase):
         self.assertEqual(message.to, ['azienda-notifiche@example.com'])
         self.assertEqual(message.cc, ['hr@example.com', 'safety@example.com'])
         self.assertIn(self.lavoratore.nome_completo, message.body)
+        self.assertIn('https://medlavdelta.it/accounts/login/', message.body)
+        self.assertNotIn('[ ACCEDI ALLA PIATTAFORMA ]', message.body)
 
     @override_settings(CENTRO_MEDICO_EMAIL='centro@example.com')
     def test_scadenza_command_keeps_cc_addresses(self):
